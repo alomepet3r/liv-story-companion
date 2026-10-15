@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node (web/ later)
+node_modules/
+dist/
+
+# Secrets — never commit
+.env
+
+# OS
+.DS_Store
