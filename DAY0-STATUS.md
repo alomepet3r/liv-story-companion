@@ -25,3 +25,11 @@
 ## Not started (per plan)
 
 - Day 1 (Oct 26): web app shell in `web/` with Muse Spark chat wired in.
+
+## Update — Oct 20, 2026 (Petro, via screenshot)
+- Petro signed in to dev.meta.ai himself (Hugo's browser is policy-blocked at auth.meta.ai). Dashboard shows a project exists and **1 API key — that key is Petro's PLAYGROUND key, unrelated to this hackathon. Do NOT use it.**
+- Still needed: a NEW key created for the hackathon (suggested name: nandoluce-hackathon), pasted to Hugo for .env wiring + live smoke test.
+- Credits: dashboard shows $0.00 spend, no balance — Billing page check pending (Petro to view/screenshot).
+- Context (Petro, Oct 20): the dev.meta.ai project/key = a personal sandbox he is setting up for himself (Meta Model API / Muse exploration). Separate from this hackathon build — keep the two lanes distinct.
+- **Key wired (Oct 20, evening):** Petro created the hackathon key and pasted it; stored in repo .env (gitignored, chmod 600). Smoke: **9 models reachable** incl. muse-spark-1.3 (chat), muse-voice-transcribe-1.0, muse-image-1.0, sam-3.1. NOTE: smoke needs env exported (`set -a; . ./.env; set +a`) — config.py reads environment only.
+- **BLOCKER: chat returns HTTP 402 Payment Required** — key authenticates and lists models, but generation is refused: the **$150 hackathon credit is NOT on the account yet**. Next step is Petro in dev.meta.ai → Billing: claim the credit (screenshot Billing if no claim is visible or a payment method is demanded). After the claim, re-run one chat call to confirm end-to-end.
