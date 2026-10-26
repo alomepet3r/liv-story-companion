@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Companion — Your stories, in your own voice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <p class="wordmark">Story Companion</p>
+</header>
+
+<main>
+  <!-- Screen 1 — Consent. Nothing else is reachable until the
+       storyteller agrees; the server enforces the same gate. -->
+  <section id="consent-screen" aria-labelledby="consent-heading">
+    <h1 id="consent-heading">Your stories, in your own voice</h1>
+    <p class="lede">Sit down with a patient companion. Talk about your
+      life, at your pace. Afterwards, the conversation is arranged into
+      a chapter — and you review and approve it before anything is
+      shared.</p>
+
+    <ul class="promises">
+      <li><span class="promise-icon" aria-hidden="true">✎</span>
+        We only save your conversation with your permission.</li>
+      <li><span class="promise-icon" aria-hidden="true">✓</span>
+        You approve everything before it is shared.</li>
+      <li><span class="promise-icon" aria-hidden="true">■</span>
+        You can stop or delete at any time.</li>
+    </ul>
+
+    <div class="plain-box">
+      <h2>In plain words</h2>
+      <p><strong>What is kept:</strong> the words of our conversation,
+        as text, so they can be arranged into a chapter for you to
+        review.</p>
+      <p><strong>Who can see it:</strong> no one else. Nothing leaves
+        this conversation unless you approve it first.</p>
+      <p><strong>Stopping:</strong> you may pause, skip a question, or
+        finish at any time — no reason needed.</p>
+      <p class="sovereign">Yours. Always. Delete anything, anytime.</p>
+    </div>
+
+    <details class="spoken-script">
+      <summary>Reading this together? A short consent script to read aloud (about 30 seconds)</summary>
+      <p>“Hello, and welcome. Before we begin, here is what will happen.
+        We will sit together and talk about your life, at your pace.
+        Our conversation will be written down so it can be arranged
+        into a chapter. You will see that chapter first, and nothing is
+        shared with anyone unless you approve it. You may pause, stop,
+        or skip any question at any time. And remember: these are your
+        stories. Yours. Always. Delete anything, anytime. If that
+        sounds good, we can begin.”</p>
+    </details>
+
+    <button id="begin-btn" class="primary" type="button">I understand — let’s begin</button>
+    <p><a href="#" id="not-now">Not now</a> <span id="not-now-msg" class="quiet" hidden>That is quite all right. This page will be here whenever you are ready.</span></p>
+  </section>
+
+  <!-- Screen 2 — Conversation. Hidden until consent is given. -->
+  <section id="chat-screen" hidden aria-labelledby="chat-heading">
+    <h1 id="chat-heading" class="chat-title">Let’s talk</h1>
+    <div id="messages" class="messages" aria-live="polite"></div>
+
+    <form id="chat-form">
+      <label for="chat-input">Your reply</label>
+      <textarea id="chat-input" rows="3"
+        placeholder="Type here, in your own time…"></textarea>
+      <button class="primary" type="submit">Send</button>
+    </form>
+    <p class="chat-actions">
+      <button id="finish-btn" class="secondary" type="button">Finish for today</button>
+    </p>
+    <p class="quiet">Take your time. There is no hurry here.</p>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
