@@ -199,6 +199,12 @@ def handle_chat(payload):
         # FR-C1: nothing is captured before consent. The gate is real,
         # not just a hidden button in the page.
         return 403, {"error": "Consent is required before we begin."}
+    if payload.get("age_confirmed") is not True:
+        # Age posture (Petro, Oct 26): lone users are adults only.
+        # The consent screen carries an explicit 18+ attestation, and
+        # it is enforced here too, the same way as consent.
+        return 403, {"error": "Please confirm you are 18 or older "
+                              "before we begin."}
     # "session" is accepted as an alias for "session_id" — the Day 1
     # test harness used "session" and silently landed every tester in
     # the shared "default" session (wart noted in DAY1-STATUS.md).

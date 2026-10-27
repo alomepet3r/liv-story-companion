@@ -178,6 +178,37 @@ h2 {
   min-height: 2.75rem;
 }
 
+/* Consent attestations: two large, easy targets. The Begin button
+   stays disabled until both boxes are checked (consent + 18+). */
+
+.consent-checks { margin: 0 0 1.5rem; }
+
+.consent-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.consent-check input {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  margin-top: 0.15rem;
+  accent-color: var(--ember);
+}
+
+.consent-check input:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
 button.primary {
   display: block;
   width: 100%;
@@ -191,6 +222,11 @@ button.primary {
   padding: 1.1rem 1.5rem;
   min-height: 3.75rem;
   cursor: pointer;
+}
+
+button.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 button.primary:focus-visible,

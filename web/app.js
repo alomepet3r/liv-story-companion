@@ -5,6 +5,10 @@
 // chooses their companion's name on Screen 1 — Livio, Livia, or Liv
 // (Liv is the default) — and the choice is sent with every call so the
 // server keeps it for the whole session.
+// Age posture (Petro, Oct 26): lone users are adults only. The Begin
+// button stays disabled until BOTH the consent checkbox and the
+// "I confirm I am 18 or older" attestation are checked, and every
+// call carries age_confirmed, which the server enforces the same way.
 
 (function () {
   "use strict";
@@ -12,7 +16,19 @@
   var sessionId = "s-" + Date.now().toString(36) + "-" +
     Math.random().toString(36).slice(2, 8);
   var consented = false;
+  var ageConfirmed = false;
   var companionName = "Liv";
+
+  var beginBtn = document.getElementById("begin-btn");
+  var consentCheck = document.getElementById("consent-check");
+  var ageCheck = document.getElementById("age-check");
+
+  function refreshBegin() {
+    beginBtn.disabled = !(consentCheck.checked && ageCheck.checked);
+  }
+  consentCheck.addEventListener("change", refreshBegin);
+  ageCheck.addEventListener("change", refreshBegin);
+  refreshBegin();
 
   var consentScreen = document.getElementById("consent-screen");
   var chatScreen = document.getElementById("chat-screen");
@@ -62,6 +78,7 @@
         session_id: sessionId,
         message: message,
         consent: consented,
+        age_confirmed: ageConfirmed,
         companion: companionName
       })
     })
@@ -83,8 +100,10 @@
       });
   }
 
-  document.getElementById("begin-btn").addEventListener("click", function () {
+  beginBtn.addEventListener("click", function () {
+    if (!(consentCheck.checked && ageCheck.checked)) { return; }
     consented = true;
+    ageConfirmed = true;
     consentScreen.hidden = true;
     chatScreen.hidden = false;
     send("", false).then(function () { input.focus(); });

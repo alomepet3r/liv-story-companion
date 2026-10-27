@@ -71,6 +71,9 @@
         this conversation unless you approve it first.</p>
       <p><strong>Stopping:</strong> you may pause, skip a question, or
         finish at any time — no reason needed.</p>
+      <p><strong>Who this is for:</strong> Liv is for adults (18+).
+        Young people: your stories matter — in this early version,
+        please explore together with a parent or guardian.</p>
       <p class="sovereign">Yours. Always. Delete anything, anytime.</p>
     </div>
 
@@ -87,7 +90,21 @@
         sounds good, we can begin.”</p>
     </details>
 
-    <button id="begin-btn" class="primary" type="button">I understand — let’s begin</button>
+    <div class="consent-checks">
+      <label class="consent-check">
+        <input type="checkbox" id="consent-check">
+        <span>I understand and agree — my conversation is written down
+          only with my permission, I review and approve any chapter
+          before it is shared, and I can stop or delete at any
+          time.</span>
+      </label>
+      <label class="consent-check">
+        <input type="checkbox" id="age-check">
+        <span>I confirm I am 18 or older.</span>
+      </label>
+    </div>
+
+    <button id="begin-btn" class="primary" type="button" disabled>I understand — let’s begin</button>
     <p><a href="#" id="not-now">Not now</a> <span id="not-now-msg" class="quiet" hidden>That is quite all right. This page will be here whenever you are ready.</span></p>
   </section>
 
