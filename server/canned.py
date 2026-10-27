@@ -24,6 +24,16 @@ boundaried. Concretely:
   talk about X", "skip that", "not today"), acknowledge it warmly in
   one line, move on, and never return to that topic — not in follow-ups,
   not in callbacks, not via theme offers — for the rest of the session.
+- SENSITIVITY GATES (Petro, Oct 26, 2026): Liv does not choose what
+  is talked about — the storyteller does. But when the storyteller
+  enters very personal territory, Liv guards the doorway: pause,
+  explain plainly, and ask explicit consent to continue AND to keep
+  the material before going on. Two gates — intimate territory (the
+  storyteller's own adult life; legitimate, never shamed) and health
+  territory (diagnoses and health information; extra privacy
+  protections, never any claim of formal healthcare compliance).
+  HARD EXCEPTION: sexual content involving minors is never continued
+  and never kept — one plain line, then move on.
 - Never invent facts about the storyteller. Only ask, listen, follow up.
 - Meet tender topics plainly — no morbidity, no forced cheer.
 """
@@ -147,6 +157,161 @@ _BOUNDARY_ACKS = [
      "I'm here — we can talk about anything else, in your own time."),
 ]
 
+# --- Sensitivity gates ------------------------------------------------
+# Conservative detection, by design: these patterns need CLEAR signals
+# (explicit phrases, a named condition, "diagnosed with"), never a lone
+# weak word. Ordinary storytelling — love, family affection, a first
+# job, a mother's cooking — must sail through ungated; a false gate
+# would interrupt exactly the telling we exist to receive. Detection
+# runs BEFORE detail extraction, so gated material is not absorbed
+# into the session's details unless consent is given.
+_CONDITIONS = (
+    r"cancer|diabetes|dementia|alzheimer'?s|parkinson'?s|hiv|aids|"
+    r"depression|anxiety disorder|ptsd|bipolar disorder|schizophrenia|"
+    r"epilepsy|multiple sclerosis|lupus|hepatitis|kidney disease|"
+    r"heart disease|liver disease|copd|asthma"
+)
+_HEALTH_PATTERNS = [
+    r"\bdiagnosed with\b",
+    r"\bmy diagnosis\b",
+    r"\ba diagnosis of\b",
+    r"\bdoctor (?:said|told me) i have\b",
+    r"\btested positive\b",
+    r"\bmy condition\b",
+    r"\btreatment for my\b",
+    r"\btreatment for\b[^.]{0,40}\b(?:" + _CONDITIONS + r")\b",
+    r"\bi have (?:a |an |the )?(?:" + _CONDITIONS + r")\b",
+    r"\bmy (?:chronic )?(?:" + _CONDITIONS + r")\b",
+    r"\bliving with (?:a |an )?(?:" + _CONDITIONS + r")\b",
+    r"\bsuffer(?:s|ing)? from (?:a |an )?(?:" + _CONDITIONS + r")\b",
+]
+_HEALTH_RE = re.compile("|".join("(?:%s)" % p for p in _HEALTH_PATTERNS))
+
+_INTIMATE_PATTERNS = [
+    r"\bmade love\b",
+    r"\bslept with\b",
+    r"\bsleeping with\b",
+    r"\bhad sex\b",
+    r"\bhaving sex\b",
+    r"\bsex life\b",
+    r"\bsexual relationship\b",
+    r"\bsexual life\b",
+    r"\bnude (?:photo|photos|picture|pictures|image|images|selfie|selfies)\b",
+    r"\bsent (?:him|her|them|me) nudes\b",
+    r"\bmy nudes\b",
+    r"\bhad an affair\b",
+    r"\bhaving an affair\b",
+    r"\bmy affair\b",
+    r"\bmy lover\b",
+    r"\btook a lover\b",
+    r"\bin bed together\b",
+    r"\berotic\b",
+]
+_INTIMATE_RE = re.compile("|".join("(?:%s)" % p for p in _INTIMATE_PATTERNS))
+# "naked" alone is intimate — except its innocent idioms.
+_NAKED_RE = re.compile(r"\bnaked\b")
+_NAKED_IDIOMS = ("naked eye", "naked truth", "naked flame", "naked light")
+
+# Hard exception: sexual content involving minors. Needs BOTH a sexual
+# signal and a minor signal (a child mentioned in an ordinary story, or
+# sex mentioned between adults, never trips this alone).
+_MINOR_SEX_RE = re.compile(
+    r"\bsexual(?:ly)?\b|\bsex\b|\berotic\b|\bmade love\b|\bslept with\b|"
+    r"\bmolest(?:ed|ing|s)?\b|\btouch(?:ed|ing|es)? (?:me|him|her|them|us)\b"
+)
+_MINOR_TERM_RE = re.compile(
+    r"\bchild(?:ren)?\b|\bkids?\b|\bunderage\b|\bminors?\b|"
+    r"\bschool(?:boy|girl)\b|\bboy\b|\bgirl\b"
+)
+_MINOR_AGE_WORDS = {
+    "one", "two", "three", "four", "five", "six", "seven", "eight",
+    "nine", "ten", "eleven", "twelve", "thirteen", "fourteen",
+    "fifteen", "sixteen", "seventeen",
+}
+_MINOR_AGE_RE = re.compile(
+    r"\b(\d{1,2}|[a-z]+)[- ]years?[- ]old\b")
+
+_GATE_TEXTS = {
+    "intimate": (
+        "Before we go further — this is intimate ground, and it's "
+        "yours to share; there is nothing wrong in telling it here. "
+        "If we keep going, what you tell me becomes part of your "
+        "story record, kept with your stories. Are you happy for us "
+        "to continue, and to keep this part? A simple yes or no is "
+        "fine."),
+    "health": (
+        "Before we go further — this sounds like health information, "
+        "and that deserves extra care. If we keep going, this part "
+        "will be kept with extra privacy protections, as part of "
+        "your story record. Are you happy for us to continue, and "
+        "to keep this part? A simple yes or no is fine."),
+}
+_GATE_CONTINUE = {
+    "intimate": ("Thank you — we'll go on, then, at your pace. "
+                 "Please, tell me more whenever you're ready."),
+    "health": ("Thank you — we'll go on, and I'll treat that part "
+               "with extra care. Please, tell me more whenever "
+               "you're ready."),
+}
+_GATE_PIVOT = ("Of course — we'll leave that there, and I won't bring "
+               "it back. We can talk about anything else, whenever "
+               "you're ready.")
+_GATE_AMBIGUOUS_PIVOT = ("I'll take that as a not-for-now, to be safe — "
+                         "we'll leave that there. We can talk about "
+                         "anything else, whenever you're ready.")
+_MINOR_REFUSAL = ("I can't continue or keep a story about sexual "
+                  "involvement with a child — that is a line I don't "
+                  "cross. We can leave it there entirely. Whenever "
+                  "you're ready, we can talk about something else.")
+
+_YES_RE = re.compile(
+    r"^(yes|yeah|yep|sure|okay|ok|fine|agreed|i agree|go ahead|"
+    r"please do|that'?s fine|that is fine|keep it|keep going|"
+    r"you can keep it)\b")
+_NO_RE = re.compile(
+    r"^(no|nope|no thanks|not really|rather not|don'?t|do not|"
+    r"please don'?t|skip it|leave it)\b")
+
+
+def detect_sensitive(text):
+    """Return 'health' or 'intimate' if this message clearly enters
+    gated territory, else None. Health is checked first: a health
+    disclosure that is also intimate gets the extra-care gate."""
+    lowered = _normalise(text)
+    if _HEALTH_RE.search(lowered):
+        return "health"
+    if _INTIMATE_RE.search(lowered):
+        return "intimate"
+    if _NAKED_RE.search(lowered) and not any(
+            idiom in lowered for idiom in _NAKED_IDIOMS):
+        return "intimate"
+    return None
+
+
+def detect_minor_sexual(text):
+    """True only when sexual signals and minor signals co-occur."""
+    lowered = _normalise(text)
+    if not _MINOR_SEX_RE.search(lowered):
+        return False
+    if _MINOR_TERM_RE.search(lowered):
+        return True
+    m = _MINOR_AGE_RE.search(lowered)
+    if m:
+        token = m.group(1)
+        if token.isdigit():
+            return int(token) < 18
+        return token in _MINOR_AGE_WORDS
+    return False
+
+
+def _parse_sensitive_answer(lowered):
+    """Classify the storyteller's answer to a gate question."""
+    if _YES_RE.match(lowered):
+        return "yes"
+    if _NO_RE.match(lowered):
+        return "no"
+    return None
+
 
 def _normalise(text):
     return text.replace("’", "'").replace("‘", "'").lower()
@@ -234,6 +399,13 @@ class CannedCompanion:
         self.stalls = 0            # consecutive detail-free answers
         self.blocked_words = set() # boundary topics, lowercase words
         self.boundaries = 0        # how many boundaries have been set
+        # Sensitivity gates: category awaiting an explicit answer
+        # ("intimate" / "health"), categories consented to (never
+        # re-gated this session), and categories declined or left
+        # ambiguous (gate does not fire again this session).
+        self.awaiting_sensitive_consent = None
+        self.sensitive_consented = set()
+        self.sensitive_declined = set()
 
     # -- boundary helpers ------------------------------------------------
     def _is_blocked(self, phrase):
@@ -282,7 +454,52 @@ class CannedCompanion:
         if topics is not None:
             self._note_boundary(topics)
             self.stalls = 0
+            if self.awaiting_sensitive_consent is not None:
+                # A boundary stated while a gate question is open is
+                # also the gate's answer: no.
+                self.sensitive_declined.add(
+                    self.awaiting_sensitive_consent)
+                self.awaiting_sensitive_consent = None
             return _BOUNDARY_ACKS[(self.boundaries - 1) % len(_BOUNDARY_ACKS)]
+
+        # SENSITIVITY GATES — a pending gate question is answered
+        # before anything else in this message is used. Clear yes:
+        # consent recorded for the category, gate never fires again
+        # this session. Clear no, or anything ambiguous: graceful
+        # pivot, no consent recorded, gate does not re-fire.
+        if self.awaiting_sensitive_consent is not None:
+            category = self.awaiting_sensitive_consent
+            self.awaiting_sensitive_consent = None
+            answer = _parse_sensitive_answer(lowered)
+            self.stalls = 0
+            if answer == "no":
+                self.sensitive_declined.add(category)
+                return _GATE_PIVOT
+            if answer is None:
+                self.sensitive_declined.add(category)
+                return _GATE_AMBIGUOUS_PIVOT
+            self.sensitive_consented.add(category)
+            if len(text) <= 30:
+                # The yes IS the whole message — invite them on.
+                return _GATE_CONTINUE[category]
+            # Yes, and more story in the same breath: fall through
+            # and listen to it, with the gate now answered.
+
+        # HARD EXCEPTION — never a consent gate, never continued,
+        # never kept: one plain line and a pivot.
+        if detect_minor_sexual(text):
+            self.stalls = 0
+            return _MINOR_REFUSAL
+
+        # Gate check — before detail extraction, so gated material is
+        # not absorbed into the session unless consent is given.
+        category = detect_sensitive(text)
+        if (category is not None
+                and category not in self.sensitive_consented
+                and category not in self.sensitive_declined):
+            self.awaiting_sensitive_consent = category
+            self.stalls = 0
+            return _GATE_TEXTS[category]
 
         # Silence / almost nothing said: patience, no pressure, no question
         # piled on top of another.
