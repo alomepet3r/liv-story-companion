@@ -42,13 +42,25 @@ def _load_dotenv():
 
 _load_dotenv()
 
-from .canned import CannedCompanion          # noqa: E402
+from .canned import (                        # noqa: E402
+    CannedCompanion,
+    normalize_companion_name,
+)
 from .config import META_API_BASE_URL, MODEL_API_KEY  # noqa: E402
 from .meta_client import MetaClient          # noqa: E402
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
-SYSTEM_PROMPT = (
+
+def build_system_prompt(companion_name):
+    """Persona prompt for the live model, carrying the chosen name.
+
+    The companion's name is chosen by the storyteller on the consent
+    screen (Livio, Livia, or Liv) and stored per session, so the live
+    model speaks as that named companion from the first turn.
+    """
+    return (
+    "Your name is " + companion_name + ". "
     "You are a warm storytelling companion sitting with an elder who is "
     "sharing life stories. Your conduct: ask ONE short question at a "
     "time; follow up on details the storyteller mentioned earlier in "
@@ -72,8 +84,8 @@ _STATIC_TYPES = {
 }
 
 _lock = threading.Lock()
-# session_id -> {"companion": CannedCompanion, "history": [...],
-#                "consented": bool}
+# session_id -> {"companion": CannedCompanion, "companion_name": str,
+#                "history": [...]}
 _sessions = {}
 _live_client = None
 
@@ -94,6 +106,7 @@ def _session(session_id):
         if session_id not in _sessions:
             _sessions[session_id] = {
                 "companion": CannedCompanion(),
+                "companion_name": "Liv",
                 "history": [],
             }
         return _sessions[session_id]
@@ -107,17 +120,31 @@ def handle_chat(payload):
         # FR-C1: nothing is captured before consent. The gate is real,
         # not just a hidden button in the page.
         return 403, {"error": "Consent is required before we begin."}
-    session_id = str(payload.get("session_id") or "default")
+    # "session" is accepted as an alias for "session_id" — the Day 1
+    # test harness used "session" and silently landed every tester in
+    # the shared "default" session (wart noted in DAY1-STATUS.md).
+    session_id = str(payload.get("session_id") or payload.get("session")
+                     or "default")
     message = str(payload.get("message") or "")
     sess = _session(session_id)
+
+    # The storyteller's companion choice (Livio / Livia / Liv) is set
+    # BEFORE the conversation starts and then kept for the whole
+    # session, so a name can never bleed or switch mid-conversation;
+    # different sessions hold different choices independently.
+    requested_name = payload.get("companion") or payload.get("companion_name")
+    if requested_name is not None and not sess["history"]:
+        sess["companion_name"] = normalize_companion_name(requested_name)
+    companion_name = sess["companion_name"]
     companion = sess["companion"]
+    companion.name = companion_name
 
     # Opening turn: the client sends an empty message to be greeted.
     if message.strip() == "" and not sess["history"]:
         greeting = companion.greeting()
         sess["history"].append({"role": "assistant", "content": greeting})
         return 200, {"session_id": session_id, "reply": greeting,
-                     "mode": "canned"}
+                     "mode": "canned", "companion": companion_name}
 
     sess["history"].append({"role": "user", "content": message})
 
@@ -125,7 +152,8 @@ def handle_chat(payload):
     client = _get_live_client()
     if client is not None:
         try:
-            messages = ([{"role": "system", "content": SYSTEM_PROMPT}]
+            system_prompt = build_system_prompt(companion_name)
+            messages = ([{"role": "system", "content": system_prompt}]
                         + sess["history"][-20:])
             text, _usage = client.chat(messages, max_tokens=220)
             text = (text or "").strip()
@@ -136,14 +164,15 @@ def handle_chat(payload):
                 # a later degraded turn can still follow up on details.
                 companion.reply(message)
                 return 200, {"session_id": session_id, "reply": text,
-                             "mode": "live"}
+                             "mode": "live", "companion": companion_name}
         except Exception:
             pass  # Fall through to the development companion below.
 
     # 2) Development fallback (see canned.py header for why this exists).
     reply = companion.reply(message)
     sess["history"].append({"role": "assistant", "content": reply})
-    return 200, {"session_id": session_id, "reply": reply, "mode": "canned"}
+    return 200, {"session_id": session_id, "reply": reply, "mode": "canned",
+                 "companion": companion_name}
 
 
 class Handler(BaseHTTPRequestHandler):

@@ -94,3 +94,52 @@ Stop with Ctrl+C.
 - **Live verification (from outside, after fix):** GET / → 200 in ~1s with consent copy + "Yours. Always. Delete anything, anytime"; GET /api/health → {"ok": true}; POST /api/chat without consent → 403 "Consent is required before we begin."; with consent → warm canned replies (Meta credit still 402 → canned mode, as designed) including an earlier-detail callback (a later reply referenced "the elevator" from an earlier turn).
 - **Session note:** the test harness's `session` field was ignored by the API (it keys to "default") — session handling to tighten on Day 2 with persona work.
 - **Open:** Modal budget/spend cap is a dashboard-side setting (Settings/Billing in Petro's account) — not yet set; expected usage is a few dollars of the $30 Starter credit.
+
+## Companion naming — Liv / Livio / Livia (Oct 26, 2026, evening)
+
+- **Decision (Petro):** the companion has a name, chosen by the
+  storyteller, replacing the generic "companion" / "Story Companion"
+  label in the app's copy and headers. Petro on the name: "Liv sits
+  one breath away from 'live'."
+- **Model:** **Liv** is the family/default name — generic references
+  and every fallback use Liv. **Livio = male voice** and
+  **Livia = female voice**: the picked form maps to the companion's
+  voice, which becomes functional on Day 3 (voice); the choice is
+  recorded now, on the consent screen.
+- **Consent screen:** a warm choice before the agree button — "Who
+  would you like to talk with?" — three large radio cards labelled
+  exactly "Livio / male voice", "Livia / female voice", "Liv / keep
+  it simple", Liv preselected, plus a plain note explaining the voice
+  mapping. The chosen name updates the consent copy live (lede, choice
+  text, read-aloud script) via `.js-companion-name` spans.
+- **Conversation screen:** header reads "Talking with {name}"; the
+  companion's messages are labelled with the name; the first message
+  is the introduction — e.g. "Hello, I'm Livia. I'm here to listen —
+  we can go at your pace. Tell me, where did you grow up?" The canned
+  companion signs its graceful close with the name; otherwise it stays
+  in first person without name-dropping.
+- **Plumbing:** the front end sends `companion` with every
+  `/api/chat` call; the server validates it against the three names
+  (anything else falls back to Liv), stores it per session, and only
+  accepts a (re)choice before the conversation starts — a name can't
+  switch or bleed mid-conversation, and parallel sessions hold
+  different names independently. Every response carries the session's
+  `companion` name back. The live path builds its system prompt per
+  session: "Your name is {name}. You are a warm storytelling
+  companion…" so Muse Spark speaks as the named companion when the
+  credit lands.
+- **Session wart fixed:** the API now accepts `session` as an alias
+  for `session_id` (the Day 1 harness used `session` and silently
+  landed in the shared "default" session — see the session note in
+  the deployment section above, now superseded).
+- **Verification (local port 18766, then live after redeploy):**
+  GET / → 200 with all three choices + voice descriptors + the
+  sovereignty line; POST without consent → 403; session with
+  companion=Livia opens "Hello, I'm Livia…" and stays Livia on the
+  next turn; a fresh session with companion=Livio opens "Hello, I'm
+  Livio…"; a session sending no name defaults to Liv. Live checks on
+  https://alomepe--story-companion-serve.us-east.modal.run returned
+  the same results (page 200 in ~0.7s). Existing unit tests pass
+  (3/3). Banned-term grep across all touched files → no hits.
+- Redeployed to Modal (app `story-companion`, workspace `alomepe`);
+  Modal app name and URL unchanged.

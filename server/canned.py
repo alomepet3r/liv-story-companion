@@ -17,6 +17,26 @@ Conduct rules (shared with the live system prompt in app.py):
 """
 import re
 
+# The companion has a name, chosen by the storyteller (Petro's decision,
+# Oct 26, 2026): Livio, Livia, or Liv — Liv is the default.
+COMPANION_NAMES = ("Livio", "Livia", "Liv")
+DEFAULT_COMPANION_NAME = "Liv"
+
+
+def normalize_companion_name(value):
+    """Return the canonical companion name, or the default.
+
+    Anything that is not one of the three offered names falls back to
+    the default, so a session always carries a valid name.
+    """
+    if isinstance(value, str):
+        candidate = value.strip()
+        for name in COMPANION_NAMES:
+            if candidate.lower() == name.lower():
+                return name
+    return DEFAULT_COMPANION_NAME
+
+
 THEMES = [
     ("childhood", "your childhood — the place and people you grew up with"),
     ("family", "your family — someone who shaped who you are"),
@@ -109,15 +129,17 @@ def _ack(turn):
 class CannedCompanion:
     """One storyteller session, held in memory only."""
 
-    def __init__(self):
+    def __init__(self, name=DEFAULT_COMPANION_NAME):
+        self.name = normalize_companion_name(name)
         self.details = []          # phrases the storyteller stated, in order
         self.turn = 0              # storyteller turns answered
         self.theme_index = 0
         self.closed = False
 
     def greeting(self):
-        return ("Hello, and welcome. I am glad you are here. "
-                "There is no hurry at all — we will go at your pace. "
+        # The first message introduces the companion by the chosen name.
+        return ("Hello, I’m " + self.name + ". I’m here to listen — "
+                "we can go at your pace. "
                 "Tell me, where did you grow up?")
 
     def reply(self, text):
@@ -136,7 +158,7 @@ class CannedCompanion:
                     "matters. When you are ready, we can arrange today's "
                     "conversation into a chapter, and you will review it "
                     "first — nothing is shared unless you approve it. "
-                    "Rest well, and come back any time.")
+                    "Rest well, and come back any time. — " + self.name)
 
         # Silence / almost nothing said: patience, no pressure, no question
         # piled on top of another.

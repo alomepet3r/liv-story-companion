@@ -1,7 +1,10 @@
-// Story Companion — Day 1 shell behaviour.
+// Day 1 shell behaviour, with the companion-name choice (Oct 26).
 // Screen 1 (consent) gates Screen 2 (conversation): the chat UI is not
 // shown until the storyteller agrees, and every /api/chat call carries
-// the consent flag, which the server also enforces.
+// the consent flag, which the server also enforces. The storyteller
+// chooses their companion's name on Screen 1 — Livio, Livia, or Liv
+// (Liv is the default) — and the choice is sent with every call so the
+// server keeps it for the whole session.
 
 (function () {
   "use strict";
@@ -9,12 +12,30 @@
   var sessionId = "s-" + Date.now().toString(36) + "-" +
     Math.random().toString(36).slice(2, 8);
   var consented = false;
+  var companionName = "Liv";
 
   var consentScreen = document.getElementById("consent-screen");
   var chatScreen = document.getElementById("chat-screen");
   var messages = document.getElementById("messages");
   var form = document.getElementById("chat-form");
   var input = document.getElementById("chat-input");
+
+  function setCompanionName(name) {
+    companionName = name;
+    var spans = document.querySelectorAll(".js-companion-name");
+    for (var i = 0; i < spans.length; i++) {
+      spans[i].textContent = name;
+    }
+  }
+
+  var radios = document.querySelectorAll('input[name="companion"]');
+  for (var r = 0; r < radios.length; r++) {
+    radios[r].addEventListener("change", function () {
+      if (this.checked) { setCompanionName(this.value); }
+    });
+    if (radios[r].checked) { companionName = radios[r].value; }
+  }
+  setCompanionName(companionName);
 
   function addMessage(who, text, cls) {
     var div = document.createElement("div");
@@ -40,21 +61,23 @@
       body: JSON.stringify({
         session_id: sessionId,
         message: message,
-        consent: consented
+        consent: consented,
+        companion: companionName
       })
     })
       .then(function (res) { return res.json(); })
       .then(function (data) {
+        var name = data.companion || companionName;
         if (data.reply) {
-          addMessage("Your companion", data.reply, "companion");
+          addMessage(name, data.reply, "companion");
         } else if (data.error) {
-          addMessage("Your companion",
+          addMessage(name,
             "Something went wrong on my side. Please try again.",
             "companion");
         }
       })
       .catch(function () {
-        addMessage("Your companion",
+        addMessage(companionName,
           "I could not be reached just now. Please try again in a moment.",
           "companion");
       });

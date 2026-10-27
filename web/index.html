@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Story Companion — Your stories, in your own voice</title>
+<title>Your stories, in your own voice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
@@ -11,18 +11,46 @@
 <body>
 
 <header class="masthead">
-  <p class="wordmark">Story Companion</p>
+  <p class="wordmark js-companion-name">Liv</p>
 </header>
 
 <main>
   <!-- Screen 1 — Consent. Nothing else is reachable until the
-       storyteller agrees; the server enforces the same gate. -->
+       storyteller agrees; the server enforces the same gate. The
+       storyteller also chooses their companion's name here. -->
   <section id="consent-screen" aria-labelledby="consent-heading">
     <h1 id="consent-heading">Your stories, in your own voice</h1>
-    <p class="lede">Sit down with a patient companion. Talk about your
-      life, at your pace. Afterwards, the conversation is arranged into
-      a chapter — and you review and approve it before anything is
-      shared.</p>
+    <p class="lede">Sit down with <span class="js-companion-name">Liv</span>,
+      a patient companion. Talk about your life, at your pace.
+      Afterwards, the conversation is arranged into a chapter — and you
+      review and approve it before anything is shared.</p>
+
+    <div class="companion-choice">
+      <h2 id="companion-choice-heading">Who would you like to talk with?</h2>
+      <p>You will be talking with <strong class="js-companion-name">Liv</strong> —
+        a patient listener who will sit with you, at your pace, for as
+        long as you would like to talk. Choose the name you like best:</p>
+      <div class="choice-options" role="radiogroup" aria-labelledby="companion-choice-heading">
+        <label class="choice-card">
+          <input type="radio" name="companion" value="Livio">
+          <span class="choice-text"><span class="choice-name">Livio</span>
+            <span class="choice-desc">male voice</span></span>
+        </label>
+        <label class="choice-card">
+          <input type="radio" name="companion" value="Livia">
+          <span class="choice-text"><span class="choice-name">Livia</span>
+            <span class="choice-desc">female voice</span></span>
+        </label>
+        <label class="choice-card">
+          <input type="radio" name="companion" value="Liv" checked>
+          <span class="choice-text"><span class="choice-name">Liv</span>
+            <span class="choice-desc">keep it simple</span></span>
+        </label>
+      </div>
+      <p class="quiet">The name also chooses the voice you will hear when
+        talking out loud begins: Livio speaks with a man’s voice, Livia
+        with a woman’s voice, and Liv keeps it simple.</p>
+    </div>
 
     <ul class="promises">
       <li><span class="promise-icon" aria-hidden="true">✎</span>
@@ -48,7 +76,8 @@
     <details class="spoken-script">
       <summary>Reading this together? A short consent script to read aloud (about 30 seconds)</summary>
       <p>“Hello, and welcome. Before we begin, here is what will happen.
-        We will sit together and talk about your life, at your pace.
+        You will sit with <span class="js-companion-name">Liv</span> and
+        talk about your life, at your pace.
         Our conversation will be written down so it can be arranged
         into a chapter. You will see that chapter first, and nothing is
         shared with anyone unless you approve it. You may pause, stop,
@@ -63,7 +92,7 @@
 
   <!-- Screen 2 — Conversation. Hidden until consent is given. -->
   <section id="chat-screen" hidden aria-labelledby="chat-heading">
-    <h1 id="chat-heading" class="chat-title">Let’s talk</h1>
+    <h1 id="chat-heading" class="chat-title">Talking with <span class="js-companion-name">Liv</span></h1>
     <div id="messages" class="messages" aria-live="polite"></div>
 
     <form id="chat-form">
