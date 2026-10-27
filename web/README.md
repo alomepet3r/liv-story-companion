@@ -5,7 +5,7 @@ The Day 1 app shell (built Oct 26, 2026). A single page, two screens:
 - **index.html** — Screen 1: the consent gate (plain-language copy,
   the line "Yours. Always. Delete anything, anytime", and a ~30-second
   consent script to read aloud for recorded sessions). Screen 2: the
-  conversation — large-type, elder-first chat.
+  conversation — large-type, accessibility-first chat.
 - **styles.css** — design tokens from the brief: cream paper `#FBF7EF`,
   charcoal `#2B2622`, ember red `#9D2224` for the single primary action
   only; serif display headings, readable sans body (19px+), WCAG 2.2 AA

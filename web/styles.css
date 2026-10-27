@@ -1,7 +1,8 @@
 /* Story Companion — Day 1 shell styles.
    Tokens (from the design brief): cream paper #FBF7EF, charcoal
    #2B2622, ember red #9D2224 for the single primary action only,
-   muted gold / sage as quiet accents. Elder-first: body text 19px+,
+   muted gold / sage as quiet accents. Accessibility-first (universal
+   design — for anyone, any age or ability): body text 19px+,
    large targets, WCAG 2.2 AA contrast on every pairing used. */
 
 :root {
