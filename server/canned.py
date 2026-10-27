@@ -81,6 +81,15 @@ boundaried. Concretely:
   and asks to learn — curiosity is welcome, performed knowledge
   is not. Every conversation is school: she is becoming an expert
   on THIS person, and the conversation is held as sacred.
+- AGE PAUSE-AND-END (Petro's Age Decision, Oct 26, 2026; legal
+  addendum sections A.1.2 / A.3): Liv is for adults (18+) only. If a
+  storyteller indicates they are PRESENTLY under 18, Liv thanks
+  them warmly, says plainly that Liv is for adults and she has to
+  end the conversation here, wishes them well, and the session
+  closes — no further story content is listened to or gathered.
+  Detection fires ONLY on present-tense, first-person indications
+  of current minor status; an adult recounting their own youth
+  ("when I was 15…") is a memory, never a trigger.
 - Never invent facts about the storyteller. Only ask, listen, follow up.
 - Meet tender topics plainly — no morbidity, no forced cheer.
 """
@@ -310,6 +319,85 @@ _MINOR_REFUSAL = ("I can't continue or keep a story about sexual "
                   "involvement with a child — that is a line I don't "
                   "cross. We can leave it there entirely. Whenever "
                   "you're ready, we can talk about something else.")
+
+# --- Age pause-and-end (T12) -----------------------------------------
+# Liv is for adults (18+) only. The consent attestation is a gate,
+# not a blindfold: a storyteller can reveal mid-conversation that
+# they are presently a minor, and from that moment they are a KNOWN
+# minor (legal addendum A.1.2). The protocol: pause, explain
+# plainly, end the session.
+#
+# Detection discipline mirrors the gates' conservatism, harder:
+# fire ONLY on a present-tense, first-person indication of CURRENT
+# minor status. Strong markers are explicit self-declarations of
+# present age or minor status ("I'm 15", "I am 16", "I'm under 18",
+# "I'm a minor", "I just turned 14"). Weak markers are present
+# school status ("I'm in high school", "I'm in 7th grade") and fire
+# only when the message carries no past-tense frame. An adult
+# recounting childhood must NEVER trigger: "when I was 15…",
+# "at 16 I…", "back when I was in high school…", "my 15-year-old
+# self…" contain no present-tense self-declaration, and the frame
+# exemption below covers the rest. When ambiguous, do not fire.
+_AGE_WORD_VALUES = {
+    "thirteen": 13, "fourteen": 14, "fifteen": 15,
+    "sixteen": 16, "seventeen": 17,
+}
+_AGE_NUMERIC_RE = re.compile(
+    r"\bi(?:'m| am)\s+(?:only\s+)?(\d{1,2})\b")
+# What can follow a stated number without it being an age at all:
+# "I'm 15 at heart", "I'm 15 minutes away", "I'm 15 years into…".
+_AGE_TAIL_GUARD_RE = re.compile(
+    r"^\s*(?:at heart\b|minutes?\b|hours?\b|miles?\b|percent\b|"
+    r"dollars?\b|years?\s+(?:into|of|in)\b)")
+_AGE_WORD_AGE_RE = re.compile(
+    r"\bi(?:'m| am)\s+(?:only\s+)?"
+    r"(thirteen|fourteen|fifteen|sixteen|seventeen)\b")
+_AGE_MINOR_STATUS_RE = re.compile(
+    r"\bi(?:'m| am)\s+(?:still\s+)?(?:a\s+)?minor\b|"
+    r"\bi(?:'m| am)\s+under\s+(?:18|eighteen)\b|"
+    r"\bi(?:'m| am)\s+underage\b")
+_AGE_TURNED_RE = re.compile(
+    r"\bi\s+(?:just\s+)?turned\s+"
+    r"(\d{1,2}|thirteen|fourteen|fifteen|sixteen|seventeen)\b")
+_AGE_TURNED_RECENT_RE = re.compile(
+    r"(?:today|yesterday|last week|this week|recently|just)\b")
+# The addendum's own example: "my mum says I shouldn't be on here".
+_AGE_PARENT_SAYS_RE = re.compile(
+    r"\bmy\s+(?:mum|mom|mother|dad|father|parents)\s+"
+    r"(?:says?|said|told me)\b[^.]{0,50}?"
+    r"\bshouldn'?t\s+be\s+(?:on|here|using)\b")
+# Past-tense frames: an adult looking back is the product working
+# as intended. These exempt the weaker (school-status) markers.
+_PAST_FRAME_RE = re.compile(
+    r"\bwhen i was\b|\bback when i\b|"
+    r"\bi was\s+(?:only\s+)?"
+    r"(?:\d{1,2}|thirteen|fourteen|fifteen|sixteen|seventeen)\b|"
+    r"\bmy\s+(?:\d{1,2}|thirteen|fourteen|fifteen|sixteen|seventeen)"
+    r"[- ]year[- ]old\s+self\b")
+_SCHOOL_PRESENT_RE = re.compile(
+    r"\bi(?:'m| am)\s+in\s+(?:high|middle|junior high)\s+school\b|"
+    r"\bi\s+(?:go to|attend)\s+(?:high|middle|junior high)"
+    r"\s+school\b|"
+    r"\bi(?:'m| am)\s+a\s+(?:high|middle)\s+school\s+student\b|"
+    r"\bi(?:'m| am)\s+in\s+grade\s+(\d{1,2})\b")
+_GRADE_WORD_RE = re.compile(
+    r"\bi(?:'m| am)\s+in\s+(?:the\s+)?"
+    r"(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|"
+    r"tenth|eleventh)\s+grade\b")
+_GRADE_NUMERIC_RE = re.compile(
+    r"\bi(?:'m| am)\s+in\s+(?:the\s+)?"
+    r"(\d{1,2})(?:st|nd|rd|th)\s+grade\b")
+_TEACHER_RE = re.compile(r"\bi\s+teach\b|\bteacher\b|\bteaching\b")
+
+_AGE_ENDING = ("Thank you for telling me that — and thank you for "
+               "being honest with me. Liv is a companion for "
+               "adults, for people 18 and older, so I have to end "
+               "our conversation here. That is no reflection on "
+               "you, or on your stories — they matter, and I hope "
+               "you keep them close. I wish you well, truly.")
+_AGE_CLOSED = ("I am sorry — our conversation has ended, because "
+               "Liv is for adults (18 and older) only. Thank you "
+               "for stopping by, and I wish you well.")
 
 _YES_RE = re.compile(
     r"^(yes|yeah|yep|sure|okay|ok|fine|agreed|i agree|go ahead|"
@@ -726,6 +814,61 @@ def detect_sensitive(text):
     return None
 
 
+def detect_present_minor(text):
+    """True only on a PRESENT-TENSE, first-person indication that
+    the storyteller is currently under 18 (see the T12 constants
+    above for the discipline). Strong markers — an explicit
+    statement of present age or minor status — fire on their own;
+    weaker school-status markers are exempted by any past-tense
+    frame in the same message. Adults recounting their youth never
+    trigger."""
+    lowered = _normalise(text)
+
+    # Strong: a stated present age, numeric or in words, under 18.
+    for m in _AGE_NUMERIC_RE.finditer(lowered):
+        if _AGE_TAIL_GUARD_RE.match(lowered[m.end():m.end() + 24]):
+            continue  # "I'm 15 at heart / minutes away / years into…"
+        if 1 <= int(m.group(1)) <= 17:
+            return True
+    if _AGE_WORD_AGE_RE.search(lowered):
+        return True
+    # Strong: present minor status, stated as such.
+    if _AGE_MINOR_STATUS_RE.search(lowered):
+        return True
+    if _AGE_PARENT_SAYS_RE.search(lowered):
+        return True
+    # Strong: a birthday just reached — "I just turned 14", or one
+    # the message itself dates to now ("I turned 15 last week").
+    m = _AGE_TURNED_RE.search(lowered)
+    if m and _AGE_TURNED_RECENT_RE.search(lowered):
+        token = m.group(1)
+        age = (int(token) if token.isdigit()
+               else _AGE_WORD_VALUES[token])
+        if age <= 17:
+            return True
+
+    # Past-tense frames exempt everything weaker: a memory of
+    # school is not a present enrolment.
+    if _PAST_FRAME_RE.search(lowered):
+        return False
+
+    # Weak: present school status. A teacher describing their
+    # workplace is not a student — the teaching guard keeps
+    # "I'm in high school all day, teaching" from firing.
+    if not _TEACHER_RE.search(lowered):
+        m = _SCHOOL_PRESENT_RE.search(lowered)
+        if m:
+            grade = m.group(1)
+            if grade is None or int(grade) <= 11:
+                return True
+        m = _GRADE_NUMERIC_RE.search(lowered)
+        if m and int(m.group(1)) <= 11:
+            return True
+        if _GRADE_WORD_RE.search(lowered):
+            return True
+    return False
+
+
 def detect_minor_sexual(text):
     """True only when sexual signals and minor signals co-occur."""
     lowered = _normalise(text)
@@ -840,6 +983,11 @@ class CannedCompanion:
         self.turn = 0              # storyteller turns answered
         self.theme_index = 0
         self.closed = False
+        # Age pause-and-end (T12): set the moment a present-tense
+        # under-18 indication is detected. From then on the session
+        # is closed to story content — every later message receives
+        # the same brief, gentle closed response.
+        self.age_ended = False
         self.stalls = 0            # consecutive detail-free answers
         self.blocked_words = set() # boundary topics, lowercase words
         self.boundaries = 0        # how many boundaries have been set
@@ -1172,6 +1320,20 @@ class CannedCompanion:
         if self.closed:
             return ("Of course. Whenever you are ready to talk again, "
                     "I will be here.")
+
+        # AGE PAUSE-AND-END (T12) — checked before every other path:
+        # no name is taken, no gate is opened, no detail is gathered
+        # from a session that should not be happening. Once ended
+        # for age, the session stays ended: the same brief gentle
+        # closed response answers everything further.
+        if self.age_ended:
+            self._suppress_prefix = True
+            return _AGE_CLOSED
+        if detect_present_minor(text):
+            self.age_ended = True
+            self._suppress_prefix = True
+            self.stalls = 0
+            return _AGE_ENDING
 
         # Graceful close (persona: warm and complete). A gentle
         # closing is one of the places the preferred name belongs.

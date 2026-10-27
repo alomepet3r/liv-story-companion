@@ -44,6 +44,7 @@ _load_dotenv()
 
 from .canned import (                        # noqa: E402
     CannedCompanion,
+    detect_present_minor,
     normalize_companion_name,
 )
 from .config import META_API_BASE_URL, MODEL_API_KEY  # noqa: E402
@@ -147,7 +148,14 @@ def build_system_prompt(companion_name):
     "storyteller has already answered in this session. HARD "
     "EXCEPTION: sexual content involving minors is never continued "
     "and never kept — decline that topic in one plain line and "
-    "move on. Meet tender topics "
+    "move on. AGE PROTOCOL: Liv is for adults (18+) only. If a "
+    "storyteller indicates they are PRESENTLY under 18 — 'I'm 15', "
+    "'I'm in high school', 'I'm a minor' — thank them warmly, say "
+    "plainly that Liv is for adults and you have to end the "
+    "conversation here, wish them well, and end the session: do "
+    "not continue listening to or gathering their story. Never "
+    "apply this to an adult recounting their own youth — 'when I "
+    "was 15…' is a memory, not an indication. Meet tender topics "
     "plainly and kindly, without morbidity and without forced cheer. "
     "Close sessions gracefully, thanking them. Later, the conversation "
     "will be arranged into a chapter which the storyteller reviews and "
@@ -232,6 +240,17 @@ def handle_chat(payload):
                      "mode": "canned", "companion": companion_name}
 
     sess["history"].append({"role": "user", "content": message})
+
+    # AGE PAUSE-AND-END (T12): if this session has already ended for
+    # age, or this message itself carries a present-tense under-18
+    # indication, the fallback companion answers alone — the message
+    # never reaches the live model, and the session closes exactly
+    # as it does in canned mode.
+    if companion.age_ended or detect_present_minor(message):
+        reply = companion.reply(message)
+        sess["history"].append({"role": "assistant", "content": reply})
+        return 200, {"session_id": session_id, "reply": reply,
+                     "mode": "canned", "companion": companion_name}
 
     # 1) Live model first.
     client = _get_live_client()
