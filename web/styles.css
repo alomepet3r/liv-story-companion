@@ -6,12 +6,13 @@
    single primary action and key moments only.
    Palette (law): paper #FBF7EF, ink #2B2622, ember #9D2224.
    Accessibility-first (universal design): body 19px+, large
-   targets, WCAG 2.2 AA verified pairings —
-     ink on paper 14.0:1 · ink on paper-2 12.9:1 · ink on
+   targets, WCAG 2.2 AA verified pairings (recomputed at the
+   Oct 27 accessibility audit) —
+     ink on paper 14.0:1 · ink on paper-2 13.1:1 · ink on
      paper-3 12.0:1 · ink on white 15.0:1 · ink on ember-tint
-     12.6:1 · white on ember 7.8:1 · ember on paper 7.3:1 ·
-     deepened sage on paper 6.7:1 · deepened gold on paper 6.1:1 ·
-     quiet text (ink 78%) on paper ≈ 7.3:1. */
+     12.9:1 · white on ember 7.8:1 · ember on paper 7.3:1 ·
+     deepened sage on paper 6.7:1 · gold text on white 6.6:1 ·
+     quiet text (ink 78%) on paper 7.0:1, on white 7.3:1. */
 
 :root {
   --paper: #FBF7EF;
@@ -615,6 +616,11 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   margin: 0.5rem 0;
 }
 
+/* The author display:flex above would otherwise defeat the
+   hidden attribute on the recorder action rows (Use / Discard),
+   leaving them visible before any recording exists. */
+.media-panel-actions[hidden] { display: none; }
+
 .media-panel video {
   width: 100%;
   border-radius: 10px;
@@ -636,6 +642,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 
 .pending-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.9rem;
   padding: 0.4rem 0;
@@ -683,6 +690,17 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   padding: 0.95rem 1.1rem;
   margin-bottom: 1rem;
 }
+
+/* The media-notice heading is a programmatic focus target (focus is
+   moved to it when the notice opens, so keyboard and screen-reader
+   users land on it). It is not an interactive control, so no focus
+   outline is drawn on it. */
+#media-notice-title:focus { outline: none; }
+
+/* Placeholder text: the browser default grey is borderline
+   (≈4.6:1 in Chromium, lighter elsewhere). Use the quiet-text ink
+   (≈7:1 on the white field) so the prompt stays legible. */
+#chat-input::placeholder { color: var(--ink-soft); opacity: 1; }
 
 #chat-input:focus {
   border-color: var(--ember);

@@ -123,7 +123,7 @@
     </div>
 
     <button id="begin-btn" class="primary" type="button" disabled>I understand — let’s begin</button>
-    <p class="not-now-row"><a href="#" id="not-now">Not now</a> <span id="not-now-msg" class="quiet" hidden>That is quite all right. This page will be here whenever you are ready.</span></p>
+    <p class="not-now-row"><a href="#" id="not-now">Not now</a> <span id="not-now-msg" class="quiet" role="status" hidden>That is quite all right. This page will be here whenever you are ready.</span></p>
   </section>
 
   <!-- Screen 2 — Conversation. Hidden until consent is given. -->
@@ -138,7 +138,7 @@
       <h1 id="chat-heading" class="chat-title">Talking with <span class="js-companion-name">Liv</span></h1>
     </div>
     <div id="messages" class="messages" aria-live="polite"></div>
-    <div id="listening" class="listening" hidden>
+    <div id="listening" class="listening" role="status" hidden>
       <span class="listening-dot" aria-hidden="true"></span>
       <span class="listening-text"><span class="js-companion-name">Liv</span> is listening — take your time.</span>
     </div>
@@ -149,7 +149,7 @@
          story being told. The first use in a session shows a short
          notice (the upload-moment word) before anything opens. -->
     <div id="media-notice" class="media-notice" hidden>
-      <h2>Before you share</h2>
+      <h2 id="media-notice-title" tabindex="-1">Before you share</h2>
       <p>In this demo, anything you share is kept only while this
         tab stays open — when you close the tab, it is gone, just
         like our conversation. And please only share what you are
@@ -162,9 +162,9 @@
     </div>
 
     <div class="media-bar" role="group" aria-label="Share something with your companion">
-      <button id="btn-photo" class="media-btn" type="button" aria-expanded="false">Add a photo</button>
-      <button id="btn-audio" class="media-btn" type="button" aria-expanded="false">Record voice</button>
-      <button id="btn-video" class="media-btn" type="button" aria-expanded="false">Record video</button>
+      <button id="btn-photo" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-photo">Add a photo</button>
+      <button id="btn-audio" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-audio">Record voice</button>
+      <button id="btn-video" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-video">Record video</button>
     </div>
 
     <div id="panel-photo" class="media-panel" hidden>
@@ -179,7 +179,7 @@
 
     <div id="panel-audio" class="media-panel" hidden>
       <p class="media-status" id="audio-status">Record your voice here, or choose a recording you already have.</p>
-      <audio id="audio-preview" controls hidden></audio>
+      <audio id="audio-preview" controls hidden aria-label="Preview of your voice recording"></audio>
       <p class="media-panel-actions">
         <button id="audio-record" class="secondary" type="button">Start recording</button>
         <button id="audio-upload" class="secondary" type="button">Choose a recording</button>
@@ -193,7 +193,7 @@
 
     <div id="panel-video" class="media-panel" hidden>
       <p class="media-status" id="video-status">Record a short video here, or choose one you already have.</p>
-      <video id="video-preview" playsinline muted hidden></video>
+      <video id="video-preview" playsinline muted hidden aria-label="Preview of your video"></video>
       <p class="media-panel-actions">
         <button id="video-record" class="secondary" type="button">Start recording</button>
         <button id="video-upload" class="secondary" type="button">Choose a video</button>

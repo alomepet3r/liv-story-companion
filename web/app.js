@@ -44,6 +44,14 @@
   var form = document.getElementById("chat-form");
   var input = document.getElementById("chat-input");
 
+  // Smooth scrolling only for people who have not asked their
+  // system for reduced motion (the CSS media query cannot reach
+  // JS-driven scrolling, so it is honoured here instead).
+  function scrollBehavior() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto" : "smooth";
+  }
+
   function setListening(on) {
     if (listening) { listening.hidden = !on; }
   }
@@ -75,16 +83,19 @@
     if (item.kind === "photo") {
       el = document.createElement("img");
       el.src = mediaUrl(item);
-      el.alt = "A photo shared in this conversation";
+      el.alt = inThread ? "A photo shared in this conversation"
+                        : "A photo ready to share";
       el.className = inThread ? "shared-media" : "pending-thumb";
     } else if (item.kind === "audio") {
       el = document.createElement("audio");
       el.controls = true;
       el.src = mediaUrl(item);
+      el.setAttribute("aria-label", "Voice recording shared in this conversation");
       el.className = inThread ? "shared-media-audio" : "pending-audio";
     } else {
       el = document.createElement("video");
       el.src = mediaUrl(item);
+      el.setAttribute("aria-label", "Video shared in this conversation");
       el.playsInline = true;
       if (inThread) { el.controls = true; }
       else { el.muted = true; el.preload = "metadata"; }
@@ -117,7 +128,7 @@
       div.appendChild(body);
     }
     messages.appendChild(div);
-    div.scrollIntoView({ block: "end", behavior: "smooth" });
+    div.scrollIntoView({ block: "end", behavior: scrollBehavior() });
   }
 
   function send(message, showMine, mediaItems) {
@@ -206,7 +217,7 @@
   function renderPending() {
     pendingItems.innerHTML = "";
     for (var i = 0; i < pendingMedia.length; i++) {
-      (function (item) {
+      (function (item, position) {
         var row = document.createElement("div");
         row.className = "pending-item";
         row.appendChild(mediaElement(item, false));
@@ -219,6 +230,8 @@
         remove.type = "button";
         remove.className = "secondary pending-remove";
         remove.textContent = "Remove";
+        remove.setAttribute("aria-label",
+          "Remove " + label.textContent.toLowerCase() + " " + position);
         remove.addEventListener("click", function () {
           pendingMedia = pendingMedia.filter(function (m) {
             return m.id !== item.id;
@@ -227,7 +240,7 @@
         });
         row.appendChild(remove);
         pendingItems.appendChild(row);
-      })(pendingMedia[i]);
+      })(pendingMedia[i], i + 1);
     }
     pendingBox.hidden = pendingMedia.length === 0;
   }
@@ -274,28 +287,51 @@
   }
 
   // First-use notice: shown ONCE per session, before any panel opens.
+  // Focus management: when the notice appears, focus moves to its
+  // heading so keyboard and screen-reader users actually encounter
+  // it (it renders above the button that summoned it, so without
+  // this it is silently skipped). "Continue" lands focus on the
+  // first control of the panel it opens; "Not now" returns focus
+  // to the media button that asked.
   var notice = document.getElementById("media-notice");
+  var noticeTitle = document.getElementById("media-notice-title");
   var noticeDone = false;
   var noticeAction = null;
+  var noticeInvoker = null;
+  var noticePanel = null;
 
-  function guardFirstUse(action) {
+  function guardFirstUse(action, invoker, panel) {
     if (noticeDone) { action(); return; }
     noticeAction = action;
+    noticeInvoker = invoker || null;
+    noticePanel = panel || null;
     notice.hidden = false;
-    notice.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    notice.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
+    noticeTitle.focus();
   }
   document.getElementById("media-notice-ok").addEventListener("click",
     function () {
       noticeDone = true;
       notice.hidden = true;
       var action = noticeAction;
+      var panel = noticePanel;
       noticeAction = null;
+      noticeInvoker = null;
+      noticePanel = null;
       if (action) { action(); }
+      if (panel) {
+        var first = panel.querySelector("button");
+        if (first) { first.focus(); }
+      }
     });
   document.getElementById("media-notice-cancel").addEventListener("click",
     function () {
       notice.hidden = true;
+      var invoker = noticeInvoker;
       noticeAction = null;
+      noticeInvoker = null;
+      noticePanel = null;
+      if (invoker) { invoker.focus(); }
     });
 
   // Panels: one open at a time; opening goes through the notice.
@@ -326,7 +362,7 @@
     guardFirstUse(function () {
       panels[kind].hidden = false;
       barButtons[kind].setAttribute("aria-expanded", "true");
-    });
+    }, barButtons[kind], panels[kind]);
   }
   barButtons.photo.addEventListener("click", function () { togglePanel("photo"); });
   barButtons.audio.addEventListener("click", function () { togglePanel("audio"); });
