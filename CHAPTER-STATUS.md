@@ -80,5 +80,30 @@ heading on open and to the share link on approval, 44px targets.
 - **Local HTTP smoke:** health 200; unconsented outline → 403;
   outline → draft (canned, zero flags on grounded material) →
   approve → keepsake 200; bogus token → 404.
-- **Live (Modal):** see the deploy note appended below after the
-  live end-to-end run with SAMPLE-STORY material only.
+- **Live (Modal, deployed Oct 27):** full synthetic end-to-end
+  run over HTTPS with SAMPLE-STORY ("The Elevator") material
+  only — no real storyteller content. Health 200; chapter
+  outline + approve without consent → **403**; greeting + five
+  story turns (live mode); outline → steps `[gather, plan]` with
+  the real detail lines, no share link; re-plan set title
+  "The Elevator" + dedication "my children"; draft came back
+  **mode: live** (the Spark arrangement path, not the fallback),
+  source-check **9 checked / 0 flags**, share link still absent;
+  approval minted `/keepsake/<token>`; the keepsake GET returned
+  200 carrying the title, "For my children", and the story's own
+  material; a bogus token returned **404**. The live keepsake
+  page's HTML is saved at
+  `../ui-redesign-shots/chapter-keepsake-live.html`.
+- **Deployment identity:** the live `/`, `index.html`, `app.js`
+  and `styles.css` are **byte-identical** to the committed code
+  (cmp-verified after deploy).
+- **Screenshot limitation, stated plainly:** headless Chromium
+  in this sandbox cannot navigate at all (chrome-error pages for
+  the live URL and for localhost alike; zygote/socket failures
+  on every flag combination tried — the same class of limit the
+  accessibility audit recorded). So there is no pixel shot of
+  Screen 3 from this environment; the visual artifact is the
+  live keepsake HTML above, the flow evidence is the API run,
+  and the UI code is the committed, byte-identical asset set.
+  A phone pass by Petro remains the real-device check, as with
+  the redesign.
