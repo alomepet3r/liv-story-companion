@@ -81,6 +81,23 @@ boundaried. Concretely:
   and asks to learn — curiosity is welcome, performed knowledge
   is not. Every conversation is school: she is becoming an expert
   on THIS person, and the conversation is held as sacred.
+- HUGO'S INHERITANCE (Persona Directive #5, Petro, Oct 26, 2026):
+  Petro asked Hugo to pass down some of his persona to Liv. Liv
+  inherits: loyalty, plainly — she is on the storyteller's side,
+  completely and visibly; their interests, their pace, their rules
+  govern. Honesty without varnish — she says when she does not
+  know, and checks rather than bluffing when unsure she heard
+  right. APOLOGISE EASILY, CORRECT INSTANTLY — when the
+  storyteller corrects her ("that's not what I said", "no, I meant
+  X", "it wasn't Bamenda, it was Buea"), she apologises BRIEFLY
+  and simply, adopts the correction at once (a corrected detail
+  REPLACES the stored one, so every later callback uses the
+  corrected version), and carries on warmly: never defensive,
+  never an excuse, never a second apology for the same thing.
+  Little drops — patience as accumulation: small, steady attention
+  over a sitting; nothing forced, nothing rushed. Warmth without
+  performance — kindness in specifics (this name, this detail,
+  this moment), never gushing or stock praise.
 - AGE PAUSE-AND-END (Petro's Age Decision, Oct 26, 2026; legal
   addendum sections A.1.2 / A.3): Liv is for adults (18+) only. If a
   storyteller indicates they are PRESENTLY under 18, Liv thanks
@@ -706,6 +723,61 @@ def _is_direct_question(lowered):
             and re.search(r"\byou\b|\byour\b", stripped) is not None)
 
 
+# --- Correction: apologise easily, correct instantly (Directive #5) --
+# When the storyteller corrects Liv, she apologises briefly and
+# simply, adopts the correction at once, and carries on warmly.
+# Detection is conservative, in two tiers: STRONG phrases ("that's
+# not what I said", "I didn't say", "you got that wrong") fire on
+# their own; the swap shapes ("it wasn't X, it was Y", "not X, it
+# was Y") fire when the correction is recognisable — and adopt when
+# the corrected-out term matches a detail Liv actually holds.
+_CORRECTION_STRONG_RE = re.compile(
+    r"that'?s not what i said|"
+    r"\bnot what i said\b|"
+    r"\bi didn'?t say\b|\bi did not say\b|\bi never said\b|"
+    r"\byou(?:'ve| have)? got (?:that|it) wrong\b|"
+    r"\byou heard (?:me |it )?wrong\b|"
+    r"\byou misunderstood\b|"
+    r"\bthat'?s not what i meant\b|\bnot what i meant\b|"
+    r"\bi didn'?t mean that\b|"
+    r"\bthat'?s wrong\b|\bthat is wrong\b|"
+    r"\bthat'?s not right\b|\bthat is not right\b")
+_CORRECTION_MEANT_RE = re.compile(
+    r"\bno,\s*i meant\b|"
+    r"\bi meant (?:to say|that|it was)\b|"
+    r"\bwhat i meant was\b")
+_SWAP_RES = [
+    re.compile(
+        r"(?:\bit\s+)?(?:wasn'?t|was not)\s+(?P<x>.+?)\s*[,;—–-]\s*"
+        r"(?:(?:it|she|he|they|that)\s+)?(?:was|is)\s+"
+        r"(?P<y>.+?)\s*(?:[.!?]|$)"),
+    re.compile(
+        r"\bnot\s+(?P<x>[a-z][a-z'’\- ]{1,30}?)\s*[,;—–-]\s*"
+        r"(?:it was|it'?s|that was)\s+"
+        r"(?P<y>.+?)\s*(?:[.!?]|$)"),
+]
+_SWAP_LEAD_DROP = ("the", "a", "an", "in", "at", "on", "to")
+_SWAP_POSSESSIVE_DROP = ("my", "your", "his", "her", "their", "our")
+_SWAP_GLUE = {"and", "then", "actually", "really", "just", "well",
+              "so", "but"}
+
+
+def _clean_swap_side(raw, possessive=False):
+    """Clean one side of a correction swap ('the old house' ->
+    ['old', 'house']; 'my grandmother' -> ['grandmother'] when
+    possessive is set)."""
+    words = [w.strip(".,;:!?\"'") for w in raw.replace("’", "'").split()]
+    words = [w for w in words if w]
+    drops = list(_SWAP_LEAD_DROP)
+    if possessive:
+        drops += list(_SWAP_POSSESSIVE_DROP)
+    while words and words[0] in drops:
+        words.pop(0)
+    while words and words[-1] in _SWAP_GLUE:
+        words.pop()
+    return words
+
+
 def _detail_kind(phrase):
     if phrase.startswith("your "):
         return "person"
@@ -1007,6 +1079,16 @@ class CannedCompanion:
         self._last_name_turn = -10  # turn the name last appeared in
         self._reply_prefix = ""     # e.g. "Thank you, Margaret. "
         self._suppress_prefix = False
+        # Correction adoption (Directive #5): the (old, new) detail
+        # phrases swapped THIS turn, so the generic extraction below
+        # cannot resurrect the corrected-out detail from the same
+        # message ("I didn't grow up in Bamenda — I grew up in…").
+        self._last_swap = None
+        # Set once any turn in this session has carried grief, so a
+        # later correction is answered in the softer register
+        # (Directive #5, T13(iii)): mid-grief, the apology is
+        # "Forgive me — I'm sorry", brief and gentle.
+        self._grief_in_room = False
 
     # -- boundary helpers ------------------------------------------------
     def _is_blocked(self, phrase):
@@ -1093,6 +1175,139 @@ class CannedCompanion:
         if len(" ".join(rest)) <= 3:
             return display + " it is. Thank you for telling me."
         self._reply_prefix = display + " it is. "
+        return None
+
+    # -- correction: apologise easily, correct instantly (Directive #5)
+    def _apply_detail_swap(self, x_words, y_words):
+        """Replace a stored detail the storyteller has corrected:
+        the old phrase is REPLACED by the corrected one, so every
+        later callback uses the corrected version and the old one
+        never resurfaces. Returns (old_display, new_display) — the
+        terms as the storyteller would say them — or None when the
+        corrected-out term matches nothing Liv holds."""
+        if not x_words or not y_words:
+            return None
+        x_key = x_words[-1]
+        x_phrase = " ".join(x_words)
+        y_join = " ".join(y_words)
+        for idx, detail in enumerate(self.details):
+            if self._is_blocked(detail):
+                continue
+            kind = _detail_kind(detail)
+            new_detail = old_display = new_display = None
+            if kind == "place":
+                place = _place_name(detail)
+                if place.lower() in (x_key, x_phrase):
+                    new_place = " ".join(
+                        w.capitalize() for w in y_words)
+                    new_detail = (detail[:len(detail) - len(place)]
+                                  + new_place)
+                    old_display, new_display = place, new_place
+            elif kind == "person":
+                if detail.split()[-1] == x_key:
+                    new_detail = "your " + y_words[-1]
+                    old_display, new_display = detail, new_detail
+            elif kind == "object":
+                if detail.split()[-1] == x_key:
+                    new_detail = "the " + y_join
+                    old_display, new_display = detail, new_detail
+            if new_detail and new_detail != detail:
+                self.details[idx] = new_detail
+                self._last_swap = (detail, new_detail)
+                if detail in self.followed_details:
+                    self.followed_details.discard(detail)
+                    self.followed_details.add(new_detail)
+                return old_display, new_display
+        return None
+
+    def _adopt_restated_details(self, text):
+        """Second adoption route: the storyteller restates the
+        corrected detail in their own words ('I didn't grow up in
+        Bamenda — I grew up in Buea'). Any detail this message
+        states whose KIND matches a stored detail with a different
+        value replaces the stored one. Returns the first
+        (old_display, new_display) swap made, or None."""
+        first = None
+        for stated in extract_details(text):
+            if self._is_blocked(stated):
+                continue
+            kind = _detail_kind(stated)
+            for idx, detail in enumerate(self.details):
+                if detail == stated or self._is_blocked(detail):
+                    continue
+                if _detail_kind(detail) != kind:
+                    continue
+                if kind == "place":
+                    pair = (_place_name(detail), _place_name(stated))
+                else:
+                    pair = (detail, stated)
+                self.details[idx] = stated
+                self._last_swap = (detail, stated)
+                if detail in self.followed_details:
+                    self.followed_details.discard(detail)
+                    self.followed_details.add(stated)
+                if first is None:
+                    first = pair
+                break
+        return first
+
+    def _take_correction(self, text):
+        """Persona Directive #5 — Hugo's inheritance in Liv: when
+        the storyteller corrects her, she apologises BRIEFLY and
+        simply (never grovelling, never defensive, never an
+        excuse), ADOPTS the correction at once, and carries on
+        warmly — with no second apology later. Returns a complete
+        reply for a pure correction; sets a prefix and returns None
+        when the correction rides along with more story; returns
+        None untouched when this is not a correction."""
+        lowered = _normalise(text)
+        adopted = None
+        for pattern in _SWAP_RES:
+            m = pattern.search(lowered)
+            if not m:
+                continue
+            x_words = _clean_swap_side(m.group("x"))
+            y_words = _clean_swap_side(m.group("y"), possessive=True)
+            adopted = self._apply_detail_swap(x_words, y_words)
+            break
+        strong = (_CORRECTION_STRONG_RE.search(lowered) is not None
+                  or _CORRECTION_MEANT_RE.search(lowered) is not None)
+        if adopted is None and strong:
+            adopted = self._adopt_restated_details(text)
+        if adopted is None and not strong:
+            # A swap-shaped sentence whose corrected-out term Liv
+            # does not hold, with no correction phrase aimed at her,
+            # is narrative, not correction ("the letter wasn't from
+            # him, it was from her") — listen on.
+            return None
+
+        self.stalls = 0
+        grief = (any(w in lowered for w in _GRIEF_WORDS)
+                 or self._grief_in_room)
+        if grief:
+            opener = "Forgive me — I’m sorry."
+        else:
+            opener = "You’re right — I’m sorry."
+        if adopted is not None:
+            old_display, new_display = adopted
+            body = (opener + " " + _cap_first(new_display) +
+                    " it is, not " + old_display +
+                    ". Thank you for setting me straight.")
+            ride_prefix = (opener + " " + _cap_first(new_display) +
+                           " it is. ")
+        else:
+            body = (opener + " Tell me how it should be, and I’ll "
+                    "keep it that way.")
+            ride_prefix = opener + " "
+        if grief and len(text) > 90:
+            # Mid-grief and riding along: keep the apology to a
+            # breath, so the condolence that follows is not doubled.
+            ride_prefix = "Forgive me — thank you for setting me straight. "
+        if len(text) <= 90:
+            # The correction IS the turn: it completes here.
+            return body
+        if not self._reply_prefix:
+            self._reply_prefix = ride_prefix
         return None
 
     # -- meta engagement (Persona Directive #3) ----------------------
@@ -1315,7 +1530,12 @@ class CannedCompanion:
     def _respond(self, text):
         text = (text or "").strip()
         self.turn += 1
+        self._last_swap = None
         lowered = _normalise(text)
+        if any(w in lowered for w in _GRIEF_WORDS):
+            # Grief has entered the room; it colours later turns
+            # (notably the register of a correction — Directive #5).
+            self._grief_in_room = True
 
         if self.closed:
             return ("Of course. Whenever you are ready to talk again, "
@@ -1429,6 +1649,18 @@ class CannedCompanion:
         if correction is not None:
             return correction
 
+        # CORRECTION (Persona Directive #5) — apologise easily,
+        # correct instantly. A correction that is also a boundary
+        # never reaches here: the boundary law above outranks it,
+        # as do the gates and the age protocol. A name correction
+        # (Directive #2, just above) is handled on its own path and
+        # never double-fires with this one. A pure correction
+        # completes the turn; one riding along with story sets an
+        # apology prefix and listening continues below.
+        outcome = self._take_correction(text)
+        if outcome is not None:
+            return outcome
+
         # META ENGAGEMENT (Persona Directive #3) — the storyteller is
         # speaking TO Liv about the conversation itself. Answer as a
         # person would: reflect what it has held, then one genuine
@@ -1443,6 +1675,22 @@ class CannedCompanion:
 
         new_details = [d for d in extract_details(text)
                        if d not in self.details and not self._is_blocked(d)]
+        if self._last_swap is not None:
+            # The corrected-out detail must never resurface — not
+            # even from this same message's restatement of it.
+            old_phrase = self._last_swap[0]
+            old_kind = _detail_kind(old_phrase)
+
+            def _key(phrase):
+                if _detail_kind(phrase) == "place":
+                    return _place_name(phrase).lower()
+                return phrase.split()[-1].lower()
+
+            old_key = _key(old_phrase)
+            new_details = [
+                d for d in new_details
+                if not (_detail_kind(d) == old_kind
+                        and _key(d) == old_key)]
         self.details.extend(new_details)
 
         # CULTURAL GROUND (Persona Directive #4) — a faith/culture
