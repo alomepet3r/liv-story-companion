@@ -668,6 +668,75 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   margin: 0 0 1rem;
 }
 
+/* Bring your archive — the selection tray. Items are calm cards;
+   nothing is shared until a box is ticked and Share is pressed,
+   so the checked state carries the same warm tint as consent. */
+
+#archive-notice-title:focus { outline: none; }
+
+.archive-title {
+  font-size: 1.45rem;
+  margin-bottom: 0.4rem;
+}
+
+#archive-tray-title { font-size: 1.3rem; margin-top: 0.6rem; }
+
+#archive-tray-title:focus { outline: none; }
+
+.archive-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0.8rem 0 1rem;
+}
+
+.archive-item {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: var(--card);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+}
+
+.archive-item:has(input:checked) {
+  border-color: var(--ember);
+  background: var(--ember-tint);
+}
+
+.archive-item input {
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: none;
+  accent-color: var(--ember);
+}
+
+.archive-item-text { display: block; min-width: 0; }
+
+.archive-item-caption {
+  display: block;
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+
+.archive-item-meta {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+/* In-thread origin line for an archive photo: where it came from,
+   when it is dated, and the caption it arrived with. */
+.archive-origin {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  margin: 0.15rem 0 0.5rem;
+}
+
 #chat-form label {
   display: block;
   font-size: 0.85rem;

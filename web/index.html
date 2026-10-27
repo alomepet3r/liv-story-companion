@@ -161,10 +161,30 @@
       </p>
     </div>
 
+    <!-- Archive first-use notice: shown ONCE per session, before
+         the archive panel opens. Bringing an export is a bigger
+         handing-over than a single photo, so it gets its own
+         plain word: read once, in this tab only, and nothing is
+         shared with Liv until the storyteller ticks it. -->
+    <div id="archive-notice" class="media-notice" hidden>
+      <h2 id="archive-notice-title" tabindex="-1">Before you bring your archive</h2>
+      <p>Liv will open the export <strong>once, here in this
+        tab</strong>, and look only for its photos and their
+        captions. Nothing is kept after this tab closes. And
+        nothing is shared with Liv until you see the photos and
+        tick the ones you choose — the rest never leave the
+        archive.</p>
+      <p class="media-notice-actions">
+        <button id="archive-notice-ok" class="primary small" type="button">I understand — continue</button>
+        <button id="archive-notice-cancel" class="secondary" type="button">Not now</button>
+      </p>
+    </div>
+
     <div class="media-bar" role="group" aria-label="Share something with your companion">
       <button id="btn-photo" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-photo">Add a photo</button>
       <button id="btn-audio" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-audio">Record voice</button>
       <button id="btn-video" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-video">Record video</button>
+      <button id="btn-archive" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-archive">Bring your archive</button>
     </div>
 
     <div id="panel-photo" class="media-panel" hidden>
@@ -203,6 +223,36 @@
         <button id="video-discard" class="secondary" type="button">Discard it</button>
       </p>
       <input id="video-file-input" type="file" accept="video/*" hidden>
+    </div>
+
+    <!-- Bring your archive (Day 5 slice): the storyteller hands
+         Liv their own Facebook Download Your Information .zip.
+         Liv reads it once, in this tab only, and shows the photos
+         it holds (photos and their captions for now — the words
+         of posts are not read). Nothing reaches Liv until the
+         storyteller ticks photos and presses Share selected. -->
+    <div id="panel-archive" class="media-panel" hidden>
+      <h2 class="archive-title">Photos from your Facebook archive</h2>
+      <p class="media-status" id="archive-intro">On Facebook,
+        Settings and privacy → Settings → Download your information
+        gives you a .zip file of your own photos and posts. Choose
+        that file here. For now Liv reads <strong>photos and their
+        captions</strong> only.</p>
+      <p class="media-panel-actions">
+        <button id="archive-choose" class="secondary" type="button">Choose your export (.zip)</button>
+        <input id="archive-file-input" type="file" accept=".zip,application/zip" hidden aria-label="Choose your Download Your Information export, a .zip file">
+      </p>
+      <p id="archive-status" class="media-status" role="status"></p>
+      <div id="archive-tray" hidden>
+        <h3 id="archive-tray-title" tabindex="-1">Choose the photos to share</h3>
+        <p class="quiet">Only the photos you tick will be shared
+          with <span class="js-companion-name">Liv</span>. The rest
+          stay in the archive, unseen.</p>
+        <div id="archive-items" class="archive-items"></div>
+        <p class="media-panel-actions">
+          <button id="archive-share" class="primary small" type="button" disabled>Share selected (0)</button>
+        </p>
+      </div>
     </div>
 
     <div id="pending-media" class="pending-media" hidden>

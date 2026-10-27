@@ -83,8 +83,14 @@
     if (item.kind === "photo") {
       el = document.createElement("img");
       el.src = mediaUrl(item);
-      el.alt = inThread ? "A photo shared in this conversation"
-                        : "A photo ready to share";
+      if (item.source === "archive") {
+        el.alt = inThread
+          ? "A photo from your archive shared in this conversation"
+          : "A photo from your archive ready to share";
+      } else {
+        el.alt = inThread ? "A photo shared in this conversation"
+                          : "A photo ready to share";
+      }
       el.className = inThread ? "shared-media" : "pending-thumb";
     } else if (item.kind === "audio") {
       el = document.createElement("audio");
@@ -120,6 +126,19 @@
     if (mediaItems) {
       for (var i = 0; i < mediaItems.length; i++) {
         div.appendChild(mediaElement(mediaItems[i], true));
+        if (mediaItems[i].source === "archive") {
+          var origin = document.createElement("span");
+          origin.className = "archive-origin";
+          var originText = "From your archive";
+          if (mediaItems[i].date) {
+            originText += " · " + mediaItems[i].date;
+          }
+          if (mediaItems[i].caption) {
+            originText += " — \u201c" + mediaItems[i].caption + "\u201d";
+          }
+          origin.textContent = originText;
+          div.appendChild(origin);
+        }
       }
     }
     if (text) {
@@ -223,8 +242,10 @@
         row.appendChild(mediaElement(item, false));
         var label = document.createElement("span");
         label.className = "pending-kind";
-        label.textContent = { photo: "Photo", audio: "Voice recording",
-                              video: "Video" }[item.kind];
+        label.textContent = item.source === "archive"
+          ? "Archive photo"
+          : { photo: "Photo", audio: "Voice recording",
+              video: "Video" }[item.kind];
         row.appendChild(label);
         var remove = document.createElement("button");
         remove.type = "button";
@@ -338,12 +359,14 @@
   var panels = {
     photo: document.getElementById("panel-photo"),
     audio: document.getElementById("panel-audio"),
-    video: document.getElementById("panel-video")
+    video: document.getElementById("panel-video"),
+    archive: document.getElementById("panel-archive")
   };
   var barButtons = {
     photo: document.getElementById("btn-photo"),
     audio: document.getElementById("btn-audio"),
-    video: document.getElementById("btn-video")
+    video: document.getElementById("btn-video"),
+    archive: document.getElementById("btn-archive")
   };
 
   function closePanels() {
@@ -367,6 +390,222 @@
   barButtons.photo.addEventListener("click", function () { togglePanel("photo"); });
   barButtons.audio.addEventListener("click", function () { togglePanel("audio"); });
   barButtons.video.addEventListener("click", function () { togglePanel("video"); });
+
+  // ---- Bring your archive ------------------------------------------
+  // The archive panel has its OWN first-use notice (a bigger
+  // handing-over than one photo deserves its own plain word), with
+  // the same focus discipline as the media notice: focus to the
+  // heading on open; Continue lands on the panel's first control;
+  // Not now returns focus to the archive button.
+  var archiveNotice = document.getElementById("archive-notice");
+  var archiveNoticeTitle = document.getElementById("archive-notice-title");
+  var archiveNoticeDone = false;
+  var archiveNoticePending = null;
+
+  function guardArchiveFirstUse(action) {
+    if (archiveNoticeDone) { action(); return; }
+    archiveNoticePending = action;
+    archiveNotice.hidden = false;
+    archiveNotice.scrollIntoView({ block: "nearest",
+                                   behavior: scrollBehavior() });
+    archiveNoticeTitle.focus();
+  }
+  document.getElementById("archive-notice-ok").addEventListener("click",
+    function () {
+      archiveNoticeDone = true;
+      archiveNotice.hidden = true;
+      var action = archiveNoticePending;
+      archiveNoticePending = null;
+      if (action) { action(); }
+      var first = panels.archive.querySelector("button");
+      if (first && !panels.archive.hidden) { first.focus(); }
+    });
+  document.getElementById("archive-notice-cancel").addEventListener(
+    "click", function () {
+      archiveNotice.hidden = true;
+      archiveNoticePending = null;
+      barButtons.archive.focus();
+    });
+
+  barButtons.archive.addEventListener("click", function () {
+    var willOpen = panels.archive.hidden;
+    closePanels();
+    if (!willOpen) { return; }
+    guardArchiveFirstUse(function () {
+      panels.archive.hidden = false;
+      barButtons.archive.setAttribute("aria-expanded", "true");
+    });
+  });
+
+  var ARCHIVE_ZIP_CAP = 200 * 1024 * 1024;
+  var archiveStatus = document.getElementById("archive-status");
+  var archiveTray = document.getElementById("archive-tray");
+  var archiveTrayTitle = document.getElementById("archive-tray-title");
+  var archiveItemsBox = document.getElementById("archive-items");
+  var archiveShare = document.getElementById("archive-share");
+  var archiveFileInput = document.getElementById("archive-file-input");
+  var archiveListing = [];
+
+  function archiveItemUrl(item) {
+    return "/api/archive/item/" + item.id + "?session_id=" +
+      encodeURIComponent(sessionId);
+  }
+
+  function refreshArchiveShare() {
+    var boxes = archiveItemsBox.querySelectorAll(
+      'input[type="checkbox"]:checked');
+    var n = boxes.length;
+    archiveShare.textContent = "Share selected (" + n + ")";
+    archiveShare.disabled = n === 0;
+    return n;
+  }
+
+  function renderArchiveTray(data) {
+    archiveListing = data.items || [];
+    archiveItemsBox.innerHTML = "";
+    for (var i = 0; i < archiveListing.length; i++) {
+      (function (item) {
+        var label = document.createElement("label");
+        label.className = "archive-item";
+        var box = document.createElement("input");
+        box.type = "checkbox";
+        box.value = item.id;
+        var description = item.caption || "A photo from your archive";
+        if (item.date) { description += ", " + item.date; }
+        box.setAttribute("aria-label", "Share this photo: " + description);
+        box.addEventListener("change", refreshArchiveShare);
+        label.appendChild(box);
+        var thumb = document.createElement("img");
+        thumb.className = "pending-thumb";
+        thumb.src = archiveItemUrl(item);
+        thumb.alt = "";
+        label.appendChild(thumb);
+        var text = document.createElement("span");
+        text.className = "archive-item-text";
+        var caption = document.createElement("span");
+        caption.className = "archive-item-caption";
+        caption.textContent = item.caption || "No caption";
+        text.appendChild(caption);
+        if (item.date || item.album) {
+          var meta = document.createElement("span");
+          meta.className = "archive-item-meta";
+          meta.textContent = [item.date, item.album]
+            .filter(Boolean).join(" · ");
+          text.appendChild(meta);
+        }
+        label.appendChild(text);
+        archiveItemsBox.appendChild(label);
+      })(archiveListing[i]);
+    }
+    var summary = "I found " + data.found +
+      (data.found === 1 ? " photo" : " photos") + " in your archive.";
+    if (data.skipped > 0) {
+      summary += " " + data.skipped +
+        (data.skipped === 1 ? " item" : " items") +
+        " could not be brought in (too large, or not a photo I " +
+        "could read) and " +
+        (data.skipped === 1 ? "was" : "were") + " left out.";
+    }
+    summary += " Tick the photos you would like to share.";
+    archiveStatus.textContent = summary;
+    archiveTray.hidden = false;
+    refreshArchiveShare();
+    archiveTrayTitle.focus();
+  }
+
+  function uploadArchive(file) {
+    showMediaError("");
+    if (file.size > ARCHIVE_ZIP_CAP) {
+      showMediaError("That archive is larger than 200 MB. In " +
+        "Download Your Information you can ask for photos only, " +
+        "which makes a smaller file.");
+      return;
+    }
+    archiveStatus.textContent = "Looking through your archive…";
+    var fd = new FormData();
+    fd.append("session_id", sessionId);
+    fd.append("consent", consented ? "true" : "false");
+    fd.append("age_confirmed", ageConfirmed ? "true" : "false");
+    fd.append("file", file, file.name);
+    fetch("/api/archive", { method: "POST", body: fd })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { status: res.status, data: data };
+        });
+      })
+      .then(function (out) {
+        if (out.status === 200 && out.data.items) {
+          renderArchiveTray(out.data);
+        } else {
+          archiveStatus.textContent = "";
+          showMediaError(out.data.error ||
+            "That archive could not be read. Please try again.");
+        }
+      })
+      .catch(function () {
+        archiveStatus.textContent = "";
+        showMediaError("That archive could not be read. " +
+          "Please try again.");
+      });
+  }
+
+  document.getElementById("archive-choose").addEventListener("click",
+    function () { archiveFileInput.click(); });
+  archiveFileInput.addEventListener("change", function () {
+    if (archiveFileInput.files && archiveFileInput.files[0]) {
+      uploadArchive(archiveFileInput.files[0]);
+    }
+    archiveFileInput.value = "";
+  });
+
+  archiveShare.addEventListener("click", function () {
+    var boxes = archiveItemsBox.querySelectorAll(
+      'input[type="checkbox"]:checked');
+    var ids = [];
+    for (var i = 0; i < boxes.length; i++) { ids.push(boxes[i].value); }
+    if (ids.length === 0) { return; }
+    showMediaError("");
+    fetch("/api/archive/select", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        consent: consented,
+        age_confirmed: ageConfirmed,
+        item_ids: ids
+      })
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { status: res.status, data: data };
+        });
+      })
+      .then(function (out) {
+        if (out.status === 200 && out.data.media) {
+          for (var i = 0; i < out.data.media.length; i++) {
+            pendingMedia.push(out.data.media[i]);
+          }
+          renderPending();
+          for (var j = 0; j < boxes.length; j++) {
+            boxes[j].checked = false;
+          }
+          refreshArchiveShare();
+          archiveStatus.textContent = out.data.media.length +
+            (out.data.media.length === 1 ? " photo is" :
+             " photos are") +
+            " ready — they will go with your next message.";
+          closePanels();
+          input.focus();
+        } else {
+          showMediaError(out.data.error ||
+            "Those photos could not be shared. Please try again.");
+        }
+      })
+      .catch(function () {
+        showMediaError("Those photos could not be shared. " +
+          "Please try again.");
+      });
+  });
 
   // File choices (take / choose for photos; choose for audio/video).
   function wireFileInput(id, kind) {
