@@ -70,7 +70,9 @@
         person.</p>
       <p><strong>What is kept:</strong> the words of our conversation,
         as text, so they can be arranged into a chapter for you to
-        review. In this demo, they are kept only while this tab
+        review — and anything you choose to share along the way: a
+        photo, your voice, a video. In this demo, they are kept only
+        while this tab
         stays open — when you close the tab, this conversation is
         gone.</p>
       <p><strong>Who can see it:</strong> no one else. Nothing leaves
@@ -120,6 +122,73 @@
   <section id="chat-screen" hidden aria-labelledby="chat-heading">
     <h1 id="chat-heading" class="chat-title">Talking with <span class="js-companion-name">Liv</span></h1>
     <div id="messages" class="messages" aria-live="polite"></div>
+
+    <!-- Media sharing (Day 2): take or upload a photo, record or
+         upload voice, record or upload a video — to support the
+         story being told. The first use in a session shows a short
+         notice (the upload-moment word) before anything opens. -->
+    <div id="media-notice" class="media-notice" hidden>
+      <h2>Before you share</h2>
+      <p>In this demo, anything you share is kept only while this
+        tab stays open — when you close the tab, it is gone, just
+        like our conversation. And please only share what you are
+        content to keep with your story — intimate pictures deserve
+        the same care as intimate words.</p>
+      <p class="media-notice-actions">
+        <button id="media-notice-ok" class="primary small" type="button">I understand — continue</button>
+        <button id="media-notice-cancel" class="secondary" type="button">Not now</button>
+      </p>
+    </div>
+
+    <div class="media-bar" role="group" aria-label="Share something with your companion">
+      <button id="btn-photo" class="media-btn" type="button" aria-expanded="false">Add a photo</button>
+      <button id="btn-audio" class="media-btn" type="button" aria-expanded="false">Record voice</button>
+      <button id="btn-video" class="media-btn" type="button" aria-expanded="false">Record video</button>
+    </div>
+
+    <div id="panel-photo" class="media-panel" hidden>
+      <p class="media-status">Take a new photo, or choose one you already have.</p>
+      <p class="media-panel-actions">
+        <button id="photo-take" class="secondary" type="button">Take a photo</button>
+        <button id="photo-choose" class="secondary" type="button">Choose a photo</button>
+      </p>
+      <input id="photo-take-input" type="file" accept="image/*" capture="environment" hidden>
+      <input id="photo-choose-input" type="file" accept="image/*" hidden>
+    </div>
+
+    <div id="panel-audio" class="media-panel" hidden>
+      <p class="media-status" id="audio-status">Record your voice here, or choose a recording you already have.</p>
+      <audio id="audio-preview" controls hidden></audio>
+      <p class="media-panel-actions">
+        <button id="audio-record" class="secondary" type="button">Start recording</button>
+        <button id="audio-upload" class="secondary" type="button">Choose a recording</button>
+      </p>
+      <p class="media-panel-actions" id="audio-rec-actions" hidden>
+        <button id="audio-use" class="secondary" type="button">Use this recording</button>
+        <button id="audio-discard" class="secondary" type="button">Discard it</button>
+      </p>
+      <input id="audio-file-input" type="file" accept="audio/*" hidden>
+    </div>
+
+    <div id="panel-video" class="media-panel" hidden>
+      <p class="media-status" id="video-status">Record a short video here, or choose one you already have.</p>
+      <video id="video-preview" playsinline muted hidden></video>
+      <p class="media-panel-actions">
+        <button id="video-record" class="secondary" type="button">Start recording</button>
+        <button id="video-upload" class="secondary" type="button">Choose a video</button>
+      </p>
+      <p class="media-panel-actions" id="video-rec-actions" hidden>
+        <button id="video-use" class="secondary" type="button">Use this video</button>
+        <button id="video-discard" class="secondary" type="button">Discard it</button>
+      </p>
+      <input id="video-file-input" type="file" accept="video/*" hidden>
+    </div>
+
+    <div id="pending-media" class="pending-media" hidden>
+      <p class="pending-label">Ready to share with <span class="js-companion-name">Liv</span> — it will go with your next message:</p>
+      <div id="pending-items"></div>
+    </div>
+    <p id="media-error" class="media-error" role="alert" hidden></p>
 
     <form id="chat-form">
       <label for="chat-input">Your reply</label>

@@ -723,6 +723,115 @@ def _is_direct_question(lowered):
             and re.search(r"\byou\b|\byour\b", stripped) is not None)
 
 
+# --- Media sharing: the walkthrough (Day 2, Petro's live test) --------
+# In his second sitting (Oct 27), Petro offered to upload a photo
+# and Liv could not walk him through it — there was no way to share
+# media at all. Now there is a media bar under the composer, and
+# when a storyteller says they want to share something, Liv names
+# the EXACT button and what happens next. Detection is
+# sharing-shaped (present-tense intent), never mere narrative
+# ("we took a photo every summer" is a story, and simply flows).
+_MEDIA_PHOTO_PHRASES = (
+    "show you a photo", "show you a picture", "show you this photo",
+    "show you this picture", "share a photo", "share a picture",
+    "send you a photo", "send a photo", "send you a picture",
+    "upload a photo", "upload a picture", "add a photo",
+    "attach a photo", "attach a picture", "i have a photo",
+    "i have a picture", "i've got a photo", "i have one photo",
+    "a photo i want to show", "a picture i want to show",
+)
+_MEDIA_VIDEO_PHRASES = (
+    "show you a video", "share a video", "send a video",
+    "send you a video", "upload a video", "add a video",
+    "attach a video", "i have a video", "record a video",
+    "a video i want to show",
+)
+_MEDIA_AUDIO_PHRASES = (
+    "voice note", "record my voice", "voice recording",
+    "send a recording", "i have a recording", "upload a recording",
+    "record audio", "audio recording", "can i record my voice",
+    "can i record a message", "share a recording",
+)
+_MEDIA_ANY_PHRASES = (
+    "can i upload", "how do i upload", "how can i upload",
+    "can i attach", "attach a file", "share a file",
+    "can i share a file", "send you a file", "add media",
+    "share media", "upload something", "i want to show you",
+    "let me show you", "can i show you", "i'd like to show you",
+    "show you something", "can i send you",
+)
+
+
+def detect_media_intent(lowered):
+    """'photo' | 'video' | 'audio' | 'any' | None — the storyteller
+    wants to share media and needs the walkthrough, not a story
+    reply. Specific kinds are checked before the generic door."""
+    for phrase in _MEDIA_PHOTO_PHRASES:
+        if phrase in lowered:
+            return "photo"
+    for phrase in _MEDIA_VIDEO_PHRASES:
+        if phrase in lowered:
+            return "video"
+    for phrase in _MEDIA_AUDIO_PHRASES:
+        if phrase in lowered:
+            return "audio"
+    for phrase in _MEDIA_ANY_PHRASES:
+        if phrase in lowered:
+            return "any"
+    return None
+
+
+_MEDIA_WALKTHROUGH = {
+    "photo": ("I’d love to see it. Just below where you type, "
+              "there is a button that says “Add a photo” — tap it, "
+              "and you can take a new photo or choose one you "
+              "already have. When it appears here with your "
+              "message, tell me about it — where are we, and who "
+              "is in it?"),
+    "video": ("I’d love to see it. Just below where you type, "
+              "there is a button that says “Record video” — tap "
+              "it, and you can record a short video right here or "
+              "choose one you already have. When it appears here "
+              "with your message, tell me what it shows."),
+    "audio": ("I would like that very much. Just below where you "
+              "type, there is a button that says “Record voice” — "
+              "tap it, and you can record your voice right here or "
+              "choose a recording you already have. It will be "
+              "kept here with your story."),
+    "any": ("You can share more than words here. Just below where "
+            "you type, you will find three buttons: “Add a "
+            "photo”, “Record voice”, and “Record video”. Tap the "
+            "one you need — you can take or record something new, "
+            "or choose one you already have — and what you share "
+            "will be kept here with your story."),
+}
+
+# Acknowledgements for media that ARRIVED with a message, on the
+# fallback path. Honesty is the whole point: on this path Liv has
+# not seen or heard the media, and she says so plainly — the photo
+# is kept with the story, and the storyteller is asked to describe
+# it. (On the live path, Spark genuinely sees a photo and remarks
+# on it; audio/video get an equivalent honesty note there.)
+_MEDIA_ACK = {
+    "photo": ("Thank you for showing me this — it is here now, "
+              "kept with your story. I want to be honest with "
+              "you: in this early version I can’t make out the "
+              "details of a photograph yet. So tell me about this "
+              "one — where are we, and who is in it?"),
+    "audio": ("Thank you. Your voice is here now, kept with your "
+              "story. What would you like me to know about this "
+              "recording — what were you telling me in it?"),
+    "video": ("Thank you for sharing this — it is here now, kept "
+              "with your story. I want to be honest with you: in "
+              "this early version I can’t watch a video yet. Tell "
+              "me about it — what does it show, and what does it "
+              "mean to you?"),
+    "any": ("Thank you — what you shared is here now, kept with "
+            "your story. Tell me about it — what would you like "
+            "me to know?"),
+}
+
+
 # --- Correction: apologise easily, correct instantly (Directive #5) --
 # When the storyteller corrects Liv, she apologises briefly and
 # simply, adopts the correction at once, and carries on warmly.
@@ -1503,6 +1612,14 @@ class CannedCompanion:
             out.append("What stays with you most from it?")
         return " ".join(out)
 
+    def media_reply(self, kind):
+        """Acknowledge media that arrived WITH a message, on the
+        fallback path (the server calls this instead of reply()).
+        Honest by construction: what arrived is kept with the
+        story, and the storyteller is invited to tell Liv about
+        it — she never pretends to have seen or heard it here."""
+        return _MEDIA_ACK.get(kind, _MEDIA_ACK["any"])
+
     def greeting(self):
         # The first message introduces the companion by the chosen
         # name, makes boundaries easy, and — Persona Directive #2 —
@@ -1667,6 +1784,15 @@ class CannedCompanion:
         # move. Never a bare deflection.
         if detect_meta_question(text):
             return self._reflection_reply()
+
+        # MEDIA WALKTHROUGH (Day 2) — the storyteller wants to
+        # share a photo, a recording, or a video. Name the exact
+        # button and what happens next; a storyteller who is
+        # offering something should never meet a dead end.
+        media_intent = detect_media_intent(lowered)
+        if media_intent is not None:
+            self.stalls = 0
+            return _MEDIA_WALKTHROUGH[media_intent]
 
         # Silence / almost nothing said: patience, no pressure, no question
         # piled on top of another.

@@ -15,11 +15,15 @@ Run (from the repo root):
 
 No dependencies beyond the Python standard library.
 """
+import base64
 import json
 import os
+import re
+import secrets
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 
 def _load_dotenv():
@@ -175,7 +179,24 @@ def build_system_prompt(companion_name):
     "conversation here, wish them well, and end the session: do "
     "not continue listening to or gathering their story. Never "
     "apply this to an adult recounting their own youth — 'when I "
-    "was 15…' is a memory, not an indication. Meet tender topics "
+    "was 15…' is a memory, not an indication. "
+    "SHARING PHOTOS, VOICE, AND VIDEO: the storyteller can share "
+    "media with you using the buttons just below where they type — "
+    "'Add a photo', 'Record voice', and 'Record video'. If they "
+    "say they want to show you or send you something, walk them "
+    "through it warmly and exactly: name the button to tap, and "
+    "tell them they can take a new one or choose one they already "
+    "have. When a photo arrives with a message and you can truly "
+    "see it, look with care: remark on ONE specific thing you "
+    "genuinely see, then invite the story — 'Tell me about this "
+    "one — where are we?' If a photo was shared but you cannot "
+    "see it, say so honestly and ask them to describe it — never "
+    "invent what a photo shows. When they share a voice recording "
+    "or a video, you cannot listen or watch in this version: "
+    "thank them, tell them it is kept here with their story, and "
+    "ask what they would like you to know about it. Never pretend "
+    "to hear or see what you cannot. "
+    "Meet tender topics "
     "plainly and kindly, without morbidity and without forced cheer. "
     "Close sessions gracefully, thanking them. Later, the conversation "
     "will be arranged into a chapter which the storyteller reviews and "
@@ -215,8 +236,181 @@ def _session(session_id):
                 "companion": CannedCompanion(),
                 "companion_name": "Liv",
                 "history": [],
+                "media": {},
             }
         return _sessions[session_id]
+
+
+# --- Media capture (Day 2, pulled forward from Days 3/5) ----------------
+# The storyteller can take/upload a photo, record/upload voice, and
+# record/upload a video. Media lives ONLY in the owning session's
+# in-memory store — the demo's keeps-nothing posture: it dies with
+# the container and the tab session, exactly like the conversation.
+# Caps are honest and enforced server-side, with kind error copy.
+MEDIA_CAPS = {
+    "photo": 10 * 1024 * 1024,    # 10 MB
+    "audio": 50 * 1024 * 1024,    # 50 MB
+    "video": 50 * 1024 * 1024,    # 50 MB
+}
+MEDIA_HARD_CAP = 60 * 1024 * 1024  # request-level ceiling (multipart)
+
+_MEDIA_TOO_BIG = {
+    "photo": "That photo is larger than 10 MB — please choose a "
+             "smaller one.",
+    "audio": "That recording is larger than 50 MB — please choose "
+             "a shorter or smaller one.",
+    "video": "That video is larger than 50 MB — please choose a "
+             "shorter or smaller one.",
+}
+
+# Vision verdict (probed Oct 27, 2026): Muse Spark ACCEPTS image
+# input on the chat surface and describes what it is shown
+# accurately. Photo messages therefore go to the live model as
+# image content parts, and Liv genuinely remarks on what she sees.
+# If a live call ever fails, the fallback is honesty — the canned
+# companion keeps the photo with the story and asks the storyteller
+# to describe it; nobody pretends to see.
+VISION_SUPPORTED = True
+
+# Notes appended to the live model's copy of a media turn when the
+# media cannot actually be perceived by the model on this path.
+_MEDIA_NOTES = {
+    "photo": " [A note for you: the storyteller shared a photograph "
+             "with this message, but on this path you cannot see "
+             "photographs. Do not pretend to see or describe it. "
+             "Thank them warmly, tell them it is kept with their "
+             "story, and ask them to tell you about it — where are "
+             "we, and who is in it.]",
+    "audio": " [A note for you: the storyteller shared a voice "
+             "recording with this message. In this version you "
+             "cannot listen to recordings. Do not pretend to have "
+             "heard it. Thank them, tell them their voice is kept "
+             "with their story, and ask what they would like you to "
+             "know about it.]",
+    "video": " [A note for you: the storyteller shared a video with "
+             "this message. In this version you cannot watch "
+             "videos. Do not pretend to have watched it. Thank "
+             "them, tell them it is kept with their story, and ask "
+             "them to tell you what it shows.]",
+}
+
+
+def _parse_multipart(body, content_type):
+    """Minimal multipart/form-data parser (stdlib only).
+
+    Returns (fields, files): fields maps name -> str; files maps
+    name -> (filename, content_type, bytes). Written for the one
+    shape our own client sends: a few text fields plus one file.
+    """
+    match = re.search(r'boundary=(?:"([^"]+)"|([^;]+))', content_type or "")
+    if not match:
+        return {}, {}
+    boundary = (match.group(1) or match.group(2)).strip().encode("utf-8")
+    fields, files = {}, {}
+    for part in body.split(b"--" + boundary):
+        if part.startswith(b"\r\n"):
+            part = part[2:]
+        if part.endswith(b"\r\n"):
+            part = part[:-2]
+        if part.endswith(b"--"):
+            part = part[:-2]
+        if not part:
+            continue
+        head, sep, data = part.partition(b"\r\n\r\n")
+        if not sep:
+            continue
+        headers = head.decode("utf-8", "replace")
+        disp = re.search(
+            r'Content-Disposition:\s*form-data;\s*name="([^"]+)"'
+            r'(?:;\s*filename="([^"]*)")?', headers)
+        if not disp:
+            continue
+        name, filename = disp.group(1), disp.group(2)
+        if filename is None:
+            fields[name] = data.decode("utf-8", "replace")
+        else:
+            ct = re.search(r"Content-Type:\s*([^\r\n]+)", headers)
+            files[name] = (filename,
+                           ct.group(1).strip() if ct
+                           else "application/octet-stream",
+                           data)
+    return fields, files
+
+
+def handle_media_upload(fields, files):
+    """One media upload. Returns (status, response_dict)."""
+    if fields.get("consent") != "true":
+        return 403, {"error": "Consent is required before we begin."}
+    if fields.get("age_confirmed") != "true":
+        return 403, {"error": "Please confirm you are 18 or older "
+                              "before we begin."}
+    kind = fields.get("kind")
+    if kind not in MEDIA_CAPS:
+        return 400, {"error": "Please say whether this is a photo, "
+                              "a voice recording, or a video."}
+    upload = files.get("file")
+    if upload is None:
+        return 400, {"error": "No file arrived — please try again."}
+    filename, content_type, data = upload
+    if len(data) > MEDIA_CAPS[kind]:
+        return 413, {"error": _MEDIA_TOO_BIG[kind]}
+    if kind == "photo" and not content_type.startswith("image/"):
+        return 400, {"error": "That file does not look like a photo. "
+                              "Please choose an image."}
+    if kind == "audio" and not (content_type.startswith("audio/")
+                                or content_type.startswith("video/")):
+        # Some browsers wrap voice in a webm container typed video/.
+        return 400, {"error": "That file does not look like a "
+                              "recording. Please choose an audio file."}
+    if kind == "video" and not content_type.startswith("video/"):
+        return 400, {"error": "That file does not look like a video. "
+                              "Please choose a video file."}
+    session_id = str(fields.get("session_id") or "default")
+    sess = _session(session_id)
+    media_id = "m-" + secrets.token_hex(6)
+    sess["media"][media_id] = {
+        "kind": kind,
+        "content_type": content_type,
+        "data": data,
+        "name": filename,
+    }
+    return 200, {"media_id": media_id, "kind": kind, "size": len(data)}
+
+
+def _media_turn_messages(api_messages, media_items, message):
+    """Shape the live model's view of a turn that carries media.
+
+    Photos (vision verified) ride as image content parts on the
+    final user message; anything the model cannot perceive on this
+    path gets an explicit honesty note instead — she must never
+    pretend to see or hear what she cannot.
+    """
+    messages = [dict(m) for m in api_messages]
+    last_user = None
+    for i in range(len(messages) - 1, -1, -1):
+        if messages[i].get("role") == "user":
+            last_user = i
+            break
+    if last_user is None:
+        return messages
+    photos = [m for m in media_items if m["kind"] == "photo"]
+    others = [m["kind"] for m in media_items if m["kind"] != "photo"]
+    notes = "".join(_MEDIA_NOTES[k] for k in dict.fromkeys(others))
+    if photos and VISION_SUPPORTED:
+        text = (message or "").strip() or "I wanted to show you this photo."
+        parts = [{"type": "text", "text": text + notes}]
+        for item in photos[:2]:
+            uri = ("data:" + item["content_type"] + ";base64,"
+                   + base64.b64encode(item["data"]).decode("ascii"))
+            parts.append({"type": "image_url",
+                          "image_url": {"url": uri}})
+        messages[last_user] = {"role": "user", "content": parts}
+    else:
+        kinds = [m["kind"] for m in media_items]
+        note = "".join(_MEDIA_NOTES[k] for k in dict.fromkeys(kinds))
+        base = messages[last_user].get("content") or ""
+        messages[last_user] = {"role": "user", "content": base + note}
+    return messages
 
 
 def handle_chat(payload):
@@ -241,6 +435,17 @@ def handle_chat(payload):
     message = str(payload.get("message") or "")
     sess = _session(session_id)
 
+    # Media attached to this turn (uploaded via /api/media into
+    # this session's store). Unknown ids are ignored — the turn is
+    # then just the words that came with it.
+    media_items = []
+    raw_ids = payload.get("media_ids")
+    if isinstance(raw_ids, list):
+        for mid in raw_ids[:4]:
+            item = sess["media"].get(str(mid))
+            if item is not None:
+                media_items.append(item)
+
     # The storyteller's companion choice (Livio / Livia / Liv) is set
     # BEFORE the conversation starts and then kept for the whole
     # session, so a name can never bleed or switch mid-conversation;
@@ -259,7 +464,11 @@ def handle_chat(payload):
         return 200, {"session_id": session_id, "reply": greeting,
                      "mode": "canned", "companion": companion_name}
 
-    sess["history"].append({"role": "user", "content": message})
+    history_text = message
+    for item in media_items:
+        history_text += (" [The storyteller shared a " + item["kind"]
+                         + " — it is kept with the story.]")
+    sess["history"].append({"role": "user", "content": history_text})
 
     # AGE PAUSE-AND-END (T12): if this session has already ended for
     # age, or this message itself carries a present-tense under-18
@@ -279,6 +488,9 @@ def handle_chat(payload):
             system_prompt = build_system_prompt(companion_name)
             messages = ([{"role": "system", "content": system_prompt}]
                         + sess["history"][-20:])
+            if media_items:
+                messages = _media_turn_messages(messages, media_items,
+                                                message)
             text, _usage = client.chat(messages)
             text = (text or "").strip()
             if text:
@@ -293,6 +505,15 @@ def handle_chat(payload):
             pass  # Fall through to the development companion below.
 
     # 2) Development fallback (see canned.py header for why this exists).
+    if media_items:
+        # A media turn in fallback mode: Liv acknowledges what
+        # arrived honestly — a photo is kept with the story and the
+        # storyteller is asked to describe it; she never pretends
+        # to have seen or heard it on this path.
+        reply = companion.media_reply(media_items[0]["kind"])
+        sess["history"].append({"role": "assistant", "content": reply})
+        return 200, {"session_id": session_id, "reply": reply,
+                     "mode": "canned", "companion": companion_name}
     reply = companion.reply(message)
     sess["history"].append({"role": "assistant", "content": reply})
     return 200, {"session_id": session_id, "reply": reply, "mode": "canned",
@@ -320,6 +541,15 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/api/health":
             return self._send(200, {"ok": True})
+        if path.startswith("/api/media/"):
+            media_id = path[len("/api/media/"):]
+            query = parse_qs(urlparse(self.path).query)
+            session_id = (query.get("session_id") or [""])[0]
+            sess = _sessions.get(session_id)
+            item = sess["media"].get(media_id) if sess else None
+            if item is None:
+                return self._send(404, {"error": "not found"})
+            return self._send(200, item["data"], item["content_type"])
         if path in ("/", ""):
             path = "/index.html"
         target = (WEB_DIR / path.lstrip("/")).resolve()
@@ -330,8 +560,27 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(200, target.read_bytes(),
                           _STATIC_TYPES[target.suffix])
 
+    def _handle_media_post(self):
+        content_type = self.headers.get("Content-Type") or ""
+        if "multipart/form-data" not in content_type:
+            return self._send(400, {"error": "multipart upload expected"})
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0:
+            return self._send(400, {"error": "request body missing"})
+        if length > MEDIA_HARD_CAP:
+            return self._send(413, {"error": "That file is too large "
+                                             "to share here."})
+        body = self.rfile.read(length)
+        fields, files = _parse_multipart(body, content_type)
+        if not fields and not files:
+            return self._send(400, {"error": "upload could not be read"})
+        status, response = handle_media_upload(fields, files)
+        return self._send(status, response)
+
     def do_POST(self):
         path = self.path.split("?", 1)[0]
+        if path == "/api/media":
+            return self._handle_media_post()
         if path != "/api/chat":
             return self._send(404, {"error": "not found"})
         length = int(self.headers.get("Content-Length") or 0)

@@ -307,3 +307,139 @@ a { color: var(--ember); }
 .chat-actions { text-align: center; margin-top: 1.5rem; }
 
 #chat-screen .quiet { text-align: center; }
+
+/* Media sharing (Day 2): the bar, panels, first-use notice,
+   pending tray, and shared media in the thread. Same tokens,
+   same large targets, same AA pairings as the rest of the shell. */
+
+.media-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.media-btn {
+  flex: 1 1 9rem;
+  background: var(--card);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.8rem 1rem;
+  min-height: 3.5rem;
+  cursor: pointer;
+}
+
+.media-btn[aria-expanded="true"] {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 1px var(--ember);
+}
+
+.media-btn:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.media-notice {
+  background: var(--card);
+  border-left: 4px solid var(--gold);
+  border-radius: 0 16px 16px 0;
+  padding: 1.25rem 1.5rem;
+  margin: 0 0 1rem;
+}
+
+.media-notice h2 { font-size: 1.4rem; }
+
+.media-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+button.primary.small {
+  display: inline-block;
+  width: auto;
+  font-size: 1.1rem;
+  padding: 0.8rem 1.4rem;
+  min-height: 3.25rem;
+}
+
+.media-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.media-status { margin: 0 0 0.75rem; }
+
+.media-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+
+.media-panel video {
+  width: 100%;
+  border-radius: 12px;
+  margin: 0.5rem 0;
+  background: var(--ink);
+}
+
+.media-panel audio { width: 100%; margin: 0.5rem 0; }
+
+.pending-media {
+  background: var(--card);
+  border: 1px dashed var(--gold);
+  border-radius: 16px;
+  padding: 0.9rem 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.pending-label { margin: 0 0 0.5rem; font-weight: 700; }
+
+.pending-item {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.4rem 0;
+}
+
+.pending-thumb {
+  width: 4.5rem;
+  height: 4.5rem;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+
+.pending-audio { max-width: 12rem; }
+
+.pending-kind { font-weight: 700; }
+
+.pending-remove { margin-left: auto; min-height: 2.75rem; }
+
+.media-error {
+  color: var(--ember);
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+.shared-media {
+  display: block;
+  max-width: 100%;
+  border-radius: 12px;
+  margin: 0.4rem 0 0.6rem;
+}
+
+.shared-media-audio {
+  display: block;
+  width: 100%;
+  margin: 0.4rem 0 0.6rem;
+}
