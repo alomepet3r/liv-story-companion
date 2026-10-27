@@ -279,7 +279,7 @@ def handle_chat(payload):
             system_prompt = build_system_prompt(companion_name)
             messages = ([{"role": "system", "content": system_prompt}]
                         + sess["history"][-20:])
-            text, _usage = client.chat(messages, max_tokens=220)
+            text, _usage = client.chat(messages)
             text = (text or "").strip()
             if text:
                 sess["history"].append({"role": "assistant",

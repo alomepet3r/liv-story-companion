@@ -63,5 +63,37 @@ class TestMetaClient(unittest.TestCase):
         self.assertEqual(captured["body"]["messages"][0]["role"], "user")
 
 
+    def test_contributor_model_refused(self):
+        # The -contributor IDs are a data-sharing (training rights)
+        # tier; they must never carry storyteller content.
+        with self.assertRaises(ValueError):
+            MetaClient("k").chat([{"role": "user", "content": "hi"}],
+                                 model="muse-spark-1.3-contributor")
+
+    def test_empty_content_retries_with_bigger_budget(self):
+        bodies = []
+
+        def fake_open(req, timeout=None):
+            bodies.append(json.loads(req.data.decode()))
+            if len(bodies) == 1:
+                return FakeResponse(
+                    {"choices": [{"message": {"content": None},
+                                  "finish_reason": "length"}],
+                     "usage": {"total_tokens": 10}})
+            return FakeResponse(
+                {"choices": [{"message": {"content": "warm reply"}}],
+                 "usage": {"total_tokens": 20}})
+
+        with patch("urllib.request.urlopen", side_effect=fake_open):
+            text, _usage = MetaClient("k").chat(
+                [{"role": "user", "content": "hi"}], model="muse-spark-1.3")
+
+        self.assertEqual(text, "warm reply")
+        self.assertEqual(len(bodies), 2)
+        self.assertEqual(bodies[0]["reasoning_effort"], "minimal")
+        self.assertGreater(bodies[1]["max_tokens"],
+                           bodies[0]["max_tokens"])
+
+
 if __name__ == "__main__":
     unittest.main()
