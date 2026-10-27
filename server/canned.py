@@ -45,6 +45,26 @@ boundaried. Concretely:
   Pete") is adopted at once. If the first reply is simply the story
   beginning, she does not force the question — the story matters
   more than the form.
+- ENGAGE WHEN SPOKEN TO (Persona Directive #3, Petro, Oct 26, 2026):
+  Petro asked Liv a direct question — "What do you think about our
+  conversation so far? Do you have any questions about the things
+  that we have talked about so far?" — and got the bare generic
+  acknowledgement ("I hear you. Thank you for trusting me with
+  that."). His verdict: very tepid; it killed the interaction.
+  So: a direct question is never answered with a bare deflection.
+  When the storyteller speaks TO Liv about the conversation, she
+  answers as a person would: reflect what the conversation has
+  actually held (only details really gathered — never a topic
+  behind a boundary, never gated material that was not consented
+  to), and let her curiosity show with ONE genuine conversational
+  move, chosen from the storyteller's own material: seek clarity
+  on the detail mentioned but never yet followed up on; or gently
+  compare / contrast two details told at different moments (a
+  soft observation the storyteller can correct, built only from
+  what they said); or open a new thread from something already
+  shared. The same moves belong, sparingly, in ordinary turns —
+  a half-told detail invites clarity; two details that sit in
+  contrast invite a gentle comparison.
 - Never invent facts about the storyteller. Only ask, listen, follow up.
 - Meet tender topics plainly — no morbidity, no forced cheer.
 """
@@ -347,6 +367,67 @@ _ACK_ONLY_NAMED = [
     "I hear you, {name}. Thank you for trusting me with that.",
 ]
 
+# --- Meta engagement (Persona Directive #3) ---------------------------
+# Questions directed at Liv about the conversation itself, or about
+# what she has heard. Matched on normalised text. These outrank the
+# generic acknowledgement path: a direct question answered with a
+# bare deflection reads as not listening.
+_META_PATTERNS = [
+    r"what do you think\b",
+    r"what(?:'s| is) your (?:take|impression|opinion)\b",
+    r"your (?:thoughts|impression) (?:on|about|so far)\b",
+    r"do you have (?:any )?questions\b",
+    r"any questions (?:for|about) me\b",
+    r"what have we (?:talked|spoken) about\b",
+    r"what (?:did|have) we (?:talk|discuss|cover)\b",
+    r"what have we covered\b",
+    r"how (?:is|has) (?:this|our|the) conversation\b",
+    r"how (?:is|am) (?:this|i) going\b",
+    r"how are we doing\b",
+    r"are you (?:listening|hearing me|paying attention)\b",
+    r"what do you remember\b",
+    r"what (?:do|did) you (?:hear|understand|take away)\b",
+    r"(?:tell|remind) me what you (?:heard|remember|understood)\b",
+    r"how do you (?:feel about|find) (?:this|our|the)\b",
+]
+_META_RE = re.compile("|".join("(?:%s)" % p for p in _META_PATTERNS))
+
+_MALE_PEOPLE = {"father", "grandfather", "grandpa", "brother", "son",
+                "husband", "uncle"}
+_FEMALE_PEOPLE = {"mother", "grandmother", "grandma", "sister",
+                  "daughter", "wife", "aunt"}
+
+
+def detect_meta_question(text):
+    """True when the storyteller is asking Liv about the conversation
+    itself or about what she has heard so far."""
+    return _META_RE.search(_normalise(text)) is not None
+
+
+def _is_direct_question(lowered):
+    """A question aimed at Liv (second person, question mark) — the
+    kind of message a bare generic acknowledgement must never answer."""
+    stripped = lowered.strip()
+    return (stripped.endswith("?")
+            and re.search(r"\byou\b|\byour\b", stripped) is not None)
+
+
+def _detail_kind(phrase):
+    if phrase.startswith("your "):
+        return "person"
+    if phrase.startswith("the "):
+        return "object"
+    if " in " in phrase:
+        return "place"
+    return "other"
+
+
+def _place_name(phrase):
+    """'growing up in Bamenda' -> 'Bamenda'."""
+    if " in " in phrase:
+        return phrase.split(" in ", 1)[1]
+    return phrase
+
 
 def _clean_name_candidate(raw):
     """Validate a captured name candidate.
@@ -544,6 +625,12 @@ class CannedCompanion:
     def __init__(self, name=DEFAULT_COMPANION_NAME):
         self.name = normalize_companion_name(name)
         self.details = []          # phrases the storyteller stated, in order
+        # Details Liv has actually followed up on (asked about). A
+        # detail that is gathered but never followed up on is
+        # "dangling" — the natural subject for a clarity question
+        # (Persona Directive #3).
+        self.followed_details = set()
+        self._ordinary_compare_done = False
         self.turn = 0              # storyteller turns answered
         self.theme_index = 0
         self.closed = False
@@ -653,6 +740,138 @@ class CannedCompanion:
             return display + " it is. Thank you for telling me."
         self._reply_prefix = display + " it is. "
         return None
+
+    # -- meta engagement (Persona Directive #3) ----------------------
+    # Asked about the conversation, Liv answers as a person would:
+    # reflect what it has actually held — only details really
+    # gathered, never a topic behind a boundary (blocked details are
+    # pruned when the boundary is set, and filtered again here),
+    # never gated material that was not consented to (gated messages
+    # are never extracted into details in the first place) — and then
+    # ONE genuine conversational move from the storyteller's own
+    # material. Exactly one question in the whole reply.
+    def _reflection_reply(self):
+        self.stalls = 0
+        visible = [d for d in self.details if not self._is_blocked(d)]
+        name_bit = ""
+        if self._name_eligible():
+            self._last_name_turn = self.turn
+            name_bit = ", " + self.preferred_name
+        opener = ("That’s a fair question" + name_bit +
+                  " — thank you for asking it.")
+        if not visible:
+            return (opener + " We’ve only just begun, really — "
+                    "nothing is gathered yet but this moment. "
+                    "What would you like to start with?")
+        named = visible[:3]
+        if len(named) == 1:
+            held = "you’ve told me about " + named[0]
+        elif len(named) == 2:
+            held = ("you’ve told me about " + named[0] +
+                    ", and about " + named[1])
+        else:
+            held = ("you’ve told me about " + named[0] + ", about " +
+                    named[1] + ", and about " + named[2])
+        reflection = "So far " + held + " — I’ve been carrying all of it with me."
+        return opener + " " + reflection + " " + self._pick_move(visible)
+
+    def _pick_move(self, visible):
+        """Choose ONE move: clarity on the single dangling detail
+        when the rest has been followed; compare / contrast when two
+        or more moments can be held up together; clarity again when
+        only dangling material remains; otherwise an open spark from
+        something already shared."""
+        dangling = [d for d in visible
+                    if d not in self.followed_details]
+        followed = [d for d in visible if d in self.followed_details]
+        if len(dangling) == 1 and followed:
+            return self._clarity_move(dangling[0])
+        if len(visible) >= 2:
+            # Hold two moments up together — the earliest telling
+            # and, when one is still unopened, a dangling detail, so
+            # the comparison also opens fresh ground.
+            partner = dangling[-1] if dangling else visible[-1]
+            return self._compare_move(visible[0], partner)
+        if dangling:
+            return self._clarity_move(dangling[0])
+        return self._spark_move(visible[-1])
+
+    def _clarity_move(self, detail):
+        """Seek clarity on the half-told: a detail the storyteller
+        mentioned but Liv never stayed with."""
+        self.followed_details.add(detail)
+        kind = _detail_kind(detail)
+        if kind == "person":
+            word = detail.split()[-1]
+            if word in _MALE_PEOPLE:
+                question = "what was he like?"
+            elif word in _FEMALE_PEOPLE:
+                question = "what was she like?"
+            else:
+                question = "what were they like?"
+            return ("One thing I keep wondering about: you mentioned "
+                    + detail + ", but we never really stayed there — "
+                    + question)
+        if kind == "place":
+            return ("You mentioned " + detail + ", but only in "
+                    "passing so far — what was an ordinary day like "
+                    "in " + _place_name(detail) + "?")
+        return ("You mentioned " + detail + ", but we passed it by "
+                "quickly — what do you remember most about " + detail
+                + "?")
+
+    def _compare_move(self, first, second):
+        """Hold two moments told at different times up together,
+        lightly — a soft observation built only from what the
+        storyteller actually said, easy to correct."""
+        self.followed_details.add(first)
+        self.followed_details.add(second)
+        k1, k2 = _detail_kind(first), _detail_kind(second)
+        kinds = {k1, k2}
+        if kinds == {"person", "place"}:
+            person = first if k1 == "person" else second
+            place = second if k1 == "person" else first
+            return ("You’ve told me about " + person + ", and about "
+                    + place + ". When you picture "
+                    + _place_name(place) + ", is " + person
+                    + " in the picture too?")
+        if kinds == {"object", "place"}:
+            obj = first if k1 == "object" else second
+            place = second if k1 == "object" else first
+            return ("You’ve mentioned " + obj + ", and " + place
+                    + ". Does " + obj + " live in "
+                    + _place_name(place) + " in your memory, or "
+                    "somewhere else entirely?")
+        if kinds == {"person", "object"}:
+            person = first if k1 == "person" else second
+            obj = second if k1 == "person" else first
+            return ("You’ve told me about " + person + ", and about "
+                    + obj + ". When you think of " + obj + ", does "
+                    + person + " come with it?")
+        if k1 == "person" and k2 == "person":
+            return ("You’ve told me about " + first + " and about "
+                    + second + ". Were they alike, the two of "
+                    "them — or very different?")
+        if k1 == "object" and k2 == "object":
+            return ("You’ve mentioned " + first + ", and " + second
+                    + " too. Which of them brings back more, when "
+                    "you think of them?")
+        if k1 == "place" and k2 == "place":
+            return ("You’ve told me about " + _place_name(first)
+                    + " and about " + _place_name(second)
+                    + ". Which of the two felt more like home?")
+        return ("You told me about " + first + ", and later about "
+                + second + ". Do they sit together in your memory — "
+                "or have I got that wrong?")
+
+    def _spark_move(self, detail):
+        """Open a new thread from the storyteller's own material —
+        a door, never an agenda."""
+        self.followed_details.add(detail)
+        return ("Of everything you’ve shared, " + detail + " is "
+                "what keeps coming back to me. Is there more "
+                "around it you’d like to open up — or shall we "
+                "wander somewhere new entirely?")
 
     def greeting(self):
         # The first message introduces the companion by the chosen
@@ -781,6 +1000,13 @@ class CannedCompanion:
         if correction is not None:
             return correction
 
+        # META ENGAGEMENT (Persona Directive #3) — the storyteller is
+        # speaking TO Liv about the conversation itself. Answer as a
+        # person would: reflect what it has held, then one genuine
+        # move. Never a bare deflection.
+        if detect_meta_question(text):
+            return self._reflection_reply()
+
         # Silence / almost nothing said: patience, no pressure, no question
         # piled on top of another.
         if len(text) < 3:
@@ -799,6 +1025,8 @@ class CannedCompanion:
                 who = new_details[0]
             elif self.details:
                 who = self.details[0]
+            if who:
+                self.followed_details.add(who)
             if who.startswith("your "):
                 return ("I am sorry. Losing someone we love stays with us. "
                         "Would you tell me a little about " + who +
@@ -808,12 +1036,32 @@ class CannedCompanion:
 
         # Every third reply, reach back to an earlier detail (not the one
         # from this message) — the follow-up remembers. Never a detail
-        # behind a boundary.
+        # behind a boundary. Sparingly (Directive #3), the reach-back
+        # becomes one of the listening moves: clarity on a detail that
+        # was mentioned but never stayed with, or — rarely — a gentle
+        # comparison of two moments told at different times.
         earlier = [d for d in self.details
                    if d not in new_details and not self._is_blocked(d)]
         if self.turn % 3 == 0 and earlier:
             self.stalls = 0
+            dangling = [d for d in earlier
+                        if d not in self.followed_details]
+            if dangling:
+                detail = dangling[0]
+                self.followed_details.add(detail)
+                return (self._ack_text() + " Earlier you mentioned "
+                        + detail + " — we never really stayed with "
+                        "it. What do you remember most about " + detail
+                        + "?")
+            if (len(earlier) >= 2 and self.turn % 6 == 0
+                    and not self._ordinary_compare_done
+                    and _detail_kind(earlier[0])
+                    != _detail_kind(earlier[-1])):
+                self._ordinary_compare_done = True
+                return (self._ack_text() + " "
+                        + self._compare_move(earlier[0], earlier[-1]))
             detail = earlier[0]
+            self.followed_details.add(detail)
             return (self._ack_text() + " Earlier you mentioned " + detail +
                     ". What stayed with you from that?")
 
@@ -822,8 +1070,15 @@ class CannedCompanion:
         if new_details:
             self.stalls = 0
             detail = new_details[0]
+            self.followed_details.add(detail)
             return (self._ack_text() + " Tell me more about " + detail +
                     " — what do you remember most about it?")
+
+        # A direct question that fits nowhere else still deserves a
+        # real answer (Directive #3): never a bare acknowledgement.
+        # Answer honestly, from what the conversation has held.
+        if _is_direct_question(lowered):
+            return self._reflection_reply()
 
         # Nothing new to follow. Count the stall. Listening does not
         # need a question every time: the first stall earns a plain,
