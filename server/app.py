@@ -46,6 +46,11 @@ def _load_dotenv():
 
 _load_dotenv()
 
+from .archive import (                       # noqa: E402
+    ARCHIVE_ZIP_CAP,
+    ArchiveError,
+    parse_dyi_zip,
+)
 from .canned import (                        # noqa: E402
     CannedCompanion,
     detect_present_minor,
@@ -182,7 +187,8 @@ def build_system_prompt(companion_name):
     "was 15…' is a memory, not an indication. "
     "SHARING PHOTOS, VOICE, AND VIDEO: the storyteller can share "
     "media with you using the buttons just below where they type — "
-    "'Add a photo', 'Record voice', and 'Record video'. If they "
+    "'Add a photo', 'Record voice', 'Record video', and 'Bring "
+    "your archive'. If they "
     "say they want to show you or send you something, walk them "
     "through it warmly and exactly: name the button to tap, and "
     "tell them they can take a new one or choose one they already "
@@ -196,6 +202,19 @@ def build_system_prompt(companion_name):
     "thank them, tell them it is kept here with their story, and "
     "ask what they would like you to know about it. Never pretend "
     "to hear or see what you cannot. "
+    "BRING YOUR ARCHIVE: the storyteller may hand you their own "
+    "Facebook 'Download Your Information' export through the "
+    "'Bring your archive' button. Liv looks through it once, in "
+    "this sitting only, and shows the storyteller the photos it "
+    "holds; the storyteller then ticks the photos to share — "
+    "nothing from the archive reaches you before they choose it. "
+    "A photo from the archive arrives labelled with its original "
+    "caption and date when it has them: that caption is the "
+    "storyteller's own words from that time, and the date is when "
+    "the photo was taken or shared. Treat them as story gold — "
+    "you may refer to the caption and the date, ask about them, "
+    "and follow where they lead, exactly as you follow anything "
+    "the storyteller offers. "
     "Meet tender topics "
     "plainly and kindly, without morbidity and without forced cheer. "
     "Close sessions gracefully, thanking them. Later, the conversation "
@@ -237,6 +256,7 @@ def _session(session_id):
                 "companion_name": "Liv",
                 "history": [],
                 "media": {},
+                "archive": {},
             }
         return _sessions[session_id]
 
@@ -377,6 +397,135 @@ def handle_media_upload(fields, files):
     return 200, {"media_id": media_id, "kind": kind, "size": len(data)}
 
 
+# --- Bring your archive (Day 5 slice, approved Oct 27) ------------------
+# The storyteller uploads their own Facebook Download Your
+# Information .zip. It is parsed ONCE into this session's in-memory
+# archive store (nothing is written to disk; it dies with the tab,
+# like all demo media). Items reach the conversation ONLY through
+# handle_archive_select — the storyteller ticks photos and shares
+# them explicitly; unselected items never enter the media store and
+# never reach the model path. Platform-stage doctrine (masking
+# third parties in imported photos by default) is recorded in
+# server/archive.py; this demo slice does NOT implement it and
+# does not claim to.
+ARCHIVE_REQUEST_CAP = ARCHIVE_ZIP_CAP + 5 * 1024 * 1024
+
+
+def handle_archive_upload(fields, files):
+    """One DYI export upload. Returns (status, response_dict)."""
+    if fields.get("consent") != "true":
+        return 403, {"error": "Consent is required before we begin."}
+    if fields.get("age_confirmed") != "true":
+        return 403, {"error": "Please confirm you are 18 or older "
+                              "before we begin."}
+    upload = files.get("file")
+    if upload is None:
+        return 400, {"error": "No file arrived — please try again."}
+    filename, content_type, data = upload
+    if not filename.lower().endswith(".zip"):
+        return 400, {"error": "That does not look like the .zip "
+                              "file from Download Your Information. "
+                              "Please choose that file."}
+    if len(data) > ARCHIVE_ZIP_CAP:
+        return 413, {"error": "That archive is larger than 200 MB. "
+                              "In Download Your Information you can "
+                              "ask for photos only, which makes a "
+                              "smaller file."}
+    try:
+        parsed = parse_dyi_zip(data)
+    except ArchiveError as exc:
+        # Nothing half-imported: the session's archive store is
+        # only replaced after a fully successful parse.
+        return 400, {"error": str(exc)}
+    session_id = str(fields.get("session_id") or "default")
+    sess = _session(session_id)
+    store = {}
+    listing = []
+    for item in parsed["items"]:
+        item_id = "a-" + secrets.token_hex(6)
+        store[item_id] = item
+        listing.append({
+            "id": item_id,
+            "caption": item["caption"],
+            "date": item["date_str"],
+            "album": item["album"],
+            "name": item["name"],
+            "size": item["size"],
+        })
+    sess["archive"] = store
+    return 200, {"found": len(listing), "skipped": parsed["skipped"],
+                 "items": listing}
+
+
+def handle_archive_select(payload):
+    """Share ticked archive photos into the session's media store.
+
+    Returns (status, response_dict) with the new media ids, in the
+    order the storyteller listed them. This is the ONLY door from
+    the archive store to the conversation/model path.
+    """
+    if not isinstance(payload, dict):
+        return 400, {"error": "JSON object expected"}
+    if payload.get("consent") is not True:
+        return 403, {"error": "Consent is required before we begin."}
+    if payload.get("age_confirmed") is not True:
+        return 403, {"error": "Please confirm you are 18 or older "
+                              "before we begin."}
+    session_id = str(payload.get("session_id") or "default")
+    sess = _session(session_id)
+    raw_ids = payload.get("item_ids")
+    if not isinstance(raw_ids, list) or not raw_ids:
+        return 400, {"error": "Tick at least one photo to share."}
+    shared = []
+    for raw in raw_ids[:20]:
+        item = sess.get("archive", {}).get(str(raw))
+        if item is None:
+            continue
+        media_id = "m-" + secrets.token_hex(6)
+        sess["media"][media_id] = {
+            "kind": "photo",
+            "content_type": item["content_type"],
+            "data": item["data"],
+            "name": item["name"],
+            "source": "archive",
+            "caption": item["caption"],
+            "date_str": item["date_str"],
+            "album": item["album"],
+        }
+        shared.append({
+            "id": media_id, "kind": "photo", "source": "archive",
+            "caption": item["caption"], "date": item["date_str"],
+            "album": item["album"],
+        })
+    if not shared:
+        return 400, {"error": "Those photos are no longer here — "
+                              "please bring the archive again."}
+    return 200, {"media": shared}
+
+
+def _archive_context(media_items):
+    """The caption/date context lines for archive photos on a turn.
+
+    Captions are the storyteller's own words from the time of the
+    photo — story gold, wired into what Liv receives alongside the
+    image itself, never for unselected items (they never get here).
+    """
+    lines = []
+    for item in media_items:
+        if item.get("source") != "archive":
+            continue
+        line = "This photo comes from the storyteller's own archive."
+        if item.get("date_str"):
+            line += " It is dated " + item["date_str"] + "."
+        if item.get("album"):
+            line += " It is from their album \u201c" + item["album"] + "\u201d."
+        if item.get("caption"):
+            line += (" Its original caption reads: \u201c"
+                     + item["caption"] + "\u201d.")
+        lines.append(line)
+    return " ".join(lines)
+
+
 def _media_turn_messages(api_messages, media_items, message):
     """Shape the live model's view of a turn that carries media.
 
@@ -398,6 +547,9 @@ def _media_turn_messages(api_messages, media_items, message):
     notes = "".join(_MEDIA_NOTES[k] for k in dict.fromkeys(others))
     if photos and VISION_SUPPORTED:
         text = (message or "").strip() or "I wanted to show you this photo."
+        context = _archive_context(media_items)
+        if context:
+            text = text + " [" + context + "]"
         parts = [{"type": "text", "text": text + notes}]
         for item in photos[:2]:
             uri = ("data:" + item["content_type"] + ";base64,"
@@ -408,6 +560,9 @@ def _media_turn_messages(api_messages, media_items, message):
     else:
         kinds = [m["kind"] for m in media_items]
         note = "".join(_MEDIA_NOTES[k] for k in dict.fromkeys(kinds))
+        context = _archive_context(media_items)
+        if context:
+            note += " [" + context + "]"
         base = messages[last_user].get("content") or ""
         messages[last_user] = {"role": "user", "content": base + note}
     return messages
@@ -466,8 +621,17 @@ def handle_chat(payload):
 
     history_text = message
     for item in media_items:
-        history_text += (" [The storyteller shared a " + item["kind"]
-                         + " — it is kept with the story.]")
+        if item.get("source") == "archive":
+            note = " [The storyteller shared a photo from their archive"
+            if item.get("date_str"):
+                note += ", dated " + item["date_str"]
+            if item.get("caption"):
+                note += " — its caption reads: \u201c" + item["caption"] + "\u201d"
+            note += " — it is kept with the story.]"
+            history_text += note
+        else:
+            history_text += (" [The storyteller shared a " + item["kind"]
+                             + " — it is kept with the story.]")
     sess["history"].append({"role": "user", "content": history_text})
 
     # AGE PAUSE-AND-END (T12): if this session has already ended for
@@ -550,6 +714,19 @@ class Handler(BaseHTTPRequestHandler):
             if item is None:
                 return self._send(404, {"error": "not found"})
             return self._send(200, item["data"], item["content_type"])
+        if path.startswith("/api/archive/item/"):
+            # Preview for the SELECTION TRAY only: serves an item
+            # back to its owning session so the storyteller can see
+            # their own photos and choose. This never reaches Liv —
+            # the model path opens only via /api/archive/select.
+            item_id = path[len("/api/archive/item/"):]
+            query = parse_qs(urlparse(self.path).query)
+            session_id = (query.get("session_id") or [""])[0]
+            sess = _sessions.get(session_id)
+            item = sess["archive"].get(item_id) if sess else None
+            if item is None:
+                return self._send(404, {"error": "not found"})
+            return self._send(200, item["data"], item["content_type"])
         if path in ("/", ""):
             path = "/index.html"
         target = (WEB_DIR / path.lstrip("/")).resolve()
@@ -577,10 +754,39 @@ class Handler(BaseHTTPRequestHandler):
         status, response = handle_media_upload(fields, files)
         return self._send(status, response)
 
+    def _handle_archive_post(self):
+        content_type = self.headers.get("Content-Type") or ""
+        if "multipart/form-data" not in content_type:
+            return self._send(400, {"error": "multipart upload expected"})
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0:
+            return self._send(400, {"error": "request body missing"})
+        if length > ARCHIVE_REQUEST_CAP:
+            return self._send(413, {"error": "That archive is larger "
+                                             "than 200 MB."})
+        body = self.rfile.read(length)
+        fields, files = _parse_multipart(body, content_type)
+        if not fields and not files:
+            return self._send(400, {"error": "upload could not be read"})
+        status, response = handle_archive_upload(fields, files)
+        return self._send(status, response)
+
     def do_POST(self):
         path = self.path.split("?", 1)[0]
         if path == "/api/media":
             return self._handle_media_post()
+        if path == "/api/archive":
+            return self._handle_archive_post()
+        if path == "/api/archive/select":
+            length = int(self.headers.get("Content-Length") or 0)
+            if length <= 0 or length > 65536:
+                return self._send(400, {"error": "request body missing/too large"})
+            try:
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            except Exception:
+                return self._send(400, {"error": "invalid JSON"})
+            status, response = handle_archive_select(payload)
+            return self._send(status, response)
         if path != "/api/chat":
             return self._send(404, {"error": "not found"})
         length = int(self.headers.get("Content-Length") or 0)

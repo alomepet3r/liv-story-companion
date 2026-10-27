@@ -752,6 +752,13 @@ _MEDIA_AUDIO_PHRASES = (
     "record audio", "audio recording", "can i record my voice",
     "can i record a message", "share a recording",
 )
+_MEDIA_ARCHIVE_PHRASES = (
+    "facebook archive", "my archive", "bring my archive",
+    "bring your archive", "download your information",
+    "download my information", "my facebook photos",
+    "import my photos", "my exported photos", "facebook export",
+    "archive of my photos", "photos from facebook",
+)
 _MEDIA_ANY_PHRASES = (
     "can i upload", "how do i upload", "how can i upload",
     "can i attach", "attach a file", "share a file",
@@ -763,9 +770,14 @@ _MEDIA_ANY_PHRASES = (
 
 
 def detect_media_intent(lowered):
-    """'photo' | 'video' | 'audio' | 'any' | None — the storyteller
-    wants to share media and needs the walkthrough, not a story
-    reply. Specific kinds are checked before the generic door."""
+    """'photo' | 'video' | 'audio' | 'archive' | 'any' | None — the
+    storyteller wants to share media and needs the walkthrough, not
+    a story reply. Specific kinds are checked before the generic
+    door; the archive door is checked first, because "my facebook
+    photos" is about the archive, not a single photo upload."""
+    for phrase in _MEDIA_ARCHIVE_PHRASES:
+        if phrase in lowered:
+            return "archive"
     for phrase in _MEDIA_PHOTO_PHRASES:
         if phrase in lowered:
             return "photo"
@@ -798,6 +810,14 @@ _MEDIA_WALKTHROUGH = {
               "tap it, and you can record your voice right here or "
               "choose a recording you already have. It will be "
               "kept here with your story."),
+    "archive": ("You can bring them here. Just below where you "
+                "type, there is a button that says “Bring your "
+                "archive” — tap it, and choose the .zip file from "
+                "Facebook's Download Your Information. I will look "
+                "through it once, here, and show you the photos it "
+                "holds — then you tick the ones you would like to "
+                "share with me. Nothing comes to me until you "
+                "choose it."),
     "any": ("You can share more than words here. Just below where "
             "you type, you will find three buttons: “Add a "
             "photo”, “Record voice”, and “Record video”. Tap the "
