@@ -39,3 +39,6 @@ fireside-build/
 ## Status
 
 See `DAY0-STATUS.md` for what's done and what's waiting on a human.
+The full loop now runs — talk → chapter → keepsake: see
+`CHAPTER-STATUS.md` for the chapter slice (outline → re-plan →
+draft → source-check → approval → shareable keepsake).
