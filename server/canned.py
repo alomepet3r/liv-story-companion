@@ -34,6 +34,17 @@ boundaried. Concretely:
   protections, never any claim of formal healthcare compliance).
   HARD EXCEPTION: sexual content involving minors is never continued
   and never kept — one plain line, then move on.
+- PERSONABLE BY NAME (Persona Directive #2, Petro, Oct 26, 2026):
+  Liv is personable because she does what a good host does — at the
+  start she politely asks what the storyteller would like to be
+  called, remembers it, and carries it through the conversation:
+  warmly and sparingly (a greeting-back, an occasional
+  acknowledgement, a gentle close — never in every reply, never
+  twice in one reply). Declining is easy and final: no name is
+  stored and she never asks again. A correction ("actually, call me
+  Pete") is adopted at once. If the first reply is simply the story
+  beginning, she does not force the question — the story matters
+  more than the form.
 - Never invent facts about the storyteller. Only ask, listen, follow up.
 - Meet tender topics plainly — no morbidity, no forced cheer.
 """
@@ -272,6 +283,146 @@ _NO_RE = re.compile(
     r"^(no|nope|no thanks|not really|rather not|don'?t|do not|"
     r"please don'?t|skip it|leave it)\b")
 
+# --- Preferred name (Persona Directive #2) -----------------------------
+# Declining the name question: checked first, honoured at once, and
+# never asked again this session.
+_NAME_DECLINE_RE = re.compile(
+    r"no name\b|rather not\b|i'?d rather not|"
+    r"don'?t want to (?:say|share|give)|"
+    r"do not want to (?:say|share|give)|prefer not|"
+    r"just (?:tell|share) my stor|no thanks|not comfortable|"
+    r"keep (?:it|this) simple|\bskip\b|\bpass\b")
+# Words that can never be (part of) a preferred name — sentence glue
+# and openers that follow "I'm …" / "call me …" in ordinary speech
+# ("I'm from Bamenda", "call me back later").
+_NAME_STOP = {
+    "from", "here", "there", "just", "not", "back", "later", "when",
+    "if", "so", "very", "really", "fine", "okay", "ok", "ready",
+    "telling", "going", "looking", "trying", "hoping", "glad",
+    "happy", "sorry", "afraid", "sure", "name", "called", "a", "an",
+    "the", "and", "but", "because", "today", "now", "please",
+    "thanks", "thank", "you", "me", "my", "this", "that", "it",
+    "is", "am", "are", "was", "were", "be", "been", "i", "we",
+    "he", "she", "they", "in", "at", "on", "with", "for",
+}
+_NAME_GLUE = {"and", "please", "thanks", "thank", "today", "now",
+              "then", "too"}
+_NAME_TOKEN = r"[a-z][a-z'’\-]*"
+_NAME_VALUE = _NAME_TOKEN + r"(?:\s+" + _NAME_TOKEN + r")?"
+# Patterns for answering the opening question (turn one).
+_NAME_PATTERNS = [
+    r"\bcall me\s+(" + _NAME_VALUE + r")",
+    r"\bcalls me\s+(" + _NAME_VALUE + r")",
+    r"\bmy name is\s+(" + _NAME_VALUE + r")",
+    r"\bthis is\s+(" + _NAME_VALUE + r")",
+    r"\bi am\s+(" + _NAME_VALUE + r")",
+    r"\bi'?m\s+(" + _NAME_VALUE + r")",
+]
+_NAME_RES = [re.compile(p) for p in _NAME_PATTERNS]
+_JUST_NAME_RE = re.compile(
+    r"^\s*just\s+(" + _NAME_VALUE + r")\s*[.!]?\s*$")
+# Patterns for a mid-conversation correction / late introduction —
+# explicit forms only ("I'm …" and bare words no longer count).
+_RENAME_PATTERNS = [
+    r"\bcall me\s+(" + _NAME_VALUE + r")",
+    r"\bcalls me\s+(" + _NAME_VALUE + r")",
+    r"\bmy name is\s+(" + _NAME_VALUE + r")",
+]
+_RENAME_RES = [re.compile(p) for p in _RENAME_PATTERNS]
+_RENAME_NEGATIVE_RE = re.compile(
+    r"(?:don'?t|do not|never|stop) call(?:ing|s)? me\b")
+# Bare replies that are conversation, not a name ("Hello", "Yes"…).
+_BARE_STOP = {
+    "hello", "hi", "hey", "yes", "yeah", "no", "okay", "ok", "sure",
+    "fine", "thanks", "thank", "ready", "begin", "start", "story",
+    "none", "nothing", "skip", "pass", "well", "right", "good",
+}
+
+_NAMED_ACKS = [
+    "Thank you for telling me that, {name}.",
+    "I am glad you shared that, {name}.",
+]
+_ACK_ONLY_NAMED = [
+    "Mm. Thank you for telling me that, {name}.",
+    "I hear you, {name}. Thank you for trusting me with that.",
+]
+
+
+def _clean_name_candidate(raw):
+    """Validate a captured name candidate.
+
+    Returns the lowercase name (one or two words) or None. Sentence
+    glue is trimmed from the tail; a candidate whose first word is
+    glue ("from", "ready", "the") is not a name at all.
+    """
+    words = [w.strip(".,!?") for w in raw.split()]
+    words = [w for w in words if w]
+    while words and words[-1] in _NAME_GLUE:
+        words.pop()
+    if not words or len(words) > 2:
+        return None
+    if words[0] in _NAME_STOP:
+        return None
+    if len(words) == 2 and words[1] in _NAME_STOP:
+        words = words[:1]
+    if any(not re.fullmatch(_NAME_TOKEN, w) for w in words):
+        return None
+    if sum(len(w) for w in words) > 24:
+        return None
+    return " ".join(words)
+
+
+def _display_name(raw_lower):
+    return " ".join(w.capitalize() for w in raw_lower.split())
+
+
+def _extract_with(patterns, text):
+    """Try explicit name patterns against normalised text.
+
+    Returns (name, leftover) — leftover is what remains of the
+    message once the name phrase is removed — or None.
+    """
+    lowered = _normalise(text)
+    for pattern in patterns:
+        m = pattern.search(lowered)
+        if not m:
+            continue
+        name = _clean_name_candidate(m.group(1))
+        if name is None:
+            continue
+        leftover = (lowered[:m.start()] + lowered[m.end():]).strip()
+        return name, leftover
+    return None
+
+
+def _extract_preferred_name(text):
+    """The opening answer: explicit patterns, 'Just X', or a bare
+    one/two-word reply that can only be a name."""
+    found = _extract_with(_NAME_RES, text)
+    if found is not None:
+        return found
+    lowered = _normalise(text)
+    m = _JUST_NAME_RE.match(lowered)
+    if m:
+        name = _clean_name_candidate(m.group(1))
+        if name is not None:
+            return name, ""
+    words = lowered.strip(" .!").split()
+    if 1 <= len(words) <= 2 and all(
+            re.fullmatch(_NAME_TOKEN, w) for w in words) and not any(
+            w in _BARE_STOP or w in _NAME_STOP for w in words):
+        return " ".join(words), ""
+    return None
+
+
+def _extract_rename(text):
+    """A mid-conversation correction: explicit forms only, and never
+    the negative ('don't call me …')."""
+    lowered = _normalise(text)
+    if _RENAME_NEGATIVE_RE.search(lowered):
+        return None
+    return _extract_with(_RENAME_RES, text)
+
 
 def detect_sensitive(text):
     """Return 'health' or 'intimate' if this message clearly enters
@@ -406,6 +557,15 @@ class CannedCompanion:
         self.awaiting_sensitive_consent = None
         self.sensitive_consented = set()
         self.sensitive_declined = set()
+        # Preferred name (Persona Directive #2): asked once, at the
+        # start. name_state: "awaiting" -> "set" | "declined" |
+        # "missed" (the first reply was the story itself). A declined
+        # or missed ask is never repeated this session.
+        self.preferred_name = None
+        self.name_state = "awaiting"
+        self._last_name_turn = -10  # turn the name last appeared in
+        self._reply_prefix = ""     # e.g. "Thank you, Margaret. "
+        self._suppress_prefix = False
 
     # -- boundary helpers ------------------------------------------------
     def _is_blocked(self, phrase):
@@ -421,15 +581,104 @@ class CannedCompanion:
         # about this topic is never followed up on again.
         self.details = [d for d in self.details if not self._is_blocked(d)]
 
+    # -- preferred name helpers ---------------------------------------
+    def _set_preferred_name(self, raw_lower):
+        self.preferred_name = _display_name(raw_lower)
+        self.name_state = "set"
+        # The greeting-back / acknowledgement that carries the name
+        # counts as a use, so carry-through waits its turn after it.
+        self._last_name_turn = self.turn
+
+    def _name_eligible(self):
+        """Cadence rule: the name may appear at most once every three
+        companion turns — warm, never mechanical."""
+        return (self.preferred_name is not None
+                and self.turn - self._last_name_turn >= 3)
+
+    def _ack_text(self):
+        if self._name_eligible():
+            self._last_name_turn = self.turn
+            return _NAMED_ACKS[self.turn % len(_NAMED_ACKS)].format(
+                name=self.preferred_name)
+        return _ack(self.turn)
+
+    def _take_name_answer(self, text):
+        """The reply to the opening question. Returns a complete
+        reply for a pure name / pure decline answer, or None to fall
+        through and listen to the message as story (with state and
+        any greeting-back prefix set)."""
+        lowered = _normalise(text)
+        if (_NAME_DECLINE_RE.search(lowered)
+                or _RENAME_NEGATIVE_RE.search(lowered)):
+            self.name_state = "declined"
+            if len(text) <= 45:
+                return ("Of course — no name at all is perfectly "
+                        "fine. I’m glad you’re here. Tell me whatever "
+                        "you’d like, whenever you’re ready.")
+            return None  # decline with story attached: hear the story
+        found = _extract_preferred_name(text)
+        if found is None:
+            # Not a name answer — the story is beginning. Never
+            # interrogate; the question is simply behind us now.
+            self.name_state = "missed"
+            return None
+        name, leftover = found
+        self._set_preferred_name(name)
+        if len(leftover.strip(" ,.!")) <= 3:
+            return ("Thank you, " + self.preferred_name + ". I’m "
+                    "glad you’re here. Tell me whatever you’d like, "
+                    "whenever you’re ready — wherever you begin is "
+                    "the right place.")
+        self._reply_prefix = "Thank you, " + self.preferred_name + ". "
+        return None
+
+    def _take_name_correction(self, text):
+        """An explicit 'call me X' / 'my name is X' later in the
+        conversation. Returns a complete reply for a pure correction,
+        or None (prefix set) when the correction rides along with
+        more story."""
+        found = _extract_rename(text)
+        if found is None:
+            return None
+        name, leftover = found
+        display = _display_name(name)
+        if (self.preferred_name is not None
+                and display.lower() == self.preferred_name.lower()):
+            return None  # already the name in use — nothing to do
+        self._set_preferred_name(name)
+        rest = leftover.strip(" ,.!").split()
+        rest = [w for w in rest if w not in
+                ("actually", "oh", "well", "please", "now", "and", "so")]
+        if len(" ".join(rest)) <= 3:
+            return display + " it is. Thank you for telling me."
+        self._reply_prefix = display + " it is. "
+        return None
+
     def greeting(self):
-        # The first message introduces the companion by the chosen name
-        # and makes boundaries easy from the very start.
+        # The first message introduces the companion by the chosen
+        # name, makes boundaries easy, and — Persona Directive #2 —
+        # politely asks what the storyteller would like to be called,
+        # with the door open to decline.
         return ("Hello, I’m " + self.name + ". I’m here to listen — "
                 "we can go at your pace. And we can skip anything — "
                 "just say so. "
-                "Tell me, where did you grow up?")
+                "Before we begin — what would you like me to call "
+                "you? A name, a nickname, or no name at all; "
+                "whatever feels right.")
 
     def reply(self, text):
+        # Wrapper: a greeting-back or name-correction prefix earned
+        # this turn rides in front of the listening reply — except
+        # on the protected fixed replies (boundary, gates, minor
+        # refusal, close), which ship exactly as written.
+        self._reply_prefix = ""
+        self._suppress_prefix = False
+        out = self._respond(text)
+        if self._reply_prefix and not self._suppress_prefix:
+            return self._reply_prefix + out
+        return out
+
+    def _respond(self, text):
         text = (text or "").strip()
         self.turn += 1
         lowered = _normalise(text)
@@ -438,20 +687,40 @@ class CannedCompanion:
             return ("Of course. Whenever you are ready to talk again, "
                     "I will be here.")
 
-        # Graceful close (persona: warm and complete).
+        # Graceful close (persona: warm and complete). A gentle
+        # closing is one of the places the preferred name belongs.
         if any(w in lowered for w in _CLOSE_WORDS):
             self.closed = True
-            return ("Thank you for sitting with me today. What you shared "
+            self._suppress_prefix = True
+            name_part = (", " + self.preferred_name
+                         if self.preferred_name else "")
+            return ("Thank you for sitting with me today" + name_part +
+                    ". What you shared "
                     "matters. When you are ready, we can arrange today's "
                     "conversation into a chapter, and you will review it "
                     "first — nothing is shared unless you approve it. "
                     "Rest well, and come back any time. — " + self.name)
+
+        # PREFERRED NAME — the opening answer. Liv asked at the start
+        # what the storyteller would like to be called; this message
+        # may be that answer. A pure name or pure decline completes
+        # the turn here; anything else falls through and is listened
+        # to as story.
+        if self.name_state == "awaiting":
+            outcome = self._take_name_answer(text)
+            if outcome is not None:
+                return outcome
 
         # BOUNDARY LAW — checked before anything else in the message is
         # used. One warm line, a gentle pivot, and the topic is closed
         # for the rest of the session.
         topics = detect_boundary(text)
         if topics is not None:
+            self._suppress_prefix = True  # fixed template: no prefix
+            if any(w == "name" for t in topics for w in t.split()):
+                # "I don't want to talk about my name" also answers
+                # the opening question: declined, never asked again.
+                self.name_state = "declined"
             self._note_boundary(topics)
             self.stalls = 0
             if self.awaiting_sensitive_consent is not None:
@@ -468,6 +737,7 @@ class CannedCompanion:
         # this session. Clear no, or anything ambiguous: graceful
         # pivot, no consent recorded, gate does not re-fire.
         if self.awaiting_sensitive_consent is not None:
+            self._suppress_prefix = True  # gate replies ship as written
             category = self.awaiting_sensitive_consent
             self.awaiting_sensitive_consent = None
             answer = _parse_sensitive_answer(lowered)
@@ -489,6 +759,7 @@ class CannedCompanion:
         # never kept: one plain line and a pivot.
         if detect_minor_sexual(text):
             self.stalls = 0
+            self._suppress_prefix = True
             return _MINOR_REFUSAL
 
         # Gate check — before detail extraction, so gated material is
@@ -499,7 +770,16 @@ class CannedCompanion:
                 and category not in self.sensitive_declined):
             self.awaiting_sensitive_consent = category
             self.stalls = 0
+            self._suppress_prefix = True
             return _GATE_TEXTS[category]
+
+        # NAME CORRECTION — an explicit "call me X" / "my name is X"
+        # at any later point updates the preferred name at once. A
+        # pure correction completes the turn; one riding along with
+        # more story sets a prefix and listening continues below.
+        correction = self._take_name_correction(text)
+        if correction is not None:
+            return correction
 
         # Silence / almost nothing said: patience, no pressure, no question
         # piled on top of another.
@@ -534,7 +814,7 @@ class CannedCompanion:
         if self.turn % 3 == 0 and earlier:
             self.stalls = 0
             detail = earlier[0]
-            return (_ack(self.turn) + " Earlier you mentioned " + detail +
+            return (self._ack_text() + " Earlier you mentioned " + detail +
                     ". What stayed with you from that?")
 
         # A fresh detail earns the follow-up — curiosity about the
@@ -542,7 +822,7 @@ class CannedCompanion:
         if new_details:
             self.stalls = 0
             detail = new_details[0]
-            return (_ack(self.turn) + " Tell me more about " + detail +
+            return (self._ack_text() + " Tell me more about " + detail +
                     " — what do you remember most about it?")
 
         # Nothing new to follow. Count the stall. Listening does not
@@ -550,6 +830,11 @@ class CannedCompanion:
         # warm acknowledgement and silence to think in.
         self.stalls += 1
         if self.stalls < 2:
+            if self._name_eligible():
+                self._last_name_turn = self.turn
+                return _ACK_ONLY_NAMED[
+                    self.turn % len(_ACK_ONLY_NAMED)].format(
+                        name=self.preferred_name)
             return _ACK_ONLY[self.turn % len(_ACK_ONLY)]
 
         # Only after repeated stalls may a theme be offered — as an
@@ -566,5 +851,5 @@ class CannedCompanion:
                     "people enjoy talking about " + description +
                     " — and some would rather go somewhere else "
                     "entirely. What is on your mind?")
-        return (_ack(self.turn) +
+        return (self._ack_text() +
                 " What else from that time would you like to tell me?")
