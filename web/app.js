@@ -40,8 +40,13 @@
   var consentScreen = document.getElementById("consent-screen");
   var chatScreen = document.getElementById("chat-screen");
   var messages = document.getElementById("messages");
+  var listening = document.getElementById("listening");
   var form = document.getElementById("chat-form");
   var input = document.getElementById("chat-input");
+
+  function setListening(on) {
+    if (listening) { listening.hidden = !on; }
+  }
 
   function setCompanionName(name) {
     companionName = name;
@@ -90,6 +95,12 @@
 
   function addMessage(who, text, cls, mediaItems) {
     var div = document.createElement("div");
+    // The session's closing message is set in the typography of a
+    // letter's end (presentation only; text and flow unchanged).
+    if (cls === "companion" && text &&
+        text.indexOf("Thank you for sitting with me") === 0) {
+      cls += " closing";
+    }
     div.className = "msg " + cls;
     var label = document.createElement("span");
     label.className = "who";
@@ -117,6 +128,7 @@
     if (showMine && (message.trim() !== "" || ids.length > 0)) {
       addMessage("You", message, "storyteller", mediaItems);
     }
+    setListening(true);
     return fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -131,6 +143,7 @@
     })
       .then(function (res) { return res.json(); })
       .then(function (data) {
+        setListening(false);
         var name = data.companion || companionName;
         if (data.reply) {
           addMessage(name, data.reply, "companion");
@@ -141,6 +154,7 @@
         }
       })
       .catch(function () {
+        setListening(false);
         addMessage(companionName,
           "I could not be reached just now. Please try again in a moment.",
           "companion");

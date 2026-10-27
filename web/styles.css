@@ -1,21 +1,40 @@
-/* Story Companion — Day 1 shell styles.
-   Tokens (from the design brief): cream paper #FBF7EF, charcoal
-   #2B2622, ember red #9D2224 for the single primary action only,
-   muted gold / sage as quiet accents. Accessibility-first (universal
-   design — for anyone, any age or ability): body text 19px+,
-   large targets, WCAG 2.2 AA contrast on every pairing used. */
+/* Liv — editorial keepsake standard (redesign, Oct 27, 2026).
+   Design source: NANO-BANANA-PROMPTS.md (candlelight-warm) +
+   MISSION-LAYER.md M6. A letter, not a chat app: layered cream
+   paper, hairline rules, Cormorant Garamond display serif,
+   Atkinson Hyperlegible body, ember #9D2224 reserved for the
+   single primary action and key moments only.
+   Palette (law): paper #FBF7EF, ink #2B2622, ember #9D2224.
+   Accessibility-first (universal design): body 19px+, large
+   targets, WCAG 2.2 AA verified pairings —
+     ink on paper 14.0:1 · ink on paper-2 12.9:1 · ink on
+     paper-3 12.0:1 · ink on white 15.0:1 · ink on ember-tint
+     12.6:1 · white on ember 7.8:1 · ember on paper 7.3:1 ·
+     deepened sage on paper 6.7:1 · deepened gold on paper 6.1:1 ·
+     quiet text (ink 78%) on paper ≈ 7.3:1. */
 
 :root {
   --paper: #FBF7EF;
-  --ink: #2B2622;
-  --ember: #9D2224;
-  --gold: #8A6D3B;
-  --sage: #5F7161;
+  --paper-2: #F6EFE1;
+  --paper-3: #EFE5CF;
   --card: #FFFFFF;
-  --line: #D8CFBF;
+  --ink: #2B2622;
+  --ink-soft: rgba(43, 38, 34, 0.78);
+  --ember: #9D2224;
+  --ember-deep: #86191B;
+  --ember-tint: #F8ECE7;
+  --gold: #74592C;
+  --sage: #4C5C4E;
+  --line: rgba(43, 38, 34, 0.16);
+  --line-strong: rgba(43, 38, 34, 0.38);
+  --shadow: 0 1px 2px rgba(43, 38, 34, 0.05),
+            0 10px 30px rgba(43, 38, 34, 0.05);
+  --radius: 14px;
 }
 
 * { box-sizing: border-box; }
+
+::selection { background: rgba(157, 34, 36, 0.16); }
 
 body {
   margin: 0;
@@ -23,191 +42,326 @@ body {
   color: var(--ink);
   font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: 19px;
-  line-height: 1.6;
+  line-height: 1.65;
 }
+
+:focus-visible {
+  outline: 3px solid var(--ember);
+  outline-offset: 2px;
+}
+
+/* Masthead — the mark, then her name. Present on both screens. */
 
 .masthead {
   text-align: center;
-  padding: 1.25rem 1rem 0;
+  padding: 2.4rem 1rem 0;
+  color: var(--ink);
 }
+
+.brand-mark {
+  display: inline-block;
+  width: 3.4rem;
+  height: 3.4rem;
+}
+
+.brand-mark svg { display: block; width: 100%; height: 100%; }
+
+.brand-mark-small { width: 2.3rem; height: 2.3rem; flex: none; }
 
 .wordmark {
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: 1.6rem;
+  font-size: 2rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  margin: 0;
+  letter-spacing: 0.015em;
+  line-height: 1.1;
+  margin: 0.45rem 0 0;
   color: var(--ink);
 }
 
 main {
-  max-width: 44rem;
+  max-width: 42rem;
   margin: 0 auto;
-  padding: 1rem 1.25rem 4rem;
+  padding: 0.5rem 1.25rem 4rem;
 }
 
 h1 {
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: 2.6rem;
-  line-height: 1.15;
+  font-size: clamp(2.55rem, 7vw, 3.5rem);
+  line-height: 1.08;
   font-weight: 600;
+  letter-spacing: -0.005em;
   text-align: center;
-  margin: 1rem 0 1rem;
+  margin: 1.6rem 0 1.1rem;
 }
+
+h1 em { font-style: italic; font-weight: 500; }
 
 h2 {
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: 1.6rem;
+  font-size: 1.65rem;
+  font-weight: 600;
+  line-height: 1.2;
   margin: 0 0 0.5rem;
 }
 
-.lede { font-size: 1.15rem; text-align: center; }
-
-.promises {
-  list-style: none;
-  padding: 0;
-  margin: 2rem 0;
+.lede {
+  font-size: 1.17rem;
+  line-height: 1.7;
+  text-align: center;
+  max-width: 33rem;
+  margin: 0 auto;
 }
 
-.promises li {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 0.75rem;
-  font-size: 1.1rem;
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  max-width: 15rem;
+  margin: 2.1rem auto 0;
 }
 
-.promise-icon {
-  color: var(--sage);
-  font-weight: 700;
-  margin-right: 0.6rem;
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line-strong);
 }
 
-/* Companion choice (consent screen): three large, easy targets.
-   The chosen card is outlined in ember; the name itself stays ink on
-   white/paper for AA contrast. */
+.divider-diamond {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--ember);
+  transform: rotate(45deg);
+  flex: none;
+}
+
+.quiet {
+  color: var(--ink-soft);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+a { color: var(--ember); text-underline-offset: 3px; }
+
+/* Consent — companion choice: three refined cards. The native
+   radio stays (keyboard + AT), visually quiet; the card carries
+   the state — ember ring and warm tint when chosen. */
 
 .companion-choice {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 1.25rem 1.5rem;
-  margin: 2rem 0;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.8rem 1.9rem;
+  margin: 2.3rem 0 0;
 }
 
-.companion-choice p { margin: 0.5rem 0; }
+.companion-choice p { margin: 0.55rem 0; }
 
 .choice-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 1rem 0 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin: 1.2rem 0 0.7rem;
 }
 
 .choice-card {
-  flex: 1 1 9rem;
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.7rem;
+  text-align: center;
+  gap: 0.15rem;
   background: var(--paper);
-  border: 2px solid var(--line);
-  border-radius: 16px;
-  padding: 1rem 1.1rem;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 1.3rem 0.8rem 1.15rem;
   min-height: 3.75rem;
   cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease,
+              box-shadow 0.18s ease;
+}
+
+.choice-card:hover { border-color: rgba(43, 38, 34, 0.6); }
+
+.choice-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
 }
 
 .choice-card:has(input:checked) {
   border-color: var(--ember);
+  background: var(--ember-tint);
   box-shadow: 0 0 0 1px var(--ember);
-  background: var(--card);
 }
 
-.choice-card input {
-  width: 1.5rem;
-  height: 1.5rem;
-  flex: none;
-  accent-color: var(--ember);
+.choice-card:has(input:focus-visible) {
+  outline: 3px solid var(--ember);
+  outline-offset: 3px;
 }
 
-.choice-card input:focus-visible {
-  outline: 3px solid var(--ink);
-  outline-offset: 2px;
+.choice-card::after {
+  content: "";
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
 }
+
+.choice-card:has(input:checked)::after {
+  border-color: var(--ember);
+  background: var(--ember);
+  box-shadow: inset 0 0 0 3px var(--ember-tint);
+}
+
+.choice-text { display: block; }
 
 .choice-name {
   display: block;
-  font-size: 1.3rem;
-  font-weight: 700;
-  line-height: 1.3;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .choice-desc {
   display: block;
-  font-size: 1rem;
-  opacity: 0.8;
+  font-size: 0.98rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
 }
+
+/* Consent — the three promises: an editorial index, ruled lines,
+   sage medallions. No boxes. */
+
+.promises {
+  list-style: none;
+  padding: 0;
+  margin: 2.3rem 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.promises li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.05rem 0.2rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 1.12rem;
+  line-height: 1.5;
+}
+
+.promise-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--sage);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* Consent — plain words: a paper card; the sovereignty line set
+   apart like the end of a letter. */
 
 .plain-box {
-  border-left: 4px solid var(--gold);
   background: var(--card);
-  border-radius: 0 16px 16px 0;
-  padding: 1.25rem 1.5rem;
-  margin: 2rem 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.8rem 1.9rem;
+  margin: 2.3rem 0 0;
 }
 
-.plain-box p { margin: 0.5rem 0; }
+.plain-box h2 {
+  font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 0.9rem;
+}
+
+.plain-box p { margin: 0.85rem 0; }
 
 .sovereign {
-  font-weight: 700;
-  font-size: 1.15rem;
+  margin: 1.6rem 0 0.2rem;
+  padding-top: 1.3rem;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.55rem;
+  line-height: 1.3;
+  color: var(--ink);
 }
 
 .spoken-script {
-  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 1rem 1.25rem;
-  margin: 1.5rem 0 2rem;
+  border-radius: var(--radius);
+  padding: 1.05rem 1.4rem;
+  margin: 1.6rem 0 0;
 }
 
 .spoken-script summary {
   cursor: pointer;
   font-weight: 700;
+  font-size: 1.02rem;
   min-height: 2.75rem;
 }
 
-/* Consent attestations: two large, easy targets. The Begin button
-   stays disabled until both boxes are checked (consent + 18+). */
+.spoken-script p { line-height: 1.7; }
 
-.consent-checks { margin: 0 0 1.5rem; }
+/* Consent — attestations: large calm cards; checked state is a
+   warm tint and an ember rule. Begin stays disabled until both
+   boxes are checked (consent + 18+). */
+
+.consent-checks { margin: 2.3rem 0 1.4rem; }
 
 .consent-check {
   display: flex;
   align-items: flex-start;
-  gap: 0.7rem;
+  gap: 0.85rem;
   background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 0.75rem;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 1.15rem 1.3rem;
+  margin-bottom: 0.8rem;
   font-size: 1.1rem;
+  line-height: 1.55;
   cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.consent-check:has(input:checked) {
+  border-color: var(--ember);
+  background: var(--ember-tint);
 }
 
 .consent-check input {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.55rem;
+  height: 1.55rem;
   flex: none;
-  margin-top: 0.15rem;
+  margin-top: 0.12rem;
   accent-color: var(--ember);
 }
 
-.consent-check input:focus-visible {
-  outline: 3px solid var(--ink);
-  outline-offset: 2px;
-}
+/* Buttons — ember is the single action colour. */
+
+button { transition: background 0.18s ease, border-color 0.18s ease,
+                   box-shadow 0.18s ease, color 0.18s ease; }
 
 button.primary {
   display: block;
@@ -215,34 +369,38 @@ button.primary {
   background: var(--ember);
   color: #FFFFFF;
   border: none;
-  border-radius: 16px;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 12px rgba(157, 34, 36, 0.28);
   font: inherit;
-  font-size: 1.3rem;
+  font-size: 1.28rem;
   font-weight: 700;
-  padding: 1.1rem 1.5rem;
-  min-height: 3.75rem;
+  padding: 1.15rem 1.5rem;
+  min-height: 3.9rem;
   cursor: pointer;
 }
 
+button.primary:hover:not(:disabled) { background: var(--ember-deep); }
+
 button.primary:disabled {
-  opacity: 0.45;
+  background: #DCD2BF;
+  color: rgba(43, 38, 34, 0.55);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
-button.primary:focus-visible,
-button.secondary:focus-visible,
-a:focus-visible,
-summary:focus-visible,
-textarea:focus-visible {
-  outline: 3px solid var(--ink);
-  outline-offset: 2px;
+button.primary.small {
+  display: inline-block;
+  width: auto;
+  font-size: 1.08rem;
+  padding: 0.8rem 1.4rem;
+  min-height: 3.25rem;
 }
 
 button.secondary {
   background: transparent;
   color: var(--ink);
-  border: 2px solid var(--ink);
-  border-radius: 16px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
   font: inherit;
   font-size: 1.05rem;
   padding: 0.8rem 1.4rem;
@@ -250,129 +408,201 @@ button.secondary {
   cursor: pointer;
 }
 
-a { color: var(--ember); }
+button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 
-.quiet { color: var(--ink); opacity: 0.75; font-size: 1rem; }
+.not-now-row { text-align: center; margin: 1.1rem 0 0; }
 
-/* Conversation screen */
+/* Conversation — a letter exchange. */
 
-.chat-title { font-size: 2rem; text-align: left; }
-
-.messages { margin: 1.5rem 0; }
-
-.msg {
-  border-radius: 16px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
-  max-width: 92%;
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.6rem 0 1.05rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
 }
 
-.msg.companion {
-  background: var(--card);
-  border: 1px solid var(--line);
-  font-size: 1.25rem;
+.chat-title {
+  font-size: 1.85rem;
+  text-align: left;
+  margin: 0;
 }
 
-.msg.storyteller {
-  background: #EFE7D7;
-  margin-left: auto;
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 1.7rem;
+  margin: 1.6rem 0 1.2rem;
 }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.msg { animation: rise 0.38s ease-out both; }
 
 .msg .who {
-  display: block;
-  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  color: var(--sage);
-  margin-bottom: 0.25rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.45rem;
 }
 
-#chat-form label {
-  display: block;
-  font-weight: 700;
-  margin-bottom: 0.4rem;
+/* Liv's replies: open editorial blocks, ruled at the left — no
+   plastic bubbles. */
+.msg.companion {
+  border-left: 2px solid var(--line-strong);
+  padding: 0.15rem 0 0.15rem 1.15rem;
+  font-size: 1.21rem;
+  line-height: 1.75;
 }
 
-#chat-input {
+.msg.companion .who::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  background: var(--ember);
+  transform: rotate(45deg);
+  flex: none;
+}
+
+/* The closing message gets the dignity of a letter's end. */
+.msg.companion.closing { border-left-color: var(--ember); }
+
+.msg.companion.closing > span:last-child {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.42rem;
+  line-height: 1.55;
+}
+
+/* The storyteller's words: a quiet tinted card, right-weighted. */
+.msg.storyteller {
+  align-self: flex-end;
+  max-width: 88%;
+  background: var(--paper-3);
+  border: 1px solid rgba(43, 38, 34, 0.07);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+.msg.storyteller .who { margin-bottom: 0.3rem; }
+
+.shared-media {
+  display: block;
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  margin: 0.4rem 0 0.7rem;
+}
+
+.shared-media-audio {
+  display: block;
   width: 100%;
-  font: inherit;
-  font-size: 1.15rem;
-  color: var(--ink);
-  background: var(--card);
-  border: 2px solid var(--ink);
-  border-radius: 16px;
-  padding: 0.9rem 1rem;
-  margin-bottom: 1rem;
+  margin: 0.4rem 0 0.7rem;
 }
 
-.chat-actions { text-align: center; margin-top: 1.5rem; }
+/* Listening state — a soft ember pulse; no timers, no bars. */
 
-#chat-screen .quiet { text-align: center; }
+.listening {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.2rem 0 0.4rem 1.15rem;
+  color: var(--ink-soft);
+  font-size: 1.02rem;
+}
 
-/* Media sharing (Day 2): the bar, panels, first-use notice,
-   pending tray, and shared media in the thread. Same tokens,
-   same large targets, same AA pairings as the rest of the shell. */
+.listening[hidden] { display: none; }
+
+.listening-dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--ember);
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+}
+
+/* Composer — media bar, panels, the reply form: one calm zone
+   ruled off from the letters above. */
+
+.composer {
+  border-top: 1px solid var(--line);
+  padding-top: 1.3rem;
+  margin-top: 0.4rem;
+}
 
 .media-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.65rem;
   margin: 0 0 1rem;
 }
 
 .media-btn {
-  flex: 1 1 9rem;
+  flex: 1 1 8.5rem;
   background: var(--card);
   color: var(--ink);
-  border: 2px solid var(--ink);
-  border-radius: 16px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
   font: inherit;
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   font-weight: 700;
-  padding: 0.8rem 1rem;
+  padding: 0.8rem 0.7rem;
   min-height: 3.5rem;
   cursor: pointer;
 }
 
+.media-btn:hover { border-color: var(--ink); }
+
 .media-btn[aria-expanded="true"] {
   border-color: var(--ember);
+  background: var(--ember-tint);
+  color: var(--ember);
   box-shadow: 0 0 0 1px var(--ember);
-}
-
-.media-btn:focus-visible {
-  outline: 3px solid var(--ink);
-  outline-offset: 2px;
 }
 
 .media-notice {
   background: var(--card);
-  border-left: 4px solid var(--gold);
-  border-radius: 0 16px 16px 0;
-  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  box-shadow: var(--shadow);
+  padding: 1.4rem 1.6rem;
   margin: 0 0 1rem;
 }
 
-.media-notice h2 { font-size: 1.4rem; }
+.media-notice h2 { font-size: 1.45rem; }
 
 .media-notice-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
-}
-
-button.primary.small {
-  display: inline-block;
-  width: auto;
-  font-size: 1.1rem;
-  padding: 0.8rem 1.4rem;
-  min-height: 3.25rem;
+  margin-bottom: 0;
 }
 
 .media-panel {
-  background: var(--card);
+  background: var(--paper-2);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  padding: 1.1rem 1.3rem;
   margin: 0 0 1rem;
 }
 
@@ -387,7 +617,7 @@ button.primary.small {
 
 .media-panel video {
   width: 100%;
-  border-radius: 12px;
+  border-radius: 10px;
   margin: 0.5rem 0;
   background: var(--ink);
 }
@@ -395,10 +625,10 @@ button.primary.small {
 .media-panel audio { width: 100%; margin: 0.5rem 0; }
 
 .pending-media {
-  background: var(--card);
-  border: 1px dashed var(--gold);
-  border-radius: 16px;
-  padding: 0.9rem 1.25rem;
+  background: var(--paper-2);
+  border: 1.5px dashed var(--gold);
+  border-radius: var(--radius);
+  padding: 0.95rem 1.3rem;
   margin: 0 0 1rem;
 }
 
@@ -415,7 +645,7 @@ button.primary.small {
   width: 4.5rem;
   height: 4.5rem;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--line);
 }
 
@@ -431,15 +661,62 @@ button.primary.small {
   margin: 0 0 1rem;
 }
 
-.shared-media {
+#chat-form label {
   display: block;
-  max-width: 100%;
-  border-radius: 12px;
-  margin: 0.4rem 0 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.5rem;
 }
 
-.shared-media-audio {
-  display: block;
+#chat-input {
   width: 100%;
-  margin: 0.4rem 0 0.6rem;
+  font: inherit;
+  font-size: 1.13rem;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--card);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.95rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+#chat-input:focus {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 3px rgba(157, 34, 36, 0.16);
+}
+
+.chat-actions { text-align: center; margin-top: 1.4rem; }
+
+#chat-screen .quiet {
+  text-align: center;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-style: italic;
+  font-size: 1.14rem;
+  color: var(--ink-soft);
+}
+
+/* Small screens — his phone is the test device. */
+
+@media (max-width: 560px) {
+  .masthead { padding-top: 1.7rem; }
+  .brand-mark { width: 2.9rem; height: 2.9rem; }
+  main { padding: 0.5rem 1rem 3rem; }
+  h1 { font-size: 2.5rem; margin-top: 1.2rem; }
+  .companion-choice, .plain-box { padding: 1.35rem 1.15rem; }
+  .choice-options { grid-template-columns: 1fr; }
+  .choice-card { padding: 1.05rem 0.8rem 0.95rem; }
+  .msg.storyteller { max-width: 94%; }
+  .msg.companion { font-size: 1.15rem; padding-left: 0.95rem; }
+  .media-btn { flex: 1 1 6.8rem; font-size: 0.98rem; }
+  .chat-title { font-size: 1.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg { animation: none; }
+  .listening-dot { animation: none; }
+  button, .choice-card, .consent-check { transition: none; }
 }
