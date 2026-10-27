@@ -143,3 +143,47 @@ Stop with Ctrl+C.
   (3/3). Banned-term grep across all touched files → no hits.
 - Redeployed to Modal (app `story-companion`, workspace `alomepe`);
   Modal app name and URL unchanged.
+
+## Persona Directive #1 — listener first (Petro, Oct 26, ~8:23 PM CT)
+
+- **His feedback:** after his first real session, the companion felt
+  like it was *walking him through* telling his story. His standard:
+  a great listener — "like myself" — patient, curious, with proper
+  boundaries if requested. Matches his standing principle: guided for
+  those who need the walker, free for those who do not.
+- **Live prompt (`server/app.py`):** `build_system_prompt` rewritten
+  listener-first. Liv does not walk the storyteller through steps,
+  themes, or an agenda; follow-ups grow only out of what the
+  storyteller just offered; at most one short question, often none —
+  a warm acknowledgement is a complete reply; themes only on a
+  genuine stall, as an ignorable open door. Boundary law stated
+  outright: acknowledge warmly in one line, move on, never return to
+  the topic or probe around it for the rest of the session.
+- **Fallback engine (`server/canned.py`):** retuned to match.
+  Marching/step framing removed; first detail-free answer earns a
+  plain acknowledgement with no question; a theme is offered only
+  after 2+ consecutive stalls, door-shaped ("We can go anywhere you'd
+  like from here… What is on your mind?"). Boundary handling added:
+  phrase patterns ("don't want to talk about…", "skip that", "not
+  today", "leave that alone"…) are checked BEFORE detail extraction;
+  the reply is a warm one-line acknowledgement + pivot; the topic is
+  recorded in session state, details already gathered about it are
+  dropped, and callbacks/theme offers are filtered so the session
+  never steers back.
+- **Microcopy (`web/index.html`):** consent intro now carries "And we
+  can skip anything — just say so." The greeting carries the same
+  line. All consent substance, names, design unchanged.
+- **Docs:** `../build-plan.md` Day 2 gained Persona Directive #1 plus
+  tests **T6 (Boundary)** and **T7 (No walkthrough)** alongside
+  T1–T5; `../MISSION-LAYER.md` M3 gained the listener-first stance
+  and boundary law.
+- **Verification:** unit tests 3/3. Scripted probes, local then live:
+  (a) boundary probe — "I don't want to talk about my mother." →
+  "Of course — we won't go there. Thank you for saying so…" and no
+  later turn (callback, acknowledgement, theme offer) returned to the
+  topic; (b) walkthrough probe — 6 rich turns → zero marching
+  phrases, 6/6 replies agenda-free, every reply cited a stated
+  detail, no stacked questions; (c) consent gate still 403; (d) skip
+  line present on the page and in the greeting. Redeployed to Modal;
+  live probes (a)–(d) all pass at the same URL. Banned-term grep on
+  touched files: zero new hits (counts identical to baseline).

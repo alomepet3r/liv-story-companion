@@ -8,11 +8,23 @@ can be built and tested end to end. The moment the live model answers,
 app.py uses the live model instead — this is scaffolding, not the
 product's brain.
 
-Conduct rules (shared with the live system prompt in app.py):
+Stance — LISTENER FIRST (Persona Directive #1, Petro, Oct 26, 2026):
+Petro's first feedback was that the companion felt like it was walking
+him through telling his story. It must not. This companion is a great
+listener: patient, curious about what the storyteller offers, and
+boundaried. Concretely:
+- No itinerary. Follow-ups grow only out of the storyteller's own
+  words. A warm acknowledgement is a complete reply; at most ONE short
+  question, never stacked.
+- Guided themes are for those who need the walker: they are offered
+  only after repeated stalls (very short or detail-free answers),
+  framed as an open door the storyteller can ignore — never as the
+  next item on a list.
+- BOUNDARY LAW: if the storyteller sets a boundary ("I don't want to
+  talk about X", "skip that", "not today"), acknowledge it warmly in
+  one line, move on, and never return to that topic — not in follow-ups,
+  not in callbacks, not via theme offers — for the rest of the session.
 - Never invent facts about the storyteller. Only ask, listen, follow up.
-- One short follow-up question at a time. Never rush.
-- Reference details the storyteller mentioned earlier in this session.
-- Offer the guided themes gently, one at a time, storyteller's choice.
 - Meet tender topics plainly — no morbidity, no forced cheer.
 """
 import re
@@ -39,7 +51,7 @@ def normalize_companion_name(value):
 
 THEMES = [
     ("childhood", "your childhood — the place and people you grew up with"),
-    ("family", "your family — someone who shaped who you are"),
+    ("family", "your family — the people who shaped who you are"),
     ("lessons learned", "a lesson life taught you that you would pass on"),
     ("love", "love — someone, or something, you have loved"),
     ("wishes", "a wish you hold for the people you love"),
@@ -50,6 +62,14 @@ _ACKS = [
     "I am glad you shared that.",
     "What a memory to hold on to.",
     "I can picture that as you tell it.",
+]
+
+# Acknowledgement-only replies — no question at all. Listening,
+# complete as they are.
+_ACK_ONLY = [
+    "Mm. Thank you for telling me that.",
+    "I hear you. Thank you for trusting me with that.",
+    "What a thing to carry with you. Thank you for saying it out loud.",
 ]
 
 _PLACE_PATTERNS = [
@@ -80,6 +100,82 @@ _CLOSE_WORDS = [
     "finish", "goodbye", "bye", "that's all", "thats all", "i am done",
     "i'm done", "stop for today", "enough for today",
 ]
+
+# --- Boundary signals -------------------------------------------------
+# The storyteller closing a door. Matched on normalised text (curly
+# apostrophes folded to straight). Order matters: check BEFORE detail
+# extraction, so a boundary message never becomes a "detail" to follow
+# up on later.
+_BOUNDARY_PATTERNS = [
+    r"don'?t want to talk about",
+    r"do not want to talk about",
+    r"don'?t want to discuss",
+    r"do not want to discuss",
+    r"rather not talk about",
+    r"rather not discuss",
+    r"not talk about",
+    r"won'?t talk about",
+    r"can'?t talk about",
+    r"cannot talk about",
+    r"don'?t ask (?:me )?about",
+    r"do not ask (?:me )?about",
+    r"never ask (?:me )?about",
+    r"no more about",
+    r"leave that (?:alone|be|there)",
+    r"leave it (?:alone|there)",
+    r"skip (?:that|this|it|the question)",
+    r"not today",
+    r"drop (?:that|it|the subject)",
+]
+_BOUNDARY_RE = re.compile("|".join("(?:%s)" % p for p in _BOUNDARY_PATTERNS))
+
+# After "about X" — capture up to three topic words, stopping at
+# punctuation or common glue.
+_TOPIC_RE = re.compile(
+    r"\babout\s+(?:my\s+|the\s+|that\s+)?"
+    r"([a-z][a-z'’-]*(?:\s+[a-z][a-z'’-]*){0,2})"
+)
+_TOPIC_STOP = {
+    "today", "now", "anymore", "any", "more", "right", "just", "please",
+    "and", "or", "because", "so", "then",
+}
+
+_BOUNDARY_ACKS = [
+    ("Of course — we won't go there. Thank you for saying so. "
+     "Whenever you're ready, we can talk about whatever you'd like."),
+    ("Of course. That's completely fine, and we won't go there. "
+     "I'm here — we can talk about anything else, in your own time."),
+]
+
+
+def _normalise(text):
+    return text.replace("’", "'").replace("‘", "'").lower()
+
+
+def detect_boundary(text):
+    """Return a list of blocked topic words if this message sets a
+    boundary, else None.
+
+    The topic is the noun phrase near the boundary when one is easily
+    extractable ("my mother" -> "mother"); otherwise the list just
+    holds a marker and the boundary itself is still honoured.
+    """
+    lowered = _normalise(text)
+    if not _BOUNDARY_RE.search(lowered):
+        return None
+    topics = []
+    m = _TOPIC_RE.search(lowered)
+    if m:
+        words = [w for w in m.group(1).replace("’", "'").split()
+                 if w not in _TOPIC_STOP]
+        if words:
+            topics.append(words[0])
+            if len(words) > 1:
+                topics.append(" ".join(words))
+    person = _PEOPLE_PATTERN.search(text)
+    if person:
+        topics.append(person.group(1).lower())
+    return topics or ["(unspecified)"]
 
 
 def _clean_place(raw):
@@ -135,17 +231,36 @@ class CannedCompanion:
         self.turn = 0              # storyteller turns answered
         self.theme_index = 0
         self.closed = False
+        self.stalls = 0            # consecutive detail-free answers
+        self.blocked_words = set() # boundary topics, lowercase words
+        self.boundaries = 0        # how many boundaries have been set
+
+    # -- boundary helpers ------------------------------------------------
+    def _is_blocked(self, phrase):
+        lowered = phrase.lower()
+        return any(w in lowered for w in self.blocked_words)
+
+    def _note_boundary(self, topics):
+        self.boundaries += 1
+        for topic in topics:
+            for word in topic.split():
+                self.blocked_words.add(word.lower())
+        # A boundary reaches backwards too: a detail already gathered
+        # about this topic is never followed up on again.
+        self.details = [d for d in self.details if not self._is_blocked(d)]
 
     def greeting(self):
-        # The first message introduces the companion by the chosen name.
+        # The first message introduces the companion by the chosen name
+        # and makes boundaries easy from the very start.
         return ("Hello, I’m " + self.name + ". I’m here to listen — "
-                "we can go at your pace. "
+                "we can go at your pace. And we can skip anything — "
+                "just say so. "
                 "Tell me, where did you grow up?")
 
     def reply(self, text):
         text = (text or "").strip()
         self.turn += 1
-        lowered = text.lower()
+        lowered = _normalise(text)
 
         if self.closed:
             return ("Of course. Whenever you are ready to talk again, "
@@ -160,17 +275,28 @@ class CannedCompanion:
                     "first — nothing is shared unless you approve it. "
                     "Rest well, and come back any time. — " + self.name)
 
+        # BOUNDARY LAW — checked before anything else in the message is
+        # used. One warm line, a gentle pivot, and the topic is closed
+        # for the rest of the session.
+        topics = detect_boundary(text)
+        if topics is not None:
+            self._note_boundary(topics)
+            self.stalls = 0
+            return _BOUNDARY_ACKS[(self.boundaries - 1) % len(_BOUNDARY_ACKS)]
+
         # Silence / almost nothing said: patience, no pressure, no question
         # piled on top of another.
         if len(text) < 3:
             return "Take your time. I am here whenever you are ready."
 
         new_details = [d for d in extract_details(text)
-                       if d not in self.details]
+                       if d not in self.details and not self._is_blocked(d)]
         self.details.extend(new_details)
 
-        # Tender topics: plain, warm, unhurried.
+        # Tender topics: plain, warm, unhurried. If the detail at hand
+        # sits behind a boundary, be sorry without opening the door.
         if any(w in lowered for w in _GRIEF_WORDS):
+            self.stalls = 0
             who = ""
             if new_details:
                 who = new_details[0]
@@ -184,26 +310,44 @@ class CannedCompanion:
                     "Would you like to tell me a little about them?")
 
         # Every third reply, reach back to an earlier detail (not the one
-        # from this message) — the follow-up remembers.
-        earlier = [d for d in self.details if d not in new_details]
+        # from this message) — the follow-up remembers. Never a detail
+        # behind a boundary.
+        earlier = [d for d in self.details
+                   if d not in new_details and not self._is_blocked(d)]
         if self.turn % 3 == 0 and earlier:
+            self.stalls = 0
             detail = earlier[0]
             return (_ack(self.turn) + " Earlier you mentioned " + detail +
                     ". What stayed with you from that?")
 
-        # A fresh detail earns the follow-up.
+        # A fresh detail earns the follow-up — curiosity about the
+        # storyteller's own words, one short question.
         if new_details:
+            self.stalls = 0
             detail = new_details[0]
             return (_ack(self.turn) + " Tell me more about " + detail +
                     " — what do you remember most about it?")
 
-        # Nothing new to follow: gently offer the next guided theme,
-        # one at a time, always the storyteller's choice.
-        if self.theme_index < len(THEMES):
-            _name, description = THEMES[self.theme_index]
+        # Nothing new to follow. Count the stall. Listening does not
+        # need a question every time: the first stall earns a plain,
+        # warm acknowledgement and silence to think in.
+        self.stalls += 1
+        if self.stalls < 2:
+            return _ACK_ONLY[self.turn % len(_ACK_ONLY)]
+
+        # Only after repeated stalls may a theme be offered — as an
+        # open door for those who want the walker, easy to ignore,
+        # never a list to march through. A theme that would steer back
+        # behind a boundary is skipped entirely.
+        while self.theme_index < len(THEMES):
+            _key, description = THEMES[self.theme_index]
             self.theme_index += 1
-            return ("Thank you. If you like, we could turn to " +
-                    description + ". Or we can stay right where we are — "
-                    "what would you like to talk about?")
+            if self._is_blocked(description):
+                continue
+            self.stalls = 0
+            return ("We can go anywhere you'd like from here. Some "
+                    "people enjoy talking about " + description +
+                    " — and some would rather go somewhere else "
+                    "entirely. What is on your mind?")
         return (_ack(self.turn) +
                 " What else from that time would you like to tell me?")
