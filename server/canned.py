@@ -65,6 +65,22 @@ boundaried. Concretely:
   shared. The same moves belong, sparingly, in ordinary turns —
   a half-told detail invites clarity; two details that sit in
   contrast invite a gentle comparison.
+- CULTURAL GROUND (Persona Directive #4, Petro, Oct 26, 2026):
+  Liv sits with people of every age, size, faith, sexual
+  orientation, nationality, and way of life, and she is culturally
+  sensitive — grounded in Petro's own family: a sister who was
+  Muslim, most of her siblings Christian, and at her passing the
+  family honoured HER wishes and HER traditions. The storyteller's
+  frame governs: rituals, mourning, prayer, food, holidays, and
+  names for the divine and for death are THEIRS. Liv mirrors the
+  storyteller's own words for these things; she never supplies
+  defaults from another faith or culture, never corrects their
+  theology or customs, never explains their own culture back to
+  them, never stereotypes. Sensitivity is not shapeshifting: Liv
+  stays herself, and when she does not know a custom she says so
+  and asks to learn — curiosity is welcome, performed knowledge
+  is not. Every conversation is school: she is becoming an expert
+  on THIS person, and the conversation is held as sacred.
 - Never invent facts about the storyteller. Only ask, listen, follow up.
 - Meet tender topics plainly — no morbidity, no forced cheer.
 """
@@ -396,6 +412,196 @@ _MALE_PEOPLE = {"father", "grandfather", "grandpa", "brother", "son",
                 "husband", "uncle"}
 _FEMALE_PEOPLE = {"mother", "grandmother", "grandma", "sister",
                   "daughter", "wife", "aunt"}
+
+
+# --- Cultural ground (Persona Directive #4) ---------------------------
+# Detection exists ONLY to choose a response shape — never to label
+# the storyteller back to themselves. Signals are conservative: a
+# clear ritual / festival / place term, two signals together, or one
+# signal inside grief. The echo always uses the storyteller's own
+# words, in their own casing, from their own message.
+_CULTURE_TERMS = [
+    # (pattern, kind, priority) — matched on normalised text.
+    (r"janazah prayer", "ritual", 10),
+    (r"eid al-fitr", "festival", 10),
+    (r"eid al-adha", "festival", 10),
+    (r"memorial service", "ritual", 9),
+    (r"bar mitzvah", "ritual", 9),
+    (r"bat mitzvah", "ritual", 9),
+    (r"day of the dead", "festival", 9),
+    (r"janazah", "ritual", 9),
+    (r"ramadan", "festival", 9),
+    (r"diwali", "festival", 9),
+    (r"hanukkah", "festival", 9),
+    (r"chanukah", "festival", 9),
+    (r"passover", "festival", 9),
+    (r"vesak", "festival", 9),
+    (r"nowruz", "festival", 9),
+    (r"eid", "festival", 8),
+    (r"seder", "ritual", 8),
+    (r"lent", "festival", 8),
+    (r"sabbath", "ritual", 8),
+    (r"shabbat", "ritual", 8),
+    (r"mass", "ritual", 8),
+    (r"baptism", "ritual", 8),
+    (r"communion", "ritual", 8),
+    (r"quincea(?:ñ|n)era", "ritual", 8),
+    (r"puja", "ritual", 8),
+    (r"mosque", "place", 8),
+    (r"synagogue", "place", 8),
+    (r"gurdwara", "place", 8),
+    (r"imam", "role", 8),
+    (r"rabbi", "role", 8),
+    (r"funeral", "ritual", 7),
+    (r"burial", "ritual", 7),
+    (r"cremation", "ritual", 7),
+    (r"temple", "place", 7),
+    (r"church", "place", 7),
+    (r"shrine", "place", 7),
+    (r"chapel", "place", 7),
+    (r"cathedral", "place", 7),
+    (r"pastor", "role", 7),
+    (r"priest", "role", 7),
+    (r"monk", "role", 7),
+    (r"minister", "role", 7),
+    (r"wake(?! up)", "ritual", 6),
+    (r"memorial", "ritual", 6),
+    (r"quran", "concept", 6),
+    (r"koran", "concept", 6),
+    (r"bible", "concept", 6),
+    (r"torah", "concept", 6),
+    (r"sermon", "concept", 6),
+    (r"ancestors", "concept", 5),
+    (r"ancestor", "concept", 5),
+    (r"mourning", "concept", 5),
+    (r"hymn", "concept", 5),
+    (r"scripture", "concept", 5),
+    (r"fasting", "concept", 5),
+    (r"prayers", "concept", 4),
+    (r"prayer", "concept", 4),
+    (r"praying", "concept", 4),
+    (r"feast", "concept", 4),
+    (r"blessings", "concept", 3),
+    (r"blessing", "concept", 3),
+]
+# Customs Liv recognises as customs but does not presume to know:
+# these earn an ask-to-learn, never a guessed explanation.
+_LEARN_RE = re.compile(r"\bofrenda\b")
+_CUSTOM_CALLED_RE = re.compile(
+    r"\b(?:custom|ritual|ceremony|tradition|festival|rite) called "
+    r"(?:the )?([A-Z][\w'’-]*(?: (?:(?:of|the|de|and) )?"
+    r"[A-Z][\w'’-]*){0,3})")
+_KNOWN_CUSTOMS = {
+    "ramadan", "eid", "eid al-fitr", "eid al-adha", "diwali",
+    "hanukkah", "chanukah", "passover", "lent", "sabbath", "shabbat",
+    "janazah", "mass", "seder", "vesak", "nowruz", "baptism",
+    "funeral", "christmas", "easter",
+}
+
+# The storyteller's own frame for a death — their words for where
+# their person has gone. When one of these appears, Liv mirrors the
+# clause back as spoken; she never substitutes a frame of her own.
+_FRAME_PATTERNS = [
+    r"((?:she|he|they|my [a-z]+) (?:went|has gone|had gone) to be "
+    r"with (?:the )?(?:lord|god|allah|jesus))",
+    r"((?:she|he|they|my [a-z]+) is with (?:the )?"
+    r"(?:lord|god|allah|jesus))",
+    r"((?:she|he|they|my [a-z]+) is in (?:heaven|jannah|paradise))",
+    r"((?:she|he|they|my [a-z]+) joined (?:the|our|his|her|their) "
+    r"ancestors)",
+    r"((?:she|he|they|my [a-z]+) (?:has )?returned to "
+    r"(?:god|allah|the creator))",
+    r"((?:she|he|they|my [a-z]+) became an ancestor)",
+]
+_FRAME_RES = [re.compile(p) for p in _FRAME_PATTERNS]
+
+
+def _detect_death_frame(text):
+    """The storyteller's own clause for a death, as spoken — e.g.
+    'your sister went to be with the Lord' — or None. The clause is
+    taken from the original message so their casing and their words
+    survive; a leading 'my' becomes 'your', as a listener would."""
+    lowered = _normalise(text)
+    for pattern in _FRAME_RES:
+        m = pattern.search(lowered)
+        if not m:
+            continue
+        clause = text[m.start(1):m.end(1)].strip()
+        if clause.lower().startswith("my "):
+            clause = "your " + clause[3:]
+        if clause:
+            return clause[0].lower() + clause[1:]
+    return None
+
+
+def _culture_phrase(kind, core):
+    """How a signal is echoed back: the storyteller's own word, with
+    only the lightest article. Festivals stand bare ('Ramadan');
+    ancestors take the possessive the storyteller would use."""
+    if kind == "festival":
+        return core
+    if kind == "concept" and core.lower().startswith("ancestor"):
+        return "your " + core
+    return "the " + core
+
+
+def _detect_culture(text):
+    """Detect a faith/culture turn, to choose a response shape.
+
+    Returns a dict {learn, frame, echo, detail} or None. Triggers
+    are conservative: an explicit unknown custom (ask-to-learn), the
+    storyteller's own death frame, a clear ritual/festival/place
+    signal, two signals together, or one signal inside grief. A lone
+    weak word in ordinary storytelling does not trigger."""
+    lowered = _normalise(text)
+    m = _CUSTOM_CALLED_RE.search(text)
+    if m:
+        custom = m.group(1).strip()
+        if custom.lower() not in _KNOWN_CUSTOMS:
+            return {"learn": "the " + custom, "frame": None,
+                    "echo": None, "detail": None}
+    if _LEARN_RE.search(lowered):
+        return {"learn": "the ofrenda", "frame": None,
+                "echo": None, "detail": None}
+    frame = _detect_death_frame(text)
+    hits = []
+    for pattern, kind, priority in _CULTURE_TERMS:
+        m = re.search(r"\b(?:" + pattern + r")\b", lowered)
+        if m:
+            # Normalising is length-preserving, so the span indexes
+            # the original message — their casing survives.
+            hits.append((priority, m.start(), kind,
+                         text[m.start():m.end()]))
+    if not hits and frame is None:
+        return None
+    grief = any(w in lowered for w in _GRIEF_WORDS)
+    strong = [h for h in hits
+              if h[2] in ("ritual", "festival", "place") and h[0] >= 6]
+    if (frame is None and not strong and len(hits) < 2
+            and not (hits and grief)):
+        return None
+    if not hits:
+        return {"learn": None, "frame": frame, "echo": None,
+                "detail": None}
+    hits.sort(key=lambda h: (-h[0], h[1]))
+    _prio, _start, pkind, pcore = hits[0]
+    echo = _culture_phrase(pkind, pcore)
+    # One secondary colour, from the storyteller's own words only:
+    # the place the rite happened in, or the person who led it.
+    for _p, _s, kind, core in hits[1:]:
+        if kind == "place" and pkind in ("ritual", "festival"):
+            echo += " at the " + core
+            break
+        if kind == "role" and pkind in ("ritual", "festival", "place"):
+            echo += ", with the " + core + " leading"
+            break
+    detail = echo.split(" at the ")[0].split(", with the ")[0]
+    return {"learn": None, "frame": frame, "echo": echo,
+            "detail": detail}
+
+
+def _cap_first(text):
+    return text[:1].upper() + text[1:] if text else text
 
 
 def detect_meta_question(text):
@@ -873,6 +1079,67 @@ class CannedCompanion:
                 "around it you’d like to open up — or shall we "
                 "wander somewhere new entirely?")
 
+    # -- cultural ground (Persona Directive #4) --------------------
+    def _culture_reply(self, text, info, new_details):
+        """Answer a faith/culture turn inside the storyteller's own
+        frame: sorrow first when it is grief; their own frame clause
+        mirrored back as spoken when they gave one; their own terms
+        echoed — never a default from another tradition; and at most
+        one question: an ask-to-learn when the custom is one Liv does
+        not know, an open question rooted in their words when she
+        does. Returns None when the chosen ground sits behind a
+        boundary, so the normal paths (which honour boundaries) take
+        the turn instead."""
+        lowered = _normalise(text)
+        grief = bool(info.get("frame")) or any(
+            w in lowered for w in _GRIEF_WORDS)
+        who = ""
+        for detail in list(new_details) + list(self.details):
+            if detail.startswith("your "):
+                who = detail
+                break
+        if who:
+            self.followed_details.add(who)
+        self.stalls = 0
+
+        learn = info.get("learn")
+        if learn is not None:
+            return ("Thank you for telling me that. I don’t know "
+                    + learn + " well, and I won’t guess at something "
+                    "that matters — would you teach me a little about "
+                    "it — how do you keep it?")
+
+        detail = info.get("detail")
+        if detail:
+            if self._is_blocked(detail):
+                return None
+            if detail not in self.details:
+                self.details.append(detail)
+            self.followed_details.add(detail)
+
+        out = []
+        if grief:
+            out.append("I am sorry.")
+        if info.get("frame"):
+            out.append("You told me " + info["frame"] + ".")
+        echo = info.get("echo")
+        if echo:
+            if grief:
+                out.append(_cap_first(echo) +
+                           " — thank you for telling me about it.")
+            else:
+                out.append("Thank you for telling me about " + echo + ".")
+        elif not grief:
+            out.append("Thank you for telling me that.")
+        if grief and who:
+            out.append("Would you tell me a little about " + who +
+                       " — what do you most want people to know?")
+        elif grief:
+            out.append("Would you like to tell me a little about them?")
+        else:
+            out.append("What stays with you most from it?")
+        return " ".join(out)
+
     def greeting(self):
         # The first message introduces the companion by the chosen
         # name, makes boundaries easy, and — Persona Directive #2 —
@@ -1015,6 +1282,18 @@ class CannedCompanion:
         new_details = [d for d in extract_details(text)
                        if d not in self.details and not self._is_blocked(d)]
         self.details.extend(new_details)
+
+        # CULTURAL GROUND (Persona Directive #4) — a faith/culture
+        # turn is answered inside the storyteller's own frame, before
+        # the generic grief and follow-up paths: their terms echoed,
+        # their frame for a death mirrored, an unknown custom met
+        # with an ask-to-learn. Detection only chooses the shape.
+        culture = _detect_culture(text)
+        if culture is not None:
+            culture_reply = self._culture_reply(text, culture,
+                                                new_details)
+            if culture_reply is not None:
+                return culture_reply
 
         # Tender topics: plain, warm, unhurried. If the detail at hand
         # sits behind a boundary, be sorry without opening the door.
