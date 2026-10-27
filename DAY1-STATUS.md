@@ -85,3 +85,12 @@ Stop with Ctrl+C.
   (HTTP 402); escalation draft sits with Petro to send.
 - Voice loop is Day 3; chapter arrangement is Day 4; photo scene is
   Day 5 — none started.
+
+## Deployment — LIVE (Oct 26, 2026, evening)
+- **URL:** https://alomepe--story-companion-serve.us-east.modal.run (Modal, workspace `alomepe`, Starter; app `story-companion`; one container pinned warm)
+- **Auth path that worked:** Petro completed Google sign-in in person in the live browser and clicked Authorize on the token-flow page (~6:36 PM CT) — CLI token verified against workspace `alomepe`. (Split-machine token flows sent to Petro's own browser had expired 4x earlier; same-machine approval is the working pattern.)
+- **Secret:** `meta-model-api` Modal Secret created from the repo .env programmatically; no value printed or logged.
+- **Bug found + fixed same evening:** first deploy crash-looped — the wrapper called the app's blocking serve_forever() in-process; Modal logs demanded a non-blocking start. Wrapper now launches the app via subprocess.Popen (app code still untouched). Redeployed and verified.
+- **Live verification (from outside, after fix):** GET / → 200 in ~1s with consent copy + "Yours. Always. Delete anything, anytime"; GET /api/health → {"ok": true}; POST /api/chat without consent → 403 "Consent is required before we begin."; with consent → warm canned replies (Meta credit still 402 → canned mode, as designed) including an earlier-detail callback (a later reply referenced "the elevator" from an earlier turn).
+- **Session note:** the test harness's `session` field was ignored by the API (it keys to "default") — session handling to tighten on Day 2 with persona work.
+- **Open:** Modal budget/spend cap is a dashboard-side setting (Settings/Billing in Petro's account) — not yet set; expected usage is a few dollars of the $30 Starter credit.

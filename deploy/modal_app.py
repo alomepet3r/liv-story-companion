@@ -50,6 +50,28 @@ image = (
 app = modal.App("story-companion", image=image)
 
 
+# Launcher run as a SUBPROCESS inside the container. Modal's web_server
+# contract requires a NON-BLOCKING start (subprocess.Popen): the earlier
+# version called the app's blocking serve_forever() in-process, Modal
+# logged "Runner has been initializing for too long… use a
+# non-blocking call such as subprocess.Popen" and crash-looped the
+# containers (diagnosed Oct 26, 2026, from `modal app logs`). The
+# launcher imports server/app.py as-is and applies the runtime-only
+# 0.0.0.0 bind swap in the subprocess — application code untouched.
+LAUNCHER = r"""
+import sys
+sys.path.insert(0, "/root/app")
+import server.app as m
+
+class _BindAll(m.ThreadingHTTPServer):
+    def __init__(self, address, handler, *args, **kwargs):
+        super().__init__(("0.0.0.0", address[1]), handler, *args, **kwargs)
+
+m.ThreadingHTTPServer = _BindAll
+m.main()
+"""
+
+
 @app.function(
     secrets=[modal.Secret.from_name("meta-model-api")],
     # Keep ONE container warm around the clock so the demo never hits a
@@ -58,25 +80,10 @@ app = modal.App("story-companion", image=image)
     # can be relaxed to 0 to scale fully to zero when idle.
     min_containers=1,
 )
-@modal.web_server(INTERNAL_PORT, startup_timeout=60)
+@modal.web_server(INTERNAL_PORT, startup_timeout=120)
 def serve():
-    # Make `import server.app` resolve and let server/app.py find its
-    # WEB_DIR exactly as it does locally (server/../web under APP_HOME).
-    sys.path.insert(0, APP_HOME)
-    os.chdir(APP_HOME)
-    # The existing server honours PORT (see server/app.py main()).
-    os.environ.setdefault("PORT", str(INTERNAL_PORT))
+    import subprocess
 
-    import server.app as app_module
-
-    # Runtime-only bind adaptation (see module docstring): same
-    # ThreadingHTTPServer, same Handler — listening on 0.0.0.0 inside
-    # the container instead of 127.0.0.1, as Modal's docs require.
-    _real_server_class = app_module.ThreadingHTTPServer
-
-    def _bind_all(address, handler, *args, **kwargs):
-        return _real_server_class(("0.0.0.0", address[1]), handler,
-                                  *args, **kwargs)
-
-    app_module.ThreadingHTTPServer = _bind_all
-    app_module.main()
+    env = dict(os.environ, PORT=str(INTERNAL_PORT))
+    subprocess.Popen([sys.executable, "-c", LAUNCHER],
+                     cwd=APP_HOME, env=env)
