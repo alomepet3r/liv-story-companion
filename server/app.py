@@ -51,6 +51,7 @@ from .archive import (                       # noqa: E402
     ArchiveError,
     parse_dyi_zip,
 )
+from . import chapter as chapter_mod        # noqa: E402
 from .canned import (                        # noqa: E402
     CannedCompanion,
     detect_present_minor,
@@ -257,6 +258,7 @@ def _session(session_id):
                 "history": [],
                 "media": {},
                 "archive": {},
+                "chapter": None,
             }
         return _sessions[session_id]
 
@@ -684,6 +686,97 @@ def handle_chat(payload):
                  "companion": companion_name}
 
 
+# --- Chapter slice (Day 4, pulled forward — see server/chapter.py)
+# talk -> chapter -> keepsake. Every chapter route carries the same
+# consent + 18+ gates as chat and archive-select; the share link is
+# minted only by handle_chapter_approve, and /keepsake/<token>
+# serves the approved chapter and nothing else.
+
+def _chapter_gate(payload):
+    """(status, error) if the chapter gates fail, else None."""
+    if not isinstance(payload, dict):
+        return 400, {"error": "JSON object expected"}
+    if payload.get("consent") is not True:
+        return 403, {"error": "Consent is required before we begin."}
+    if payload.get("age_confirmed") is not True:
+        return 403, {"error": "Please confirm you are 18 or older "
+                              "before we begin."}
+    return None
+
+
+def _chapter_session(payload):
+    session_id = str(payload.get("session_id")
+                     or payload.get("session") or "default")
+    return session_id, _session(session_id)
+
+
+def handle_chapter_outline(payload):
+    gate = _chapter_gate(payload)
+    if gate:
+        return gate
+    _, sess = _chapter_session(payload)
+    return chapter_mod.start_outline(sess)
+
+
+def handle_chapter_replan(payload):
+    gate = _chapter_gate(payload)
+    if gate:
+        return gate
+    _, sess = _chapter_session(payload)
+    return chapter_mod.replan(
+        sess,
+        title=payload.get("title"),
+        dedication=payload.get("dedication"),
+        exclude_ids=payload.get("exclude_source_ids"),
+    )
+
+
+def _live_drafter(companion_name):
+    """The ONE live Spark call of the chapter flow (plus the
+    client's built-in empty-content retry). Returns a drafter
+    callable, or None when no live client is available — the
+    deterministic arrangement then carries the flow."""
+    client = _get_live_client()
+    if client is None:
+        return None
+
+    def draft(sources, outline):
+        messages = chapter_mod.build_arrangement_messages(
+            sources, outline, companion_name)
+        text, _usage = client.chat(messages, max_tokens=2500,
+                                   reasoning_effort="low")
+        if not text:
+            return None
+        return chapter_mod.parse_live_draft(text, sources, outline)
+
+    return draft
+
+
+def handle_chapter_draft(payload):
+    gate = _chapter_gate(payload)
+    if gate:
+        return gate
+    _, sess = _chapter_session(payload)
+    return chapter_mod.make_draft(
+        sess, drafter=_live_drafter(sess["companion_name"]))
+
+
+def handle_chapter_approve(payload):
+    gate = _chapter_gate(payload)
+    if gate:
+        return gate
+    session_id, sess = _chapter_session(payload)
+    return chapter_mod.approve(sess, session_id)
+
+
+def handle_chapter_view(payload):
+    gate = _chapter_gate(payload)
+    if gate:
+        return gate
+    _, sess = _chapter_session(payload)
+    return 200, chapter_mod.chapter_view(sess.get("chapter"))
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "StoryCompanion/0.1"
 
@@ -705,6 +798,16 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/api/health":
             return self._send(200, {"ok": True})
+        if path.startswith("/keepsake/"):
+            # The one share link: read-only, approved chapters
+            # only. An unknown (or not-yet-minted) token is a 404 —
+            # nothing unapproved is reachable here, ever.
+            snapshot = chapter_mod.get_share(path[len("/keepsake/"):])
+            if snapshot is None:
+                return self._send(404, {"error": "not found"})
+            return self._send(
+                200, chapter_mod.render_keepsake_html(snapshot),
+                "text/html; charset=utf-8")
         if path.startswith("/api/media/"):
             media_id = path[len("/api/media/"):]
             query = parse_qs(urlparse(self.path).query)
@@ -786,6 +889,23 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 return self._send(400, {"error": "invalid JSON"})
             status, response = handle_archive_select(payload)
+            return self._send(status, response)
+        chapter_handlers = {
+            "/api/chapter/outline": handle_chapter_outline,
+            "/api/chapter/replan": handle_chapter_replan,
+            "/api/chapter/draft": handle_chapter_draft,
+            "/api/chapter/approve": handle_chapter_approve,
+            "/api/chapter/view": handle_chapter_view,
+        }
+        if path in chapter_handlers:
+            length = int(self.headers.get("Content-Length") or 0)
+            if length <= 0 or length > 65536:
+                return self._send(400, {"error": "request body missing/too large"})
+            try:
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            except Exception:
+                return self._send(400, {"error": "invalid JSON"})
+            status, response = chapter_handlers[path](payload)
             return self._send(status, response)
         if path != "/api/chat":
             return self._send(404, {"error": "not found"})
