@@ -802,6 +802,121 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   .chat-title { font-size: 1.6rem; }
 }
 
+/* Chapter screen (Day 4 slice, pulled forward) — plan, draft,
+   approval, keepsake, in the same editorial tokens. */
+
+.chapter-h {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.65rem;
+  font-weight: 600;
+  margin: 2rem 0 0.6rem;
+}
+
+.chapter-h3 {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 1.4rem 0 0.4rem;
+}
+
+.chapter-steps { margin: 0.4rem 0 0; padding-left: 1.4rem; }
+.chapter-steps li { margin-bottom: 0.35rem; }
+.chapter-steps .step-detail { color: var(--ink-soft); }
+
+.chapter-checklist { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.chapter-checklist li { margin-bottom: 0.3rem; }
+.chapter-checklist li.done { color: var(--ink); }
+.chapter-checklist li.todo { color: var(--ink-soft); }
+
+#chapter-screen input[type="text"] {
+  width: 100%;
+  font: inherit;
+  font-size: 1.1rem;
+  color: var(--ink);
+  background: var(--card);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.8rem 1rem;
+  margin-top: 0.35rem;
+}
+
+#chapter-screen input[type="text"]:disabled {
+  background: var(--paper-2);
+  color: var(--ink-soft);
+}
+
+.chapter-materials .archive-item { margin-bottom: 0.5rem; }
+
+.chapter-sections { margin: 0.4rem 0 0; padding-left: 1.4rem; }
+.chapter-sections li { margin-bottom: 0.3rem; }
+
+.draft-badge {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ember-deep);
+  background: var(--ember-tint);
+  border: 1.5px solid var(--ember);
+  border-radius: 999px;
+  padding: 0.3rem 0.95rem;
+}
+
+.draft-badge.approved {
+  color: var(--sage);
+  background: var(--paper-2);
+  border-color: var(--sage);
+}
+
+.chapter-flags {
+  background: var(--ember-tint);
+  border: 1.5px solid var(--ember);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+}
+
+.chapter-flags ul { margin: 0.4rem 0 0; padding-left: 1.3rem; }
+
+.chapter-draft-body {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.4rem 1.6rem;
+  margin-top: 1rem;
+}
+
+.chapter-draft-title {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.9rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0 0 0.3rem;
+}
+
+.chapter-for { font-style: italic; margin: 0 0 0.8rem; }
+
+.chapter-evidence { margin: -0.4rem 0 1rem; font-size: 0.98rem; }
+.chapter-evidence summary {
+  cursor: pointer;
+  color: var(--gold);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.chapter-evidence ul { margin: 0.2rem 0 0; padding-left: 1.3rem;
+  color: var(--ink-soft); }
+
+.chapter-link {
+  display: inline-block;
+  text-decoration: none;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.7rem 1.2rem;
+  color: var(--ink);
+  background: var(--card);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .msg { animation: none; }
   .listening-dot { animation: none; }

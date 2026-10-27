@@ -269,9 +269,93 @@
     </form>
     <p class="chat-actions">
       <button id="finish-btn" class="secondary" type="button">Finish for today</button>
+      <button id="chapter-btn" class="secondary" type="button">Arrange this into a chapter</button>
     </p>
     <p class="quiet">Take your time. There is no hurry here.</p>
     </div>
+  </section>
+
+  <!-- Screen 3 — Chapter. The storyteller asked for a chapter:
+       Liv proposes an outline first (title, who it is for, which
+       materials go in); the storyteller can change it and ask for
+       a re-plan; only then is a draft written. The draft is an
+       UNVERIFIED draft until the storyteller approves it — and
+       the share link exists only after that approval. Each step
+       shown here is a step the server actually took. -->
+  <section id="chapter-screen" hidden aria-labelledby="chapter-heading">
+    <h1 id="chapter-heading" tabindex="-1">Your chapter</h1>
+    <p class="lede">Liv will arrange what you shared into a chapter.
+      You see the plan first, you can change it, and nothing is
+      shared unless you approve the finished chapter.</p>
+
+    <div class="divider" aria-hidden="true"><span class="divider-diamond"></span></div>
+
+    <p id="chapter-status" class="media-status" role="status"></p>
+    <p id="chapter-error" class="media-error" role="alert" hidden></p>
+
+    <h2 class="chapter-h">How it is going</h2>
+    <ol id="chapter-steps" class="chapter-steps"></ol>
+
+    <h2 class="chapter-h">Chapter checklist</h2>
+    <ul id="chapter-checklist" class="chapter-checklist"></ul>
+
+    <div id="chapter-outline-box">
+      <h2 class="chapter-h">The plan</h2>
+      <p>
+        <label for="chapter-title">Chapter title</label>
+        <input id="chapter-title" type="text" maxlength="120">
+      </p>
+      <p>
+        <label for="chapter-dedication">Who is this chapter for?</label>
+        <input id="chapter-dedication" type="text" maxlength="120"
+          placeholder="A name, or “my family” — it becomes the chapter’s dedication">
+      </p>
+      <h3 class="chapter-h3">What goes in</h3>
+      <div id="chapter-materials" class="chapter-materials"></div>
+      <h3 class="chapter-h3">Sections</h3>
+      <ul id="chapter-sections" class="chapter-sections"></ul>
+      <p class="media-panel-actions">
+        <button id="chapter-replan" class="secondary" type="button">Ask Liv to re-plan</button>
+        <button id="chapter-draft" class="primary small" type="button">This looks right — write the chapter</button>
+      </p>
+    </div>
+
+    <div id="chapter-draft-box" hidden>
+      <h2 class="chapter-h">The draft</h2>
+      <p><span id="draft-badge" class="draft-badge">Unverified draft</span></p>
+      <p class="quiet">Liv arranged this from your conversation.
+        Please read it through — it is not shared with anyone until
+        you approve it.</p>
+      <div id="chapter-flags" class="chapter-flags" hidden>
+        <h3 class="chapter-h3">Please check these</h3>
+        <p>These names, dates or places in the draft were
+          <strong>not in your words</strong> as you told them —
+          please check them before you approve:</p>
+        <ul id="chapter-flags-list"></ul>
+      </div>
+      <div id="chapter-draft-body" class="chapter-draft-body"></div>
+      <p class="media-panel-actions">
+        <button id="chapter-approve" class="primary small" type="button">I have read it — approve this chapter</button>
+      </p>
+    </div>
+
+    <div id="chapter-keepsake-box" hidden>
+      <h2 class="chapter-h">Your keepsake</h2>
+      <p><span class="draft-badge approved">Approved by you</span></p>
+      <p>This chapter is yours to share. Anyone with this link can
+        read it — and it is the only way in:</p>
+      <p>
+        <label for="chapter-share-link">Share link</label>
+        <input id="chapter-share-link" type="text" readonly>
+      </p>
+      <p class="media-panel-actions">
+        <a id="chapter-keepsake-link" class="secondary chapter-link" href="#" target="_blank" rel="noopener">Read your keepsake</a>
+      </p>
+    </div>
+
+    <p class="chat-actions">
+      <button id="chapter-back" class="secondary" type="button">Back to our conversation</button>
+    </p>
   </section>
 </main>
 

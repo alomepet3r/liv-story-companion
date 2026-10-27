@@ -796,4 +796,354 @@
   }
   wireRecorder("audio");
   wireRecorder("video");
+
+  // ---- Chapter (talk -> chapter -> keepsake) --------------------
+  // Plan before write: Liv proposes an outline (title, dedication,
+  // materials); the storyteller edits and may ask for a re-plan;
+  // only then is a draft written. The draft is an UNVERIFIED draft
+  // until the storyteller approves it — and the share link exists
+  // only after approval. Every step and checklist state rendered
+  // here comes from the server, which records what it actually
+  // did (see server/chapter.py).
+  var chapterScreen = document.getElementById("chapter-screen");
+  var chapterHeading = document.getElementById("chapter-heading");
+  var chapterStatus = document.getElementById("chapter-status");
+  var chapterError = document.getElementById("chapter-error");
+  var chapterSteps = document.getElementById("chapter-steps");
+  var chapterChecklist = document.getElementById("chapter-checklist");
+  var chapterOutlineBox = document.getElementById("chapter-outline-box");
+  var chapterTitle = document.getElementById("chapter-title");
+  var chapterDedication = document.getElementById("chapter-dedication");
+  var chapterMaterials = document.getElementById("chapter-materials");
+  var chapterSections = document.getElementById("chapter-sections");
+  var chapterDraftBox = document.getElementById("chapter-draft-box");
+  var chapterDraftBody = document.getElementById("chapter-draft-body");
+  var chapterFlags = document.getElementById("chapter-flags");
+  var chapterFlagsList = document.getElementById("chapter-flags-list");
+  var chapterKeepsakeBox = document.getElementById("chapter-keepsake-box");
+  var chapterShareLink = document.getElementById("chapter-share-link");
+  var chapterKeepsakeLink = document.getElementById("chapter-keepsake-link");
+
+  function showChapterError(text) {
+    chapterError.textContent = text || "";
+    chapterError.hidden = !text;
+  }
+
+  function chapterCall(path, extra) {
+    var body = { session_id: sessionId, consent: consented,
+                 age_confirmed: ageConfirmed };
+    if (extra) {
+      for (var k in extra) { body[k] = extra[k]; }
+    }
+    return fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        return { status: res.status, data: data };
+      });
+    });
+  }
+
+  function renderSteps(steps) {
+    chapterSteps.innerHTML = "";
+    (steps || []).forEach(function (step) {
+      var li = document.createElement("li");
+      var strong = document.createElement("strong");
+      strong.textContent = step.label;
+      li.appendChild(strong);
+      if (step.detail) {
+        var detail = document.createElement("span");
+        detail.className = "step-detail";
+        detail.textContent = " — " + step.detail;
+        li.appendChild(detail);
+      }
+      chapterSteps.appendChild(li);
+    });
+  }
+
+  function renderChecklist(items) {
+    chapterChecklist.innerHTML = "";
+    (items || []).forEach(function (item) {
+      var li = document.createElement("li");
+      li.className = item.done ? "done" : "todo";
+      li.textContent = (item.done ? "\u2713 " : "\u00b7 ") + item.label;
+      chapterChecklist.appendChild(li);
+    });
+  }
+
+  function renderOutline(view) {
+    var ch = view.chapter;
+    var outline = ch.outline;
+    if (document.activeElement !== chapterTitle) {
+      chapterTitle.value = outline.title || "";
+    }
+    if (document.activeElement !== chapterDedication) {
+      chapterDedication.value = outline.dedication || "";
+    }
+    chapterMaterials.innerHTML = "";
+    (ch.materials_all || []).forEach(function (mat) {
+      var label = document.createElement("label");
+      label.className = "archive-item";
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.value = mat.id;
+      box.checked = mat.included;
+      box.setAttribute("aria-label",
+        "Include in the chapter: " + mat.label);
+      label.appendChild(box);
+      var text = document.createElement("span");
+      text.className = "archive-item-text";
+      text.textContent = mat.label;
+      label.appendChild(text);
+      chapterMaterials.appendChild(label);
+    });
+    chapterSections.innerHTML = "";
+    (outline.sections || []).forEach(function (sec) {
+      var li = document.createElement("li");
+      li.textContent = sec.heading + " — " + sec.source_ids.length +
+        (sec.source_ids.length === 1 ? " part" : " parts") +
+        " of your telling";
+      chapterSections.appendChild(li);
+    });
+    var atOutline = ch.stage === "outline";
+    chapterTitle.disabled = !atOutline;
+    chapterDedication.disabled = !atOutline;
+    document.getElementById("chapter-replan").disabled = !atOutline;
+    document.getElementById("chapter-draft").disabled = !atOutline;
+    var boxes = chapterMaterials.querySelectorAll('input[type="checkbox"]');
+    for (var i = 0; i < boxes.length; i++) { boxes[i].disabled = !atOutline; }
+  }
+
+  function evidenceFor(view, sectionIdx, textStart) {
+    var found = [];
+    (view.evidence || []).forEach(function (ev) {
+      if (ev.section === sectionIdx && ev.text_start === textStart) {
+        found = ev.sources || [];
+      }
+    });
+    return found;
+  }
+
+  function renderDraft(view) {
+    var ch = view.chapter;
+    var draft = ch.draft;
+    chapterDraftBox.hidden = !draft;
+    if (!draft) { return; }
+    var check = ch.check;
+    if (check && check.flags && check.flags.length > 0) {
+      chapterFlags.hidden = false;
+      chapterFlagsList.innerHTML = "";
+      check.flags.forEach(function (flag) {
+        var li = document.createElement("li");
+        li.textContent = "\u201c" + flag.text + "\u201d (" +
+          flag.kind + ") — not in your words, please check";
+        chapterFlagsList.appendChild(li);
+      });
+    } else {
+      chapterFlags.hidden = true;
+    }
+    chapterDraftBody.innerHTML = "";
+    var title = document.createElement("h3");
+    title.className = "chapter-draft-title";
+    title.textContent = draft.title;
+    chapterDraftBody.appendChild(title);
+    if (draft.dedication) {
+      var forLine = document.createElement("p");
+      forLine.className = "chapter-for";
+      forLine.textContent = "For " + draft.dedication;
+      chapterDraftBody.appendChild(forLine);
+    }
+    draft.sections.forEach(function (section, si) {
+      var heading = document.createElement("h3");
+      heading.className = "chapter-h3";
+      heading.textContent = section.heading;
+      chapterDraftBody.appendChild(heading);
+      section.paragraphs.forEach(function (para) {
+        var p = document.createElement("p");
+        p.textContent = para.text;
+        chapterDraftBody.appendChild(p);
+        var sources = evidenceFor(view, si, para.text.slice(0, 80));
+        var det = document.createElement("details");
+        det.className = "chapter-evidence";
+        var sum = document.createElement("summary");
+        sum.textContent = "Where did this come from?";
+        det.appendChild(sum);
+        var ul = document.createElement("ul");
+        if (sources.length > 0) {
+          sources.forEach(function (src) {
+            var li = document.createElement("li");
+            li.textContent = src.label;
+            ul.appendChild(li);
+          });
+        } else {
+          var li2 = document.createElement("li");
+          li2.textContent = "Arranged from your conversation as a " +
+            "whole — no single part was marked for this paragraph.";
+          ul.appendChild(li2);
+        }
+        det.appendChild(ul);
+        chapterDraftBody.appendChild(det);
+      });
+      (section.media_ids || []).forEach(function (mediaId) {
+        var img = document.createElement("img");
+        img.className = "shared-media";
+        img.src = mediaUrl({ id: mediaId });
+        img.alt = "A photo kept with this chapter";
+        chapterDraftBody.appendChild(img);
+      });
+    });
+  }
+
+  function renderChapter(view) {
+    renderSteps(view.steps);
+    renderChecklist(view.checklist);
+    if (!view.chapter) { return; }
+    renderOutline(view);
+    renderDraft(view);
+    var approved = view.chapter.stage === "approved" && view.share_url;
+    chapterKeepsakeBox.hidden = !approved;
+    if (approved) {
+      var absolute = window.location.origin + view.share_url;
+      chapterShareLink.value = absolute;
+      chapterKeepsakeLink.href = view.share_url;
+      document.getElementById("chapter-approve").disabled = true;
+    }
+  }
+
+  function openChapter() {
+    chatScreen.hidden = true;
+    chapterScreen.hidden = false;
+    chapterHeading.focus();
+    showChapterError("");
+    chapterStatus.textContent = "Liv is gathering what you shared\u2026";
+    chapterCall("/api/chapter/outline")
+      .then(function (out) {
+        if (out.status === 200 && out.data.chapter) {
+          chapterStatus.textContent = "Here is the plan, first — " +
+            "nothing is written until you say it looks right.";
+          renderChapter(out.data);
+        } else {
+          chapterStatus.textContent = "";
+          showChapterError(out.data.error ||
+            "A chapter could not be started just now.");
+        }
+      })
+      .catch(function () {
+        chapterStatus.textContent = "";
+        showChapterError("Liv could not be reached just now. " +
+          "Please try again in a moment.");
+      });
+  }
+
+  document.getElementById("chapter-btn").addEventListener("click",
+    openChapter);
+
+  document.getElementById("chapter-back").addEventListener("click",
+    function () {
+      chapterScreen.hidden = true;
+      chatScreen.hidden = false;
+      input.focus();
+    });
+
+  function currentPlanEdits() {
+    var excluded = [];
+    var boxes = chapterMaterials.querySelectorAll(
+      'input[type="checkbox"]');
+    for (var i = 0; i < boxes.length; i++) {
+      if (!boxes[i].checked) { excluded.push(boxes[i].value); }
+    }
+    return {
+      title: chapterTitle.value,
+      dedication: chapterDedication.value,
+      exclude_source_ids: excluded
+    };
+  }
+
+  document.getElementById("chapter-replan").addEventListener("click",
+    function () {
+      showChapterError("");
+      chapterStatus.textContent = "Liv is re-planning the outline\u2026";
+      chapterCall("/api/chapter/replan", currentPlanEdits())
+        .then(function (out) {
+          if (out.status === 200 && out.data.chapter) {
+            chapterStatus.textContent = "Here is the new plan.";
+            renderChapter(out.data);
+          } else {
+            chapterStatus.textContent = "";
+            showChapterError(out.data.error ||
+              "The plan could not be changed just now.");
+          }
+        })
+        .catch(function () {
+          chapterStatus.textContent = "";
+          showChapterError("Liv could not be reached just now.");
+        });
+    });
+
+  document.getElementById("chapter-draft").addEventListener("click",
+    function () {
+      showChapterError("");
+      chapterStatus.textContent = "Saving your plan\u2026";
+      // The plan on screen IS the plan approved: edits are saved
+      // first (a re-plan), then the draft is written from it.
+      chapterCall("/api/chapter/replan", currentPlanEdits())
+        .then(function (out) {
+          if (out.status !== 200) {
+            chapterStatus.textContent = "";
+            showChapterError((out.data && out.data.error) ||
+              "The plan could not be saved just now.");
+            return null;
+          }
+          chapterStatus.textContent = "Liv is arranging your " +
+            "chapter\u2026";
+          return chapterCall("/api/chapter/draft");
+        })
+        .then(function (out) {
+          if (!out) { return; }
+          if (out.status === 200 && out.data.chapter) {
+            chapterStatus.textContent = "Here is your draft. " +
+              "Please read it through — it stays an unverified " +
+              "draft until you approve it.";
+            renderChapter(out.data);
+            chapterDraftBox.scrollIntoView({ block: "start",
+              behavior: scrollBehavior() });
+          } else {
+            chapterStatus.textContent = "";
+            showChapterError(out.data.error ||
+              "The chapter could not be written just now.");
+          }
+        })
+        .catch(function () {
+          chapterStatus.textContent = "";
+          showChapterError("Liv could not be reached just now.");
+        });
+    });
+
+  document.getElementById("chapter-approve").addEventListener("click",
+    function () {
+      showChapterError("");
+      chapterStatus.textContent = "Thank you — making your keepsake\u2026";
+      chapterCall("/api/chapter/approve")
+        .then(function (out) {
+          if (out.status === 200 && out.data.share_url) {
+            chapterStatus.textContent = "Approved. Your keepsake " +
+              "is ready below.";
+            renderChapter(out.data);
+            chapterKeepsakeBox.scrollIntoView({ block: "start",
+              behavior: scrollBehavior() });
+            chapterShareLink.focus();
+            chapterShareLink.select();
+          } else {
+            chapterStatus.textContent = "";
+            showChapterError(out.data.error ||
+              "The approval could not be saved just now.");
+          }
+        })
+        .catch(function () {
+          chapterStatus.textContent = "";
+          showChapterError("Liv could not be reached just now.");
+        });
+    });
 })();
