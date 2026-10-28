@@ -556,6 +556,60 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   margin: 0 0 1rem;
 }
 
+/* The attach affordance (Day 3 conversation-first composer):
+   one quiet "+" control; the picker is a row of choices that
+   exists only while open. The conversation is the interface. */
+
+.attach-row { margin: 0 0 1rem; }
+
+.attach-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--card);
+  color: var(--ink);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.55rem 1.3rem 0.55rem 0.9rem;
+  min-height: 3.25rem;
+  min-width: 3.25rem;
+  cursor: pointer;
+}
+
+.attach-btn:hover { border-color: var(--ink); }
+
+.attach-btn[aria-expanded="true"] {
+  border-color: var(--ember);
+  background: var(--ember-tint);
+  color: var(--ember);
+  box-shadow: 0 0 0 1px var(--ember);
+}
+
+.attach-plus { font-size: 1.5rem; line-height: 1; font-weight: 400; }
+
+.attach-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+/* Author display:flex would otherwise defeat the hidden
+   attribute on the picker (the audit's S2 lesson). */
+.attach-picker[hidden] { display: none; }
+
+.attach-picker .media-btn { flex: 1 1 8.5rem; }
+
+/* The storyteller's spoken words, shown with their recording. */
+.media-transcript {
+  display: block;
+  font-style: italic;
+  margin: 0.3rem 0 0.6rem;
+}
+
 .media-btn {
   flex: 1 1 8.5rem;
   background: var(--card);

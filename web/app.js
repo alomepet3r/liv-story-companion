@@ -9,13 +9,21 @@
 // button stays disabled until BOTH the consent checkbox and the
 // "I confirm I am 18 or older" attestation are checked, and every
 // call carries age_confirmed, which the server enforces the same way.
-// Media (Day 2, Petro's live test): a media bar under the messages —
-// "Add a photo", "Record voice", "Record video". Sharing is staged:
-// pick or record → uploaded to /api/media for THIS session → shown
-// in a pending tray with a remove option → sent with the next
-// message. Media is in-memory on the server and dies with the tab
-// session, exactly like the conversation. The first media use in a
-// session shows a short notice before anything opens.
+// Sharing (Day 2 capture; Day 3 conversation-first composer):
+// the conversation is the interface — one "+" attach button opens
+// a small picker (photo/camera, voice recording, video, document
+// or archive), used only when the storyteller chooses. Sharing is
+// staged: pick or record → uploaded to /api/media for THIS
+// session → shown in a pending tray with a remove option → sent
+// with the next message. Media is in-memory on the server and
+// dies with the tab session, exactly like the conversation. The
+// first media use in a session shows a short notice before
+// anything opens.
+// Day 3 listening: for audio and video, the browser ALSO makes a
+// "listening track" — the item's sound transcoded with Web Audio
+// to a 16 kHz mono WAV, the only form the transcription model
+// accepts — and uploads it alongside the original. The server
+// transcribes it and Liv answers the storyteller's actual words.
 
 (function () {
   "use strict";
@@ -126,6 +134,16 @@
     if (mediaItems) {
       for (var i = 0; i < mediaItems.length; i++) {
         div.appendChild(mediaElement(mediaItems[i], true));
+        if (mediaItems[i].transcript) {
+          // The storyteller's spoken words, as Liv heard them —
+          // shown with the recording they belong to, so the
+          // thread reads as what was actually said.
+          var heard = document.createElement("span");
+          heard.className = "media-transcript";
+          heard.textContent = "\u201c" + mediaItems[i].transcript +
+            "\u201d";
+          div.appendChild(heard);
+        }
         if (mediaItems[i].source === "archive") {
           var origin = document.createElement("span");
           origin.className = "archive-origin";
@@ -246,6 +264,11 @@
           ? "Archive photo"
           : { photo: "Photo", audio: "Voice recording",
               video: "Video" }[item.kind];
+        if (item.transcript) {
+          label.textContent += " — Liv heard your words";
+        } else if (item.transcript_status === "failed") {
+          label.textContent += " — Liv could not hear this one";
+        }
         row.appendChild(label);
         var remove = document.createElement("button");
         remove.type = "button";
@@ -273,7 +296,7 @@
     return media;
   }
 
-  function stageMedia(kind, blob, filename) {
+  function stageMedia(kind, blob, filename, listenBlob) {
     showMediaError("");
     if (blob.size > MEDIA_CAPS[kind]) {
       showMediaError("That " + MEDIA_NOUN[kind] + " is too large — " +
@@ -286,6 +309,11 @@
     fd.append("age_confirmed", ageConfirmed ? "true" : "false");
     fd.append("kind", kind);
     fd.append("file", blob, filename || ("shared-" + kind));
+    if (listenBlob) {
+      // The listening track (Day 3): this item's sound as a
+      // 16 kHz mono WAV, for the transcription model only.
+      fd.append("listen", listenBlob, "listening.wav");
+    }
     fetch("/api/media", { method: "POST", body: fd })
       .then(function (res) {
         return res.json().then(function (data) {
@@ -294,7 +322,11 @@
       })
       .then(function (out) {
         if (out.status === 200 && out.data.media_id) {
-          pendingMedia.push({ id: out.data.media_id, kind: kind });
+          pendingMedia.push({
+            id: out.data.media_id, kind: kind,
+            transcript: out.data.transcript || null,
+            transcript_status: out.data.transcript_status || null
+          });
           renderPending();
           input.focus();
         } else {
@@ -305,6 +337,85 @@
       .catch(function () {
         showMediaError("That did not arrive. Please try again.");
       });
+  }
+
+  // ---- The listening track (Day 3) --------------------------------
+  // Browsers record WebM/Opus; the transcription model accepts
+  // mono PCM WAV at 16/24 kHz only. So the sound of every audio
+  // and video item is decoded with Web Audio, downmixed and
+  // resampled to 16 kHz mono in an OfflineAudioContext, and
+  // encoded as a plain PCM16 WAV. Any failure along the way
+  // yields null — the item is still shared, honestly unheard.
+  var _listenCtx = null;
+  function listenContext() {
+    if (_listenCtx) { return _listenCtx; }
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { return null; }
+    _listenCtx = new AC();
+    return _listenCtx;
+  }
+
+  function encodeListeningWav(samples, rate) {
+    var buffer = new ArrayBuffer(44 + samples.length * 2);
+    var view = new DataView(buffer);
+    function writeStr(offset, text) {
+      for (var i = 0; i < text.length; i++) {
+        view.setUint8(offset + i, text.charCodeAt(i));
+      }
+    }
+    writeStr(0, "RIFF");
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeStr(8, "WAVE");
+    writeStr(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);          // PCM
+    view.setUint16(22, 1, true);          // mono
+    view.setUint32(24, rate, true);
+    view.setUint32(28, rate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeStr(36, "data");
+    view.setUint32(40, samples.length * 2, true);
+    for (var i = 0; i < samples.length; i++) {
+      var s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF,
+                    true);
+    }
+    return new Blob([view], { type: "audio/wav" });
+  }
+
+  function makeListeningTrack(blob) {
+    var ctx = listenContext();
+    if (!ctx || !window.OfflineAudioContext) {
+      return Promise.resolve(null);
+    }
+    if (ctx.state === "suspended") { ctx.resume(); }
+    return blob.arrayBuffer()
+      .then(function (buf) { return ctx.decodeAudioData(buf); })
+      .then(function (decoded) {
+        var rate = 16000;
+        var frames = Math.max(1, Math.ceil(decoded.duration * rate));
+        var off = new OfflineAudioContext(1, frames, rate);
+        var src = off.createBufferSource();
+        src.buffer = decoded;
+        src.connect(off.destination);
+        src.start();
+        return off.startRendering();
+      })
+      .then(function (rendered) {
+        return encodeListeningWav(rendered.getChannelData(0), 16000);
+      })
+      .catch(function () { return null; });
+  }
+
+  function stageWithListening(kind, blob, filename) {
+    if (kind === "photo") {
+      stageMedia(kind, blob, filename);
+      return;
+    }
+    makeListeningTrack(blob).then(function (listenBlob) {
+      stageMedia(kind, blob, filename, listenBlob);
+    });
   }
 
   // First-use notice: shown ONCE per session, before any panel opens.
@@ -352,7 +463,18 @@
       noticeAction = null;
       noticeInvoker = null;
       noticePanel = null;
-      if (invoker) { invoker.focus(); }
+      if (invoker) {
+        // The invoker may be a picker choice that has since
+        // closed with its picker; then the attach button — the
+        // control that is always there — takes the focus.
+        if (typeof attachPicker !== "undefined" && attachPicker &&
+            attachPicker.hidden && attachBtn &&
+            invoker !== attachBtn) {
+          attachBtn.focus();
+        } else {
+          invoker.focus();
+        }
+      }
     });
 
   // Panels: one open at a time; opening goes through the notice.
@@ -369,7 +491,31 @@
     archive: document.getElementById("btn-archive")
   };
 
+  // The attach affordance (Day 3 conversation-first composer):
+  // one "+" button; the picker is a quiet row of choices that
+  // exists only while it is open. Choosing a kind closes the
+  // picker and opens that kind's panel, through the same
+  // first-use notice as before.
+  var attachBtn = document.getElementById("btn-attach");
+  var attachPicker = document.getElementById("attach-picker");
+
+  function hidePicker() {
+    attachPicker.hidden = true;
+    attachBtn.setAttribute("aria-expanded", "false");
+  }
+
+  attachBtn.addEventListener("click", function () {
+    var willOpen = attachPicker.hidden;
+    closePanels();
+    if (!willOpen) { return; }
+    attachPicker.hidden = false;
+    attachBtn.setAttribute("aria-expanded", "true");
+    var first = attachPicker.querySelector("button");
+    if (first) { first.focus(); }
+  });
+
   function closePanels() {
+    hidePicker();
     for (var k in panels) {
       panels[k].hidden = true;
       barButtons[k].setAttribute("aria-expanded", "false");
@@ -607,12 +753,13 @@
       });
   });
 
-  // File choices (take / choose for photos; choose for audio/video).
+  // File choices (take / choose for photos; choose for
+  // audio/video — those also make their listening track first).
   function wireFileInput(id, kind) {
     var el = document.getElementById(id);
     el.addEventListener("change", function () {
       if (el.files && el.files[0]) {
-        stageMedia(kind, el.files[0], el.files[0].name);
+        stageWithListening(kind, el.files[0], el.files[0].name);
       }
       el.value = "";
       closePanels();
@@ -777,7 +924,7 @@
       function () {
         if (R.blob) {
           var mime = R.blob.type || "video/webm";
-          stageMedia(kind, R.blob,
+          stageWithListening(kind, R.blob,
             "recorded-" + kind + "." + extFor(mime));
         }
         R.blob = null;

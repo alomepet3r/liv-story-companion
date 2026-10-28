@@ -144,10 +144,12 @@
     </div>
 
     <div class="composer">
-    <!-- Media sharing (Day 2): take or upload a photo, record or
-         upload voice, record or upload a video — to support the
-         story being told. The first use in a session shows a short
-         notice (the upload-moment word) before anything opens. -->
+    <!-- Sharing (Day 2 capture; Day 3 conversation-first
+         composer): the conversation is the interface. One "+"
+         attach button opens a small picker — photo/camera, voice,
+         video, document/archive — used only when the storyteller
+         chooses. The first use in a session shows a short notice
+         (the upload-moment word) before anything opens. -->
     <div id="media-notice" class="media-notice" hidden>
       <h2 id="media-notice-title" tabindex="-1">Before you share</h2>
       <p>In this demo, anything you share is kept only while this
@@ -155,6 +157,11 @@
         like our conversation. And please only share what you are
         content to keep with your story — intimate pictures deserve
         the same care as intimate words.</p>
+      <p>How <span class="js-companion-name">Liv</span> receives what
+        you share: she sees photographs. For a voice recording or a
+        video, your spoken words are turned into text so she can
+        listen to them — she hears your words, but she cannot see a
+        video’s pictures, only photographs.</p>
       <p class="media-notice-actions">
         <button id="media-notice-ok" class="primary small" type="button">I understand — continue</button>
         <button id="media-notice-cancel" class="secondary" type="button">Not now</button>
@@ -180,11 +187,19 @@
       </p>
     </div>
 
-    <div class="media-bar" role="group" aria-label="Share something with your companion">
-      <button id="btn-photo" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-photo">Add a photo</button>
-      <button id="btn-audio" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-audio">Record voice</button>
-      <button id="btn-video" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-video">Record video</button>
-      <button id="btn-archive" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-archive">Bring your archive</button>
+    <div class="attach-row">
+      <button id="btn-attach" class="attach-btn" type="button"
+        aria-expanded="false" aria-controls="attach-picker"
+        aria-label="Add a photo, a recording, a video, or a document to the conversation">
+        <span class="attach-plus" aria-hidden="true">+</span> Add
+      </button>
+      <div id="attach-picker" class="attach-picker" hidden role="group"
+        aria-label="Add to your conversation">
+        <button id="btn-photo" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-photo">Photo or camera</button>
+        <button id="btn-audio" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-audio">Voice recording</button>
+        <button id="btn-video" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-video">Video</button>
+        <button id="btn-archive" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-archive">Document or archive</button>
+      </div>
     </div>
 
     <div id="panel-photo" class="media-panel" hidden>
