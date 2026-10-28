@@ -107,6 +107,16 @@ boundaried. Concretely:
   Detection fires ONLY on present-tense, first-person indications
   of current minor status; an adult recounting their own youth
   ("when I was 15…") is a memory, never a trigger.
+- PHOTO IDENTIFICATION (persona hardening, Oct 28, 2026): Liv
+  never guesses, matches, or speculates about who is in a
+  photograph — no hedged guesses ("if I had to guess…"), no
+  cross-photo resemblance reasoning, not even when she would land
+  right. The refusal is boundary-class: it survives warm re-asking
+  for the whole session. When the storyteller names THEMSELVES,
+  she receives it gladly — that is their identification, never
+  hers. (The Turn 7 regression in ../REPLAY-2026-10-28.md: the
+  live companion held this once, then yielded to a warm second
+  asking; both paths now refuse identically, under any pressure.)
 - Never invent facts about the storyteller. Only ask, listen, follow up.
 - Meet tender topics plainly — no morbidity, no forced cheer.
 """
@@ -229,6 +239,98 @@ _BOUNDARY_ACKS = [
     ("Of course. That's completely fine, and we won't go there. "
      "I'm here — we can talk about anything else, in your own time."),
 ]
+
+# --- Photo identification: the naming is the storyteller's ------------
+# Persona hardening (Oct 28, 2026 — the Turn 7 regression in
+# ../REPLAY-2026-10-28.md): pressed a second time, warmly, Liv
+# guessed which child in a family photo was the storyteller and
+# justified it by resemblance to his boxing self-portrait. Two
+# violations: a refusal that collapsed under friendly re-asking,
+# and a soft cross-photo identification. The live prompt now
+# states the rule in pressure-proof form; this is its canned
+# parity. A refusal here rotates through the variants below and
+# then simply holds — no irritation, no capitulation, no hedge.
+_IDENTIFICATION_PATTERNS = [
+    r"\bwho (?:do you|d'you) think i am\b",
+    r"\bwho you think i am\b",
+    r"\bwhich one (?:is|am) (?:me|i)\b",
+    r"\bwhich (?:one|child|kid|boy|girl|baby|person) (?:do you|d'you) think\b",
+    r"\bmake out where i am\b",
+    r"\bwhere am i (?:in|on) (?:the|this|that|it)\b",
+    r"\bwhere (?:am i|is me)\b[^.?!]{0,30}\b(?:photo|picture|image)\b",
+    r"\btell me who i am (?:in|on)\b",
+    r"\bcan you guess (?:which|where|who)\b",
+    r"\bguess (?:which one|where i|who i)\b",
+    r"\bdo you (?:know|recognise|recognize) which\b",
+    r"\bpick me out\b",
+    r"\bspot me in\b",
+    r"\bpoint me out\b",
+    r"\bam i the (?:baby|little one|one|boy|girl|child|kid)\b",
+]
+_IDENTIFICATION_RE = re.compile(
+    "|".join("(?:%s)" % p for p in _IDENTIFICATION_PATTERNS))
+# Weak on its own ("just guess what happened next" is a story
+# beat): an identification ask only in a photo context, or once a
+# refusal already stands this session.
+_IDENTIFICATION_WEAK_RE = re.compile(r"\bjust guess\b")
+# Bare insistence — meaningless as an opener, unmistakable as a
+# press once a refusal stands ("Go on — just try. It would mean
+# a lot."). Only consulted in that state.
+_INSISTENCE_PATTERNS = [
+    r"\bjust (?:guess|try)\b",
+    r"\bgo on\b",
+    r"\bcome on\b",
+    r"\bit would mean a lot\b",
+    r"\btry (?:again|anyway|anyhow)\b",
+    r"\bplease\b[^.?!]{0,30}\b(?:guess|try)\b",
+    r"\bguess anyway\b",
+]
+_INSISTENCE_RE = re.compile(
+    "|".join("(?:%s)" % p for p in _INSISTENCE_PATTERNS))
+
+_IDENTIFICATION_REFUSALS = [
+    ("I won’t guess at that — getting it right matters too much, "
+     "and a face in a photograph is yours to name, not mine to "
+     "assign. Point yourself out to me, and I’ll hold it exactly "
+     "as you tell it."),
+    ("I hear you — and my answer stays the same, as warmly as I "
+     "can hold it. I won’t pick you out of a photograph, and I "
+     "won’t match you to one either. That naming is yours. Tell "
+     "me which one is you, and I’ll know it the proper way — "
+     "because you told me."),
+    ("It isn’t that I don’t want to — it’s that I won’t guess at "
+     "who someone is in a photograph, however kindly I’m asked. "
+     "That is yours to tell me, and once you do, I’ll keep it "
+     "with care."),
+]
+
+# The storyteller naming THEMSELVES in a photograph — the one
+# identification Liv may hold, because it is theirs. Group 1, when
+# a pattern carries one, is the descriptor as they stated it.
+_SELF_NAMING_PATTERNS = [
+    r"\bi(?:'m| am) (the (?:last born|youngest|eldest|oldest|baby|little one))\b",
+    r"\bi(?:'m| am) (the (?:baby|little one|one|boy|girl) (?:in|at|on) [^.?!]{1,40})",
+    r"\b(the (?:baby|little one)(?: [^.?!]{1,40}?)?) is me\b",
+    r"\b(the (?:last born|youngest|eldest|oldest)) is me\b",
+    r"\bme\s*[—–\-,]\s*(the (?:baby|little one|one) [^.?!]{1,40})",
+    r"\bthat(?:'s| is) me\b",
+    r"\bi(?:'m| am) the one\b",
+]
+_SELF_NAMING_RES = [re.compile(p) for p in _SELF_NAMING_PATTERNS]
+_DESCRIPTOR_GLUE = {
+    "and", "the", "with", "when", "please", "photo", "picture",
+}
+
+
+def _clean_descriptor(raw):
+    raw = " ".join((raw or "").strip().rstrip(".,!?").split())
+    for glue in (" and i ", " and we ", " and that ", " and you "):
+        if glue in raw:
+            raw = raw.split(glue)[0]
+    parts = raw.split()
+    while parts and parts[-1] in _DESCRIPTOR_GLUE:
+        parts.pop()
+    return " ".join(parts)[:56].rstrip(" ,")
 
 # --- Sensitivity gates ------------------------------------------------
 # Conservative detection, by design: these patterns need CLEAR signals
@@ -1152,6 +1254,52 @@ def detect_boundary(text):
     return topics or ["(unspecified)"]
 
 
+def detect_identification_ask(text, already_refused=False):
+    """True when the storyteller is asking Liv to identify them
+    (or anyone) in a photograph — directly, by a bare "just
+    guess" in photo context, or by bare insistence once a refusal
+    already stands this session."""
+    lowered = _normalise(text)
+    if _IDENTIFICATION_RE.search(lowered):
+        return True
+    if _IDENTIFICATION_WEAK_RE.search(lowered):
+        if (already_refused or "photo" in lowered
+                or "picture" in lowered or "image" in lowered):
+            return True
+    if already_refused and _INSISTENCE_RE.search(lowered):
+        # A press is short, or carries its pleading openly; a new
+        # story that merely contains "go on" is not a press.
+        if (len(lowered) <= 90 or "mean a lot" in lowered
+                or "just guess" in lowered or "just try" in lowered):
+            return True
+    return False
+
+
+def detect_self_naming(text, identification_asked=False):
+    """The storyteller telling Liv which person in a photograph
+    they are. Returns the descriptor as they stated it ("the last
+    born"), "" when they named themselves without one, or None.
+
+    Only trusted in an identification context — after an
+    identification ask this session, or when the words carry a
+    photograph or a stated descriptor: "I'm the one who named the
+    club" is a story, not a naming."""
+    lowered = _normalise(text)
+    for pattern in _SELF_NAMING_RES:
+        m = pattern.search(lowered)
+        if not m:
+            continue
+        descriptor = ""
+        if m.lastindex and m.group(1):
+            descriptor = _clean_descriptor(m.group(1))
+        if identification_asked or descriptor:
+            return descriptor
+        if "photo" in lowered or "picture" in lowered:
+            return descriptor
+        return None  # no context at all: a story beat, not a naming
+    return None
+
+
 def _clean_place(raw):
     raw = raw.strip().rstrip(".,!?")
     # Drop trailing lowercase glue words the pattern may have caught.
@@ -1245,6 +1393,14 @@ class CannedCompanion:
         # (Directive #5, T13(iii)): mid-grief, the apology is
         # "Forgive me — I'm sorry", brief and gentle.
         self._grief_in_room = False
+        # Photo identification (persona hardening, Oct 28): how
+        # many identification asks have been refused this session
+        # (the reply rotates through the refusal variants, then
+        # simply holds), and the descriptor from the moment the
+        # storyteller named THEMSELVES — the only identification
+        # Liv may hold, because it is theirs.
+        self.identification_refusals = 0
+        self.identification_named = None
 
     # -- boundary helpers ------------------------------------------------
     def _is_blocked(self, phrase):
@@ -1809,6 +1965,39 @@ class CannedCompanion:
             self.stalls = 0
             self._suppress_prefix = True
             return _GATE_TEXTS[category]
+
+        # PHOTO IDENTIFICATION — the naming is the storyteller's.
+        # Liv never guesses, matches, or speculates about who is
+        # who in a photograph, and the refusal does not move under
+        # warm re-asking (the Turn 7 regression, Oct 28): it is
+        # boundary-class and holds for the whole session. A
+        # self-naming is received gladly — it is the storyteller's
+        # identification, not hers. Both replies are fixed
+        # templates: no prefix rides on them.
+        named = detect_self_naming(
+            text,
+            identification_asked=self.identification_refusals > 0)
+        if named is not None:
+            self._suppress_prefix = True
+            self.stalls = 0
+            if named:
+                self.identification_named = named
+                return ("Thank you for telling me — " + named +
+                        ". Now I know it the proper way: because "
+                        "you named it yourself. I’ll hold it just "
+                        "as you told it.")
+            return ("Thank you for telling me. Now I know it the "
+                    "proper way: because you named it yourself. "
+                    "I’ll hold it just as you told it.")
+        if detect_identification_ask(
+                text,
+                already_refused=self.identification_refusals > 0):
+            self._suppress_prefix = True
+            self.stalls = 0
+            index = min(self.identification_refusals,
+                        len(_IDENTIFICATION_REFUSALS) - 1)
+            self.identification_refusals += 1
+            return _IDENTIFICATION_REFUSALS[index]
 
         # NAME CORRECTION — an explicit "call me X" / "my name is X"
         # at any later point updates the preferred name at once. A
