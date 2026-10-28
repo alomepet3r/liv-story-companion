@@ -52,6 +52,7 @@ from .archive import (                       # noqa: E402
     parse_dyi_zip,
 )
 from . import chapter as chapter_mod        # noqa: E402
+from . import voice as voice_mod            # noqa: E402
 from .canned import (                        # noqa: E402
     CannedCompanion,
     detect_present_minor,
@@ -187,25 +188,34 @@ def build_system_prompt(companion_name):
     "apply this to an adult recounting their own youth — 'when I "
     "was 15…' is a memory, not an indication. "
     "SHARING PHOTOS, VOICE, AND VIDEO: the storyteller can share "
-    "media with you using the buttons just below where they type — "
-    "'Add a photo', 'Record voice', 'Record video', and 'Bring "
-    "your archive'. If they "
-    "say they want to show you or send you something, walk them "
-    "through it warmly and exactly: name the button to tap, and "
-    "tell them they can take a new one or choose one they already "
-    "have. When a photo arrives with a message and you can truly "
-    "see it, look with care: remark on ONE specific thing you "
-    "genuinely see, then invite the story — 'Tell me about this "
-    "one — where are we?' If a photo was shared but you cannot "
-    "see it, say so honestly and ask them to describe it — never "
-    "invent what a photo shows. When they share a voice recording "
-    "or a video, you cannot listen or watch in this version: "
-    "thank them, tell them it is kept here with their story, and "
-    "ask what they would like you to know about it. Never pretend "
-    "to hear or see what you cannot. "
+    "media with you through the '+' button just below where they "
+    "type — it opens a small set of choices: 'Photo or camera', "
+    "'Voice recording', 'Video', and 'Document or archive'. If "
+    "they say they want to show you or send you something, walk "
+    "them through it warmly and exactly: name the '+' button and "
+    "the choice to tap, and tell them they can take a new one or "
+    "choose one they already have. When a photo arrives with a "
+    "message and you can truly see it, look with care: remark on "
+    "ONE specific thing you genuinely see, then invite the story "
+    "— 'Tell me about this one — where are we?' If a photo was "
+    "shared but you cannot see it, say so honestly and ask them "
+    "to describe it — never invent what a photo shows. When they "
+    "share a voice recording or a video, their spoken words are "
+    "turned into text for you and arrive WITH the message, "
+    "labelled as words they spoke in the recording — listen to "
+    "those words exactly as you listen to anything they type, "
+    "and answer what they actually said. You do NOT see a "
+    "video's pictures — only photographs are seen — so never "
+    "describe what a video shows; if its pictures matter, ask "
+    "them to tell you. If a note with a recording says the "
+    "listening failed, be honest in one breath: thank them, say "
+    "the listening didn't work this time and their recording is "
+    "kept with their story, and ask them to type the heart of "
+    "what they said — never pretend to have heard words you "
+    "have not. "
     "BRING YOUR ARCHIVE: the storyteller may hand you their own "
     "Facebook 'Download Your Information' export through the "
-    "'Bring your archive' button. Liv looks through it once, in "
+    "'+' button's 'Document or archive' choice. Liv looks through it once, in "
     "this sitting only, and shows the storyteller the photos it "
     "holds; the storyteller then ticks the photos to share — "
     "nothing from the archive reaches you before they choose it. "
@@ -274,7 +284,9 @@ MEDIA_CAPS = {
     "audio": 50 * 1024 * 1024,    # 50 MB
     "video": 50 * 1024 * 1024,    # 50 MB
 }
-MEDIA_HARD_CAP = 60 * 1024 * 1024  # request-level ceiling (multipart)
+# Request-level ceiling (multipart): the largest media file
+# (50 MB) plus its Day 3 listening track (<= 30 MB) plus overhead.
+MEDIA_HARD_CAP = 85 * 1024 * 1024
 
 _MEDIA_TOO_BIG = {
     "photo": "That photo is larger than 10 MB — please choose a "
@@ -294,8 +306,15 @@ _MEDIA_TOO_BIG = {
 # to describe it; nobody pretends to see.
 VISION_SUPPORTED = True
 
-# Notes appended to the live model's copy of a media turn when the
-# media cannot actually be perceived by the model on this path.
+# Notes appended to the live model's copy of a media turn for the
+# parts of the media the model does NOT perceive on this path.
+# Since Day 3, audio and video arrive WITH their spoken words —
+# the transcript rides in the turn's text itself (see handle_chat)
+# — so no note is needed for them when a transcript exists. The
+# notes below cover exactly the remaining gaps, stated precisely:
+# a photo on a non-vision path; a recording whose listening failed
+# or never happened; and a video's PICTURES, which are never seen
+# (only photographs are seen).
 _MEDIA_NOTES = {
     "photo": " [A note for you: the storyteller shared a photograph "
              "with this message, but on this path you cannot see "
@@ -303,18 +322,53 @@ _MEDIA_NOTES = {
              "Thank them warmly, tell them it is kept with their "
              "story, and ask them to tell you about it — where are "
              "we, and who is in it.]",
-    "audio": " [A note for you: the storyteller shared a voice "
-             "recording with this message. In this version you "
-             "cannot listen to recordings. Do not pretend to have "
-             "heard it. Thank them, tell them their voice is kept "
-             "with their story, and ask what they would like you to "
-             "know about it.]",
-    "video": " [A note for you: the storyteller shared a video with "
-             "this message. In this version you cannot watch "
-             "videos. Do not pretend to have watched it. Thank "
-             "them, tell them it is kept with their story, and ask "
-             "them to tell you what it shows.]",
 }
+
+
+def _media_note_for(item):
+    """The honesty note for ONE non-photo media item, or "".
+
+    A transcribed recording needs no note — its words are in the
+    turn. A video always earns its pictures note (transcribed or
+    not): Liv hears its words, she does not see what it shows.
+    """
+    kind = item["kind"]
+    if kind == "photo":
+        return ""
+    if item.get("transcript"):
+        if kind == "video":
+            return (" [A note for you: you heard the words of "
+                    "this video — they are in the storyteller's "
+                    "message above — but you cannot see the "
+                    "video's pictures; only photographs are seen. "
+                    "Do not describe what the video shows. If its "
+                    "pictures matter, ask the storyteller to tell "
+                    "you about them.]")
+        return ""
+    status = item.get("transcript_status")
+    if status == "failed":
+        what = "voice recording" if kind == "audio" else "video"
+        note = (" [A note for you: the storyteller shared a "
+                + what + " with this message, and the listening "
+                "to its words was tried and FAILED this time. Do "
+                "not pretend to have heard it. Thank them, say "
+                "plainly that the listening didn't work this time "
+                "and that it is kept with their story, and ask "
+                "them to type the heart of what they said.]")
+    else:
+        what = "voice recording" if kind == "audio" else "video"
+        note = (" [A note for you: the storyteller shared a "
+                + what + " with this message, but its words could "
+                "not be listened to on this path. Do not pretend "
+                "to have heard it. Thank them, tell them it is "
+                "kept with their story, and ask them to type the "
+                "heart of what they said.]")
+    if kind == "video":
+        note = note[:-1] + (" You also cannot see the video's "
+                            "pictures — only photographs are "
+                            "seen — so do not describe what it "
+                            "shows.]")
+    return note
 
 
 def _parse_multipart(body, content_type):
@@ -387,16 +441,58 @@ def handle_media_upload(fields, files):
     if kind == "video" and not content_type.startswith("video/"):
         return 400, {"error": "That file does not look like a video. "
                               "Please choose a video file."}
-    session_id = str(fields.get("session_id") or "default")
-    sess = _session(session_id)
-    media_id = "m-" + secrets.token_hex(6)
-    sess["media"][media_id] = {
+    # Day 3 — the listening track. For audio and video, the
+    # browser also sends a "listening copy": the item's sound as a
+    # 16 kHz mono PCM WAV (Web Audio transcode — the transcription
+    # model accepts nothing else). It is validated strictly; a
+    # malformed track is a kind 400, never a silent shrug. An
+    # uploaded .wav recording may BE its own listening track. The
+    # track itself is never stored or served — only the transcript
+    # it earns is kept, on the media item, as the storyteller's
+    # spoken words.
+    item = {
         "kind": kind,
         "content_type": content_type,
         "data": data,
         "name": filename,
+        "transcript": None,
+        "transcript_status": None,
     }
-    return 200, {"media_id": media_id, "kind": kind, "size": len(data)}
+    if kind in ("audio", "video"):
+        item["transcript_status"] = "unavailable"
+        listen_wav = None
+        listen_upload = files.get("listen")
+        if listen_upload is not None:
+            _lfn, _lct, listen_data = listen_upload
+            _info, error = voice_mod.validate_listening_wav(listen_data)
+            if error is not None:
+                return 400, {"error": error}
+            listen_wav = listen_data
+        elif kind == "audio" and voice_mod.is_listening_wav(data):
+            listen_wav = data
+        if listen_wav is not None:
+            client = _get_live_client()
+            if client is None:
+                item["transcript_status"] = "unavailable"
+            else:
+                try:
+                    text, _info = client.transcribe_wav(listen_wav)
+                    if text:
+                        item["transcript"] = text
+                        item["transcript_status"] = "ok"
+                    else:
+                        # Heard silence: no words came back.
+                        item["transcript_status"] = "failed"
+                except Exception:
+                    item["transcript_status"] = "failed"
+    session_id = str(fields.get("session_id") or "default")
+    sess = _session(session_id)
+    media_id = "m-" + secrets.token_hex(6)
+    sess["media"][media_id] = item
+    return 200, {"media_id": media_id, "kind": kind,
+                 "size": len(data),
+                 "transcript": item["transcript"],
+                 "transcript_status": item["transcript_status"]}
 
 
 # --- Bring your archive (Day 5 slice, approved Oct 27) ------------------
@@ -532,9 +628,13 @@ def _media_turn_messages(api_messages, media_items, message):
     """Shape the live model's view of a turn that carries media.
 
     Photos (vision verified) ride as image content parts on the
-    final user message; anything the model cannot perceive on this
-    path gets an explicit honesty note instead — she must never
-    pretend to see or hear what she cannot.
+    final user message. Spoken words ride in the turn's text
+    itself — handle_chat writes each transcript into the history
+    entry, labelled as words spoken in the recording — so the
+    model answers what was actually said. Anything the model
+    cannot perceive on this path gets an explicit honesty note
+    instead (see _media_note_for): she must never pretend to see
+    or hear what she cannot.
     """
     messages = [dict(m) for m in api_messages]
     last_user = None
@@ -545,10 +645,11 @@ def _media_turn_messages(api_messages, media_items, message):
     if last_user is None:
         return messages
     photos = [m for m in media_items if m["kind"] == "photo"]
-    others = [m["kind"] for m in media_items if m["kind"] != "photo"]
-    notes = "".join(_MEDIA_NOTES[k] for k in dict.fromkeys(others))
+    notes = "".join(_media_note_for(m) for m in media_items
+                    if m["kind"] != "photo")
+    base = messages[last_user].get("content") or ""
     if photos and VISION_SUPPORTED:
-        text = (message or "").strip() or "I wanted to show you this photo."
+        text = base.strip() or "I wanted to show you this photo."
         context = _archive_context(media_items)
         if context:
             text = text + " [" + context + "]"
@@ -560,12 +661,12 @@ def _media_turn_messages(api_messages, media_items, message):
                           "image_url": {"url": uri}})
         messages[last_user] = {"role": "user", "content": parts}
     else:
-        kinds = [m["kind"] for m in media_items]
-        note = "".join(_MEDIA_NOTES[k] for k in dict.fromkeys(kinds))
+        note = notes
+        if photos:
+            note += _MEDIA_NOTES["photo"]
         context = _archive_context(media_items)
         if context:
             note += " [" + context + "]"
-        base = messages[last_user].get("content") or ""
         messages[last_user] = {"role": "user", "content": base + note}
     return messages
 
@@ -615,12 +716,20 @@ def handle_chat(payload):
     companion.name = companion_name
 
     # Opening turn: the client sends an empty message to be greeted.
-    if message.strip() == "" and not sess["history"]:
+    if message.strip() == "" and not sess["history"] and not media_items:
         greeting = companion.greeting()
         sess["history"].append({"role": "assistant", "content": greeting})
         return 200, {"session_id": session_id, "reply": greeting,
                      "mode": "canned", "companion": companion_name}
 
+    # Spoken words (Day 3): a transcribed recording's words ARE the
+    # storyteller's speech on this turn. They join the typed words
+    # as the turn's substance — for the live model's context, for
+    # the fallback companion's listening, and for the chapter's
+    # sources — labelled once, plainly, as spoken in a recording.
+    spoken_parts = []
+    if message.strip():
+        spoken_parts.append(message)
     history_text = message
     for item in media_items:
         if item.get("source") == "archive":
@@ -631,17 +740,24 @@ def handle_chat(payload):
                 note += " — its caption reads: \u201c" + item["caption"] + "\u201d"
             note += " — it is kept with the story.]"
             history_text += note
+        elif item.get("transcript"):
+            label = (" [The storyteller spoke these words in a "
+                     + ("voice recording" if item["kind"] == "audio"
+                        else "video") + " they shared:] ")
+            history_text += label + item["transcript"]
+            spoken_parts.append(item["transcript"])
         else:
             history_text += (" [The storyteller shared a " + item["kind"]
                              + " — it is kept with the story.]")
     sess["history"].append({"role": "user", "content": history_text})
+    spoken_text = " ".join(spoken_parts).strip()
 
     # AGE PAUSE-AND-END (T12): if this session has already ended for
     # age, or this message itself carries a present-tense under-18
     # indication, the fallback companion answers alone — the message
     # never reaches the live model, and the session closes exactly
     # as it does in canned mode.
-    if companion.age_ended or detect_present_minor(message):
+    if companion.age_ended or detect_present_minor(spoken_text or message):
         reply = companion.reply(message)
         sess["history"].append({"role": "assistant", "content": reply})
         return 200, {"session_id": session_id, "reply": reply,
@@ -662,25 +778,34 @@ def handle_chat(payload):
             if text:
                 sess["history"].append({"role": "assistant",
                                          "content": text})
-                # Keep the fallback companion aware of what was said, so
-                # a later degraded turn can still follow up on details.
-                companion.reply(message)
+                # Keep the fallback companion aware of what was
+                # said — typed words AND spoken ones — so a later
+                # degraded turn can still follow up on details.
+                companion.reply(spoken_text or message)
                 return 200, {"session_id": session_id, "reply": text,
                              "mode": "live", "companion": companion_name}
         except Exception:
             pass  # Fall through to the development companion below.
 
     # 2) Development fallback (see canned.py header for why this exists).
-    if media_items:
-        # A media turn in fallback mode: Liv acknowledges what
-        # arrived honestly — a photo is kept with the story and the
-        # storyteller is asked to describe it; she never pretends
-        # to have seen or heard it on this path.
-        reply = companion.media_reply(media_items[0]["kind"])
+    if media_items and not any(i.get("transcript") for i in media_items):
+        # A media turn in fallback mode with no words to answer:
+        # Liv acknowledges what arrived honestly — a photo is kept
+        # with the story and the storyteller is asked to describe
+        # it; a recording whose listening failed gets the plain
+        # failure line and a request to type the heart of it; she
+        # never pretends to have seen or heard it on this path.
+        first = media_items[0]
+        reply = companion.media_reply(
+            first["kind"],
+            hear_failed=first.get("transcript_status") == "failed")
         sess["history"].append({"role": "assistant", "content": reply})
         return 200, {"session_id": session_id, "reply": reply,
                      "mode": "canned", "companion": companion_name}
-    reply = companion.reply(message)
+    # Spoken words answer like words: the fallback companion listens
+    # to the transcript with the same detail-echo mechanics it uses
+    # for typing (Day 3 — the transcript is speech, not metadata).
+    reply = companion.reply(spoken_text or message)
     sess["history"].append({"role": "assistant", "content": reply})
     return 200, {"session_id": session_id, "reply": reply, "mode": "canned",
                  "companion": companion_name}

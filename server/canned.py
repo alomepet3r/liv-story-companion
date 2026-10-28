@@ -726,9 +726,10 @@ def _is_direct_question(lowered):
 # --- Media sharing: the walkthrough (Day 2, Petro's live test) --------
 # In his second sitting (Oct 27), Petro offered to upload a photo
 # and Liv could not walk him through it — there was no way to share
-# media at all. Now there is a media bar under the composer, and
-# when a storyteller says they want to share something, Liv names
-# the EXACT button and what happens next. Detection is
+# media at all. Now there is one attach ("+") button under the
+# composer (Day 3 conversation-first composer), and when a
+# storyteller says they want to share something, Liv names the
+# exact control and what happens next. Detection is
 # sharing-shaped (present-tense intent), never mere narrative
 # ("we took a photo every summer" is a story, and simply flows).
 _MEDIA_PHOTO_PHRASES = (
@@ -795,43 +796,49 @@ def detect_media_intent(lowered):
 
 _MEDIA_WALKTHROUGH = {
     "photo": ("I’d love to see it. Just below where you type, "
-              "there is a button that says “Add a photo” — tap it, "
-              "and you can take a new photo or choose one you "
-              "already have. When it appears here with your "
-              "message, tell me about it — where are we, and who "
-              "is in it?"),
-    "video": ("I’d love to see it. Just below where you type, "
-              "there is a button that says “Record video” — tap "
-              "it, and you can record a short video right here or "
+              "there is a “+” button — tap it, then choose "
+              "“Photo or camera”, and you can take a new photo or "
               "choose one you already have. When it appears here "
-              "with your message, tell me what it shows."),
+              "with your message, tell me about it — where are "
+              "we, and who is in it?"),
+    "video": ("I’d love that. Just below where you type, there "
+              "is a “+” button — tap it, then choose “Video”, and "
+              "you can record a short video right here or choose "
+              "one you already have. I will hear the words you "
+              "say in it — I can’t see a video’s pictures, only "
+              "photographs — so tell me what it shows too."),
     "audio": ("I would like that very much. Just below where you "
-              "type, there is a button that says “Record voice” — "
-              "tap it, and you can record your voice right here or "
-              "choose a recording you already have. It will be "
-              "kept here with your story."),
+              "type, there is a “+” button — tap it, then choose "
+              "“Voice recording”, and you can record your voice "
+              "right here or choose a recording you already have. "
+              "I will listen to your words — they are turned into "
+              "text I can hear — and it will be kept here with "
+              "your story."),
     "archive": ("You can bring them here. Just below where you "
-                "type, there is a button that says “Bring your "
-                "archive” — tap it, and choose the .zip file from "
-                "Facebook's Download Your Information. I will look "
-                "through it once, here, and show you the photos it "
-                "holds — then you tick the ones you would like to "
-                "share with me. Nothing comes to me until you "
-                "choose it."),
+                "type, there is a “+” button — tap it, then "
+                "choose “Document or archive”, and pick the .zip "
+                "file from Facebook's Download Your Information. "
+                "I will look through it once, here, and show you "
+                "the photos it holds — then you tick the ones you "
+                "would like to share with me. Nothing comes to me "
+                "until you choose it."),
     "any": ("You can share more than words here. Just below where "
-            "you type, you will find three buttons: “Add a "
-            "photo”, “Record voice”, and “Record video”. Tap the "
-            "one you need — you can take or record something new, "
-            "or choose one you already have — and what you share "
-            "will be kept here with your story."),
+            "you type, there is a “+” button — tap it, and you "
+            "can add a photo, a voice recording, a video, or a "
+            "document such as your archive. Take or record "
+            "something new, or choose one you already have — and "
+            "what you share will be kept here with your story."),
 }
 
 # Acknowledgements for media that ARRIVED with a message, on the
-# fallback path. Honesty is the whole point: on this path Liv has
-# not seen or heard the media, and she says so plainly — the photo
-# is kept with the story, and the storyteller is asked to describe
-# it. (On the live path, Spark genuinely sees a photo and remarks
-# on it; audio/video get an equivalent honesty note there.)
+# fallback path, when there are no transcribed words to answer.
+# Honesty is the whole point, stated precisely (Day 3): Liv CAN
+# hear the words in audio and in videos — they are transcribed
+# for her — and when that listening failed or could not happen,
+# she says so and asks the storyteller to type the heart of it;
+# she does NOT see a video's pictures (only photos are seen);
+# and on this fallback path she cannot make out a photograph, so
+# the storyteller is asked to describe it. She never pretends.
 _MEDIA_ACK = {
     "photo": ("Thank you for showing me this — it is here now, "
               "kept with your story. I want to be honest with "
@@ -839,16 +846,36 @@ _MEDIA_ACK = {
               "details of a photograph yet. So tell me about this "
               "one — where are we, and who is in it?"),
     "audio": ("Thank you. Your voice is here now, kept with your "
-              "story. What would you like me to know about this "
-              "recording — what were you telling me in it?"),
+              "story. I couldn’t turn it into words I can listen "
+              "with just now — would you type the heart of what "
+              "you said, so I don’t miss it?"),
     "video": ("Thank you for sharing this — it is here now, kept "
-              "with your story. I want to be honest with you: in "
-              "this early version I can’t watch a video yet. Tell "
-              "me about it — what does it show, and what does it "
-              "mean to you?"),
+              "with your story. I couldn’t hear the words in it "
+              "just now, and I can’t see a video’s pictures — "
+              "only photographs. Would you type the heart of "
+              "what you said in it, and tell me what it shows?"),
     "any": ("Thank you — what you shared is here now, kept with "
             "your story. Tell me about it — what would you like "
             "me to know?"),
+}
+
+# The transcription was attempted and FAILED (Day 3): a distinct,
+# plainer honesty — she tried to listen, it did not work, the
+# recording is still kept, and the heart of it is asked for in
+# typing. Never a pretence of having heard.
+_MEDIA_ACK_FAILED = {
+    "audio": ("Thank you. Your voice is here now, kept with your "
+              "story. I tried to listen to your words just now, "
+              "and the listening didn’t work this time — I’m "
+              "sorry. Would you type the heart of what you said, "
+              "so I don’t miss it?"),
+    "video": ("Thank you for sharing this — it is here now, kept "
+              "with your story. I tried to listen to the words "
+              "in it just now, and the listening didn’t work "
+              "this time — I’m sorry. And I can’t see a video’s "
+              "pictures — only photographs. Would you type the "
+              "heart of what you said in it, and tell me what "
+              "it shows?"),
 }
 
 
@@ -1632,12 +1659,17 @@ class CannedCompanion:
             out.append("What stays with you most from it?")
         return " ".join(out)
 
-    def media_reply(self, kind):
+    def media_reply(self, kind, hear_failed=False):
         """Acknowledge media that arrived WITH a message, on the
-        fallback path (the server calls this instead of reply()).
+        fallback path (the server calls this instead of reply()
+        when the turn carried media but no transcribed words).
         Honest by construction: what arrived is kept with the
-        story, and the storyteller is invited to tell Liv about
-        it — she never pretends to have seen or heard it here."""
+        story; if the listening was tried and failed, she says
+        exactly that; either way she asks for the heart of it in
+        typing and never pretends to have heard what she has
+        not."""
+        if hear_failed and kind in _MEDIA_ACK_FAILED:
+            return _MEDIA_ACK_FAILED[kind]
         return _MEDIA_ACK.get(kind, _MEDIA_ACK["any"])
 
     def greeting(self):

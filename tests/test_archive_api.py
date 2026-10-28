@@ -167,13 +167,17 @@ class TestEndToEnd(ArchiveApiCase):
         self.assertNotIn("archive", text.lower())
 
     def test_archive_intent_walkthrough_names_the_button(self):
+        # Day 3 conversation-first composer: the walkthrough names
+        # the one attach control and the picker choice, not the
+        # retired media-bar button.
         status, body = app.handle_chat({
             "session_id": self.session, "consent": True,
             "age_confirmed": True,
             "message": "Can I show you my facebook archive?",
         })
         self.assertEqual(status, 200)
-        self.assertIn("Bring your archive", body["reply"])
+        self.assertIn("\u201c+\u201d button", body["reply"])
+        self.assertIn("Document or archive", body["reply"])
 
     def test_unselected_items_never_enter_model_view(self):
         # Upload, share nothing: a chat turn has no media at all,

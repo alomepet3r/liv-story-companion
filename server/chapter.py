@@ -68,6 +68,7 @@ def gather_sources(sess):
     """
     sources = []
     n = 0
+    told = []           # the storyteller's typed/spoken turn texts
     for turn in sess.get("history", []):
         if turn.get("role") != "user":
             continue
@@ -75,6 +76,7 @@ def gather_sources(sess):
         if not text:
             continue
         n += 1
+        told.append(text)
         sources.append({
             "id": "s%d" % n,
             "kind": "words",
@@ -82,6 +84,7 @@ def gather_sources(sess):
             "text": text,
             "media_id": None,
         })
+    told_joined = "\n".join(told)
     for media_id, item in sess.get("media", {}).items():
         n += 1
         kind = item.get("kind", "photo")
@@ -97,11 +100,26 @@ def gather_sources(sess):
             label = "A voice recording you shared"
         else:
             label = "A video you shared"
+        text = item.get("caption") or ""
+        # Day 3: a transcript IS a telling. When a recording's
+        # words already ride in the conversation turns above (they
+        # do — app.py writes them into the turn), the media source
+        # must not double them; when they somehow did not (a
+        # recording shared but never sent with a message), the
+        # transcript is this source's text, so a spoken story can
+        # still become a chapter. Either way it joins the
+        # source-check corpus through the sources list.
+        transcript = (item.get("transcript") or "").strip()
+        if transcript and transcript not in told_joined:
+            text = transcript
+            label = ("Words you spoke in " +
+                     ("a recording" if kind == "audio"
+                      else "a video") + " you shared")
         sources.append({
             "id": "s%d" % n,
             "kind": kind,
             "label": label,
-            "text": item.get("caption") or "",
+            "text": text,
             "media_id": media_id,
         })
     return sources

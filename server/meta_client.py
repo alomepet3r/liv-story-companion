@@ -34,12 +34,24 @@ import json
 import os
 import time
 import urllib.request
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .config import CHAT_MODEL
 
 ALLOWED_MODELS = {"muse-spark-1.3"}
+
+# Transcription (Day 3). The exact model-id spelling was resolved
+# from GET /v1/models on Oct 28, 2026 — "muse-voice-transcribe-1.0"
+# — never guessed. It does NOT live on the chat surface (chat
+# answers model_not_found for it); its endpoint is
+# POST {base}/asr/transcribe, multipart/form-data with a `request`
+# JSON part and an `audio` part, verified live the same day. The
+# allowlist discipline is identical to chat's: only this Standard
+# ID may ever carry storyteller audio — no contributor tier.
+TRANSCRIBE_MODEL = "muse-voice-transcribe-1.0"
+ALLOWED_TRANSCRIBE_MODELS = {TRANSCRIBE_MODEL}
 
 # Primary attempt: cheapest reliable per Oct 26 probes.
 PRIMARY = {"max_tokens": 600, "reasoning_effort": "minimal"}
@@ -158,3 +170,61 @@ class MetaClient:
         text, usage = self._attempt(messages, model, retry_params,
                                     attempt_no=2)
         return text, usage
+
+    def transcribe_wav(self, wav_bytes, model=None):
+        """Transcribe one listening track (mono PCM WAV, 16/24 kHz).
+
+        Returns (transcript_text, info) where info carries the
+        model's own audioDurationMs. Raises on transport/API
+        failure — the caller decides the honest fallback; an empty
+        transcript comes back as "" (a silent recording is a
+        result, not an exception). Usage logging records model +
+        audio duration + latency only, never audio or text.
+        """
+        model = model or TRANSCRIBE_MODEL
+        if model not in ALLOWED_TRANSCRIBE_MODELS:
+            raise ValueError(
+                f"model {model!r} is not in the transcription "
+                f"allowlist {sorted(ALLOWED_TRANSCRIBE_MODELS)} — "
+                "contributor/data-sharing tiers must never carry "
+                "storyteller audio")
+        boundary = "----fireside" + uuid.uuid4().hex
+        request_part = json.dumps(
+            {"model": model, "audioEncoding": "WAV"}).encode()
+        body = b"".join([
+            ("--" + boundary + "\r\n"
+             "Content-Disposition: form-data; name=\"request\"\r\n"
+             "Content-Type: application/json\r\n\r\n").encode(),
+            request_part, b"\r\n",
+            ("--" + boundary + "\r\n"
+             "Content-Disposition: form-data; name=\"audio\"; "
+             "filename=\"listening.wav\"\r\n"
+             "Content-Type: audio/wav\r\n\r\n").encode(),
+            wav_bytes, b"\r\n",
+            ("--" + boundary + "--\r\n").encode(),
+        ])
+        req = urllib.request.Request(
+            self.base_url + "/asr/transcribe",
+            data=body,
+            headers={
+                "Content-Type": "multipart/form-data; boundary="
+                                + boundary,
+                "Authorization": f"Bearer {self.api_key}",
+            },
+            method="POST",
+        )
+        started = time.time()
+        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            data = json.load(resp)
+        latency = round(time.time() - started, 3)
+        text = (data.get("transcript") or "").strip()
+        _log_usage({
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "model": model,
+            "kind": "transcribe",
+            "audio_duration_ms": data.get("audioDurationMs"),
+            "latency_s": latency,
+            "content_chars": len(text),
+        })
+        return text, {"audio_duration_ms": data.get("audioDurationMs"),
+                      "model": model}
