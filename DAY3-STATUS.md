@@ -190,3 +190,33 @@ resemblance. Fixed the same day (commit `c0eb7a6`):
   forbidden shapes; the telling received as his naming both
   times). Deployed to Modal and re-verified over HTTPS,
   1 run, PASS.
+
+
+---
+
+## Addendum — Container pinning (Oct 28, 2026, Skunkworks Round 2 Top Move #1)
+
+Round 2 Cell 5 reproduced the Round 1 stranding live: `deploy/modal_app.py`
+set only `min_containers=1` (at least one container, not only one), so a
+12-way burst spawned extra containers and a seeded session landed on an
+amnesiac one — it denied the storyteller's name and story and re-asked
+the name question. All state (sessions, media, chapters, keepsakes)
+lives in one container's memory (`server/app.py`), so the fleet must be
+one container for the window.
+
+**Fix:** `deploy/modal_app.py` now sets `max_containers=1` and
+`scaledown_window=3600` alongside `min_containers=1`, with the
+trade-off and the remove-after-the-window instruction in the comment.
+Redeployed to Modal Oct 28, 2026.
+
+**Proof (Gate A-1 procedure, run twice):** seed a consented session
+(name "Marisol"; distinctive detail: a brass lighthouse key in a blue
+tin in a grandfather's boathouse in Galveston — acknowledged in Liv's
+replies), fire 12 concurrent fresh sessions (each greeted + one story
+turn; 12/12 answered), then probe the seeded session. Both runs: the
+probe reply named Marisol and carried **all five** detail tokens
+(lighthouse / Galveston / brass / blue tin / boathouse) verbatim —
+e.g. *"You told me your name is Marisol — and that your grandfather
+kept a brass lighthouse key in a blue tin in his boathouse in
+Galveston."* **BURST TEST: PASS ×2.** Pre-fix, the identical procedure
+failed (Round 2, Cell 5).

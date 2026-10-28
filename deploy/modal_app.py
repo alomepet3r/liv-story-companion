@@ -1,7 +1,8 @@
 """Modal deploy wrapper for the Day 1 Story Companion shell.
 
-Status: PREPARED, NOT YET DEPLOYED. Deployment is one step once the
-Modal account + API token exist — see deploy/README-modal.md.
+Status: DEPLOYED (live since Oct 26, 2026; fleet pinned to a single
+container Oct 28, 2026 — see the @app.function comment). Runbook:
+deploy/README-modal.md.
 
 How this wraps the existing app WITHOUT modifying it:
   * server/app.py is imported and run as-is. Its code on disk is
@@ -79,6 +80,23 @@ m.main()
     # (pre-record Day 8, demo/submission days) — after the event this
     # can be relaxed to 0 to scale fully to zero when idle.
     min_containers=1,
+    # PIN THE FLEET TO ONE CONTAINER (Oct 28, 2026 — Skunkworks Rounds
+    # 1+2, Top Move #1). Sessions, media, chapters and keepsake tokens
+    # all live in one container's memory (server/app.py). With only
+    # min_containers=1, load bursts spawned extra containers and a
+    # storyteller's session silently landed on an amnesiac container —
+    # reproduced live twice (Round 1 K4/K6, Round 2 Cell 5: after a
+    # 12-way burst the seeded session denied the name and story it had
+    # acknowledged minutes earlier). max_containers=1 makes every
+    # request land on the single warm container, so in-memory state is
+    # coherent for the whole hackathon window. The long scaledown
+    # window keeps that container from cycling mid-window. Trade-off
+    # accepted for the window: throughput is capped at one container's
+    # ThreadingHTTPServer, which the demo + judging traffic fits.
+    # REMOVE after the event window (scale-out becomes safe only once
+    # state moves out of container memory).
+    max_containers=1,
+    scaledown_window=3600,
 )
 @modal.web_server(INTERNAL_PORT, startup_timeout=120)
 def serve():
