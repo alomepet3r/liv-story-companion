@@ -107,3 +107,38 @@ heading on open and to the share link on approval, 44px targets.
   and the UI code is the committed, byte-identical asset set.
   A phone pass by Petro remains the real-device check, as with
   the redesign.
+
+## Known warts / Day 4 tuning
+
+Filed Oct 28, 2026, from Petro's first real chapter outline
+(~1:28 AM CT screenshot of a live sitting — the plan screen
+itself worked: the steps showed 9 tellings + 4 shared items
+gathered, and the checklist states were correct). Two items:
+
+1. **Material labels are generic.** Every telling in the
+   plan's "What goes in" checklist is labelled only "Something
+   you told Liv" — nine identical rows — and media items read
+   "A photo you shared" / "A voice recording you shared" /
+   "A video you shared". The storyteller cannot identify
+   *which* item is which, so the include/exclude control is
+   nearly meaningless: you cannot knowingly uncheck what you
+   cannot recognise. **Fix:** label each telling with its
+   opening words (first ~8–10 words, truncated gracefully);
+   label each media item with its type plus a distinguishing
+   detail — the caption's first words, the date/time shared,
+   or the archive album name when present.
+2. **Suggested title is a raw fragment.** The title field was
+   prefilled "My dad had just passed and I…" — the truncated
+   opening of his first sentence, mid-thought, with an
+   ellipsis. A suggested title should never be a chopped
+   sentence fragment. **Fix:** derive a cleaner suggestion, or
+   fall back to an honest placeholder ("Untitled — yours to
+   name"); never truncate mid-sentence.
+
+
+## Wart confirmation — Oct 28, 2026, ~2:50 PM CT (Petro's at-work session, live screenshot)
+
+Both Day 4 warts REPRODUCED on fresh material (second sitting, same failures — now confirmed patterns, not one-offs):
+1. **Material labels still generic:** the outline's "What goes in" lists **10 identical rows, all "Something you told Liv"** (plus 1 shared item), all ticked — include/exclude remains meaningless for the storyteller.
+2. **Suggested title still a mid-sentence fragment:** "We are in Bamenda Cameroon, in the..." — truncated from the telling "We are in Bamenda Cameroon, in the late 1970s, I would have been...". Same defect as Sitting #1's "My dad had just passed and I...".
+Steps/checklist rendered correctly (Gathered 10 told + 1 shared; Outline proposed; checklist states accurate). Dedication field took "My Family". Evidence screenshot: Petro's liv2.PNG in the hackathon chat, Oct 28.
