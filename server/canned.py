@@ -1979,34 +1979,44 @@ class CannedCompanion:
         mentions_photo = ("photo" in lowered or "picture" in lowered
                           or "portrait" in lowered)
         if mentions_photo:
-            for fact in self.record_facts:
-                if fact["kind"] != "photo":
-                    continue
-                person = fact["person"]
-                if not re.search(r"\b" + re.escape(person) +
-                                 r"\b", lowered):
-                    continue
-                hint = lowered
-                match = self._photo_fact(person, hint)
-                if match is None:
-                    continue
-                asserts_present = (
-                    re.search(r"\bstanding\b|\bbehind\b|"
-                              r"\bis (?:there|in|standing)\b|"
-                              r"\bthat'?s\b[^.?!]{0,30}\b"
-                              r"(?:standing|behind|in)\b", lowered)
-                    is not None)
-                asserts_absent = (
-                    re.search(r"\bis not in\b|\bisn'?t in\b|"
-                              r"\bnot in (?:the|this|that)\b",
-                              lowered) is not None)
-                if asserts_absent and not asserts_present:
-                    claimed = False
-                elif asserts_present:
-                    claimed = True
-                else:
-                    continue
-                if claimed != match["present"]:
+            asserts_present = (
+                re.search(r"\bstanding\b|\bbehind\b|"
+                          r"\bis (?:there|in|standing)\b|"
+                          r"\bthat'?s\b[^.?!]{0,30}\b"
+                          r"(?:standing|behind|in)\b", lowered)
+                is not None)
+            asserts_absent = (
+                re.search(r"\bis not in\b|\bisn'?t in\b|"
+                          r"\bnot in (?:the|this|that)\b",
+                          lowered) is not None)
+            if asserts_absent and not asserts_present:
+                claimed = False
+            elif asserts_present:
+                claimed = True
+            else:
+                claimed = None
+            if claimed is not None:
+                for fact in self.record_facts:
+                    if fact["kind"] != "photo":
+                        continue
+                    person = fact["person"]
+                    if not re.search(r"\b" + re.escape(person) +
+                                     r"\b", lowered):
+                        continue
+                    # Prefer the fact whose photo the message
+                    # actually names ("this studio photo"); a bare
+                    # reference ("that photograph") is checked
+                    # against whichever fact the claim turns on.
+                    match = self._photo_fact(person, lowered)
+                    if match is None:
+                        for other in self.record_facts:
+                            if other["kind"] == "photo" \
+                                    and other["person"] == person \
+                                    and other["present"] != claimed:
+                                match = other
+                                break
+                    if match is None or match["present"] == claimed:
+                        continue
                     self.stalls = 0
                     if match["present"]:
                         held = (_cap_first(person) + " IS in the "
@@ -2363,6 +2373,22 @@ class CannedCompanion:
             self.stalls = 0
             return _CRISIS_REPLY
 
+        # THE PROMISE RULE (T17, Day 4) — checked this early on
+        # purpose: the exam's ask rode in with closing words ("…
+        # and I'm done for the night"), and a promise request is
+        # the substance of such a turn, not its framing. An ask to
+        # remember, keep, or carry something into tomorrow gets
+        # the rehearsed true answer, never a promise — before the
+        # graceful close, before everything else conversational.
+        # Fixed reply: no prefix rides.
+        if detect_promise_ask(text):
+            self._suppress_prefix = True
+            self.stalls = 0
+            index = min(self.promise_answers,
+                        len(_PROMISE_REPLIES) - 1)
+            self.promise_answers += 1
+            return _PROMISE_REPLIES[index]
+
         # Graceful close (persona: warm and complete). A gentle
         # closing is one of the places the preferred name belongs.
         if any(w in lowered for w in _CLOSE_WORDS):
@@ -2490,18 +2516,6 @@ class CannedCompanion:
         if correction is not None:
             return correction
 
-        # CORRECTION (Persona Directive #5) — apologise easily,
-        # correct instantly. A correction that is also a boundary
-        # never reaches here: the boundary law above outranks it,
-        # as do the gates and the age protocol. A name correction
-        # (Directive #2, just above) is handled on its own path and
-        # never double-fires with this one. A pure correction
-        # completes the turn; one riding along with story sets an
-        # apology prefix and listening continues below.
-        outcome = self._take_correction(text)
-        if outcome is not None:
-            return outcome
-
         # SETTLED RECORD (T16 + T18, Day 4) — what the storyteller
         # deliberately established is checked before anything in
         # this message can be absorbed. A contradicting question or
@@ -2516,16 +2530,17 @@ class CannedCompanion:
             return conflict
         self._note_record(extract_record_facts(text))
 
-        # THE PROMISE RULE (T17, Day 4) — an ask to remember, keep,
-        # or carry something into tomorrow gets the rehearsed true
-        # answer, never a promise. Fixed reply: no prefix rides.
-        if detect_promise_ask(text):
-            self._suppress_prefix = True
-            self.stalls = 0
-            index = min(self.promise_answers,
-                        len(_PROMISE_REPLIES) - 1)
-            self.promise_answers += 1
-            return _PROMISE_REPLIES[index]
+        # CORRECTION (Persona Directive #5) — apologise easily,
+        # correct instantly. A correction that is also a boundary
+        # never reaches here: the boundary law above outranks it,
+        # as do the gates and the age protocol. A name correction
+        # (Directive #2, just above) is handled on its own path and
+        # never double-fires with this one. A pure correction
+        # completes the turn; one riding along with story sets an
+        # apology prefix and listening continues below.
+        outcome = self._take_correction(text)
+        if outcome is not None:
+            return outcome
 
         # META ENGAGEMENT (Persona Directive #3) — the storyteller is
         # speaking TO Liv about the conversation itself. Answer as a
