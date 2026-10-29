@@ -10,20 +10,18 @@
 </head>
 <body>
 
-<!-- Brand lockup (founder layout ruling, Oct 29, 2026): the
-     filed public name, Fireside, beside the flame-in-ring mark —
-     one compact beat at the top of every screen. Liv is the
-     companion, introduced in the Meet Liv panel and the greeting,
-     not the wordmark. -->
+<!-- Brand lockup (founder's vetted mockup, Oct 29, 2026): the
+     wordmark as he drew it — "FireSide" in bold italic near-
+     black, with an ember flame glyph after the word. One
+     compact beat at the top of every screen. Liv is the
+     companion, introduced in the Meet Liv panel and the
+     greeting, not the wordmark. -->
 <header class="masthead">
   <p class="brand-lockup">
-    <span class="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 48 48" focusable="false">
-        <circle cx="24" cy="24" r="22.6" fill="none" stroke="currentColor" stroke-opacity=".30" stroke-width="1"/>
-        <g transform="translate(24 24.5) scale(1.18) translate(-24 -24.5)"><path d="M24 6.5c1.6 5.8-1.6 9.2-4.3 12.4-2 2.4-3.4 4.9-3.4 8a8.7 8.7 0 1 0 17.4 0c0-2.6-1-4.9-2.4-6.9-1.6-2.4-3.6-4.9-4.9-8.6-.6-1.7-1-3.2-1.4-4.9z" fill="#9D2224"/><path d="M24 23.8c.8 2.4-.6 4-1.8 5.5-.9 1.1-1.5 2.3-1.5 3.7a3.3 3.3 0 0 0 6.6 0c0-1.3-.5-2.4-1.2-3.4-.7-1.1-1.6-2.3-2.1-4.1z" fill="#FBF7EF"/></g>
-      </svg>
+    <span class="brand-name">FireSide</span>
+    <span class="brand-flame" aria-hidden="true">
+      <svg viewBox="0 0 24 32" focusable="false"><path d="M12 0c1 6-4 8-4 13a4.5 4.5 0 0 0 9 0c0-2-1-3.5-2-5 3 1.5 5 4.5 5 8a8 8 0 1 1-16 0C4 8 10 6 12 0z" fill="currentColor"/></svg>
     </span>
-    <span class="brand-name">Fireside</span>
   </p>
 </header>
 
@@ -131,10 +129,11 @@
 
   <!-- Screen 2 — Conversation. Hidden until consent is given. -->
   <section id="chat-screen" hidden aria-labelledby="chat-heading">
-    <!-- Sub-line under the Fireside lockup (founder's phrasing,
-         Oct 29, 2026: "Talking to Liv" — to, not with). -->
+    <!-- Sub-line under the wordmark (founder's phrasing,
+         Oct 29, 2026: "Talking to Liv" — to, not with —
+         presented title case, as drawn in his vetted mockup). -->
     <div class="chat-head">
-      <h1 id="chat-heading" class="chat-subtitle">Talking to Liv</h1>
+      <h1 id="chat-heading" class="chat-subtitle">Talking To Liv</h1>
     </div>
     <!-- The conversation lives in a box (founder layout ruling,
          Oct 29, 2026): a contained panel in the manner of a chat
@@ -280,8 +279,13 @@
     </div>
     <p id="media-error" class="media-error" role="alert" hidden></p>
 
+    <!-- The ember seam (founder's vetted mockup): a 4px ember
+         rule spanning the content column, the joint between
+         the conversation box and the reply band below it. -->
+    <div class="seam" aria-hidden="true"></div>
+
     <form id="chat-form" class="reply-band">
-      <label for="chat-input">Your reply</label>
+      <label for="chat-input">Reply</label>
       <textarea id="chat-input" rows="3"
         placeholder="Type here, in your own time…"></textarea>
       <div class="composer-actions">
@@ -300,13 +304,19 @@
         <button class="primary small send-btn" type="submit">Send</button>
       </div>
       <p id="voice-status" class="voice-status" role="status"></p>
+      <!-- The session actions live inside the band now
+           (founder's vetted mockup): outline ghost buttons on
+           the ink ground, with the "Take your time" line
+           beneath them — nothing of the session area remains
+           on the canvas below the band. The buttons keep
+           their exact functional labels and ids. -->
+      <p class="chat-actions">
+        <button id="finish-btn" class="secondary" type="button">Finish for today</button>
+        <button id="chapter-btn" class="secondary" type="button">Arrange this into a chapter</button>
+        <button id="end-session-btn" class="secondary" type="button">End session &amp; delete everything</button>
+      </p>
+      <p class="quiet">Take your time. There is no hurry here.</p>
     </form>
-    <p class="chat-actions">
-      <button id="finish-btn" class="secondary" type="button">Finish for today</button>
-      <button id="chapter-btn" class="secondary" type="button">Arrange this into a chapter</button>
-      <button id="end-session-btn" class="secondary" type="button">End session &amp; delete everything</button>
-    </p>
-    <p class="quiet">Take your time. There is no hurry here.</p>
     </div>
   </section>
 

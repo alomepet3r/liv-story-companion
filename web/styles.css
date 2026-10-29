@@ -12,18 +12,28 @@
      paper-3 12.0:1 · ink on white 15.0:1 · ink on ember-tint
      12.9:1 · white on ember 7.8:1 · ember on paper 7.3:1 ·
      deepened sage on paper 6.7:1 · gold text on white 6.6:1 ·
-     quiet text (ink 78%) on paper 7.0:1, on white 7.3:1. */
+     quiet text (ink 78%) on paper 7.0:1, on white 7.3:1 ·
+     (vetted mockup, Oct 29, 2026) ink on box 12.4:1 ·
+     ember-deep on box 8.4:1 · user-blue on box 5.6:1 ·
+     paper on ink 14.0:1. */
 
 :root {
   --paper: #FBF7EF;
   --paper-2: #F6EFE1;
   --paper-3: #EFE5CF;
+  /* The turn boxes' shared tint (founder's vetted mockup,
+     Oct 29, 2026): one tone for both speakers' dialogue. */
+  --box: #EFE9DC;
   --card: #FFFFFF;
   --ink: #2B2622;
   --ink-soft: rgba(43, 38, 34, 0.78);
   --ember: #9D2224;
-  --ember-deep: #86191B;
+  --ember-deep: #7E1B1E;
   --ember-tint: #F8ECE7;
+  /* The storyteller's differentiator colour — his slab and
+     his label (founder-declared in his own vetted mockup,
+     Oct 29, 2026; measures 5.6:1 on the box tint). */
+  --user-blue: #1458B4;
   --gold: #74592C;
   --sage: #4C5C4E;
   --line: rgba(43, 38, 34, 0.16);
@@ -44,6 +54,10 @@ body {
   font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: 19px;
   line-height: 1.65;
+  /* The full-bleed reply band is sized in vw; clip swallows
+     the scrollbar delta so it can never open a horizontal
+     scroll. */
+  overflow-x: clip;
 }
 
 :focus-visible {
@@ -51,10 +65,11 @@ body {
   outline-offset: 2px;
 }
 
-/* Masthead — one compact brand lockup: the flame-in-ring mark
-   beside the word Fireside (founder layout ruling, Oct 29, 2026).
-   Present on every screen; Liv is introduced in the consent
-   panel and the greeting, not stacked into the header. */
+/* Masthead — the wordmark as the founder drew it (his vetted
+   mockup, Oct 29, 2026): "FireSide" in bold italic near-black,
+   with the ember flame glyph riding after the word. Present on
+   every screen; Liv is introduced in the consent panel and the
+   greeting, not stacked into the header. */
 
 .masthead {
   text-align: center;
@@ -65,27 +80,26 @@ body {
 .brand-lockup {
   display: inline-flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.45rem;
   margin: 0;
 }
 
-.brand-mark {
-  display: inline-block;
-  width: 2.75rem;
-  height: 2.75rem;
-  flex: none;
-}
-
-.brand-mark svg { display: block; width: 100%; height: 100%; }
-
 .brand-name {
-  font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: 0.015em;
+  font-size: 2.35rem;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   color: var(--ink);
 }
+
+.brand-flame {
+  display: inline-flex;
+  flex: none;
+  color: var(--ember);
+}
+
+.brand-flame svg { display: block; height: 2.5rem; width: auto; }
 
 main {
   max-width: 42rem;
@@ -342,26 +356,28 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 
 .not-now-row { text-align: center; margin: 1.1rem 0 0; }
 
-/* Conversation — a letter exchange that lives in a box
-   (founder layout ruling, Oct 29, 2026): the Fireside lockup on
-   top, "Talking to Liv" as a quiet sub-line beneath it, then the
-   transcript inside a contained panel in the manner of a chat
-   message container. The composer stays below the box. */
+/* Conversation — the wordmark on top, the sub-line beneath
+   it, then the transcript inside a contained panel (the box);
+   an ember seam under the box, then the full-bleed reply band.
+   Founder's vetted mockup, Oct 29, 2026. */
 
 .chat-head {
-  text-align: center;
-  padding: 0.35rem 0 1rem;
+  padding: 0.35rem 0 0.75rem;
   color: var(--ink);
 }
 
+/* The sub-line as drawn in the vetted mockup: title case,
+   Atkinson bold, quiet gray, left-aligned over the box. The
+   gray is --ink-soft; composited on paper it measures 7.0:1,
+   past the 4.5:1 bar (measured Oct 29, 2026). */
 .chat-subtitle {
-  font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: 1.32rem;
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  text-align: center;
-  margin: 0;
+  font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+  font-size: 1.25rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-align: left;
+  margin: 0 0 0 0.3rem;
   color: var(--ink-soft);
 }
 
@@ -391,40 +407,43 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 
 /* Speaker names ride above each turn, small and quiet
    (founder's hand sketch, Oct 29, 2026; refined the same
-   day): LIV over her boxes, left; YOU over the storyteller's,
-   right — no marker glyphs, just the name itself, set in
-   capitals by CSS so the text assistive technology reads
+   day; colours from his vetted mockup): LIV over her boxes,
+   left, in ember-deep; YOU over the storyteller's, right,
+   in his blue — no marker glyphs, just the name itself, set
+   in capitals by CSS so the text assistive technology reads
    stays "Liv" / "You". The label span stays in every turn,
-   so AT reads the speaker as before. */
+   so AT reads the speaker as before. On the shared box
+   tint the labels measure: ember-deep 8.4:1, user-blue
+   5.6:1 (measured Oct 29, 2026). */
 .msg .who {
   display: block;
   font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--ink-soft);
   margin-bottom: 0.3rem;
 }
 
-.msg.storyteller .who { text-align: right; }
+.msg.companion .who { color: var(--ember-deep); }
 
-/* Both speakers' turns live in the same shaped box
-   (founder refinement, Oct 29, 2026): same radius, border,
-   and padding — what differs is only the heavy rule and
-   the tint. Liv's box takes the ember-tint step, ruled
-   ember at the LEFT; the storyteller's (below) takes
-   paper-3, ruled ink at the RIGHT. Both tints sit darker
-   than the panel that holds them (paper-2) so the words
-   stand out, and ink text holds past 11:1 on both —
-   12.9:1 on ember-tint, 12.0:1 on paper-3 (measured,
-   Oct 29, 2026). The one deeper paper tone in the file,
-   #DCD2BF, was measured and rejected: ink on it is
-   10.0:1, under the founder's bar. */
+.msg.storyteller .who { text-align: right; color: var(--user-blue); }
+
+/* Both speakers' turns live in the same shaped box on ONE
+   shared tint (founder's vetted mockup, Oct 29, 2026): same
+   border, same padding, same tint (--box) for both — the
+   differentiators are the 14px slabs (ember at Liv's LEFT,
+   the storyteller's blue at his RIGHT) and the label
+   colours above them. Ink text on the box measures 12.4:1
+   (measured Oct 29, 2026), past the founder's 11:1 bar.
+   AMENDMENT (founder, same day): dialogue boxes are
+   RECTANGULAR — square corners, the slabs flush at the
+   square edges. The panel, the field, and the buttons keep
+   their curves; dialogue doesn't. */
 .msg.companion {
-  background: var(--ember-tint);
+  background: var(--box);
   border: 1px solid rgba(43, 38, 34, 0.07);
-  border-left: 3px solid var(--ember);
-  border-radius: var(--radius);
+  border-left: 14px solid var(--ember);
+  border-radius: 0;
   padding: 1rem 1.25rem;
   font-size: 1.21rem;
   line-height: 1.75;
@@ -441,17 +460,17 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   line-height: 1.55;
 }
 
-/* The storyteller's words: the same shaped box as Liv's
-   (founder refinement, Oct 29, 2026), right-weighted, in
-   the paper-3 step, ruled at the RIGHT in ink — the mirror
-   of her ember rule at the left. */
+/* The storyteller's words: the same square box as Liv's,
+   on the same shared tint, right-weighted — ruled at the
+   RIGHT by a 14px slab in his blue, the mirror of her
+   ember slab at the left. */
 .msg.storyteller {
   align-self: flex-end;
   max-width: 88%;
-  background: var(--paper-3);
+  background: var(--box);
   border: 1px solid rgba(43, 38, 34, 0.07);
-  border-right: 3px solid var(--ink);
-  border-radius: var(--radius);
+  border-right: 14px solid var(--user-blue);
+  border-radius: 0;
   padding: 1rem 1.25rem;
   font-size: 1.08rem;
   line-height: 1.65;
@@ -496,6 +515,16 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 @keyframes pulse-dot {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.5); opacity: 0.5; }
+}
+
+/* The ember seam (founder's vetted mockup): a 4px ember
+   rule spanning the content column — the joint between the
+   conversation box and the reply band below it. */
+
+.seam {
+  height: 4px;
+  background: var(--ember);
+  margin: 0.75rem 0 0;
 }
 
 /* Composer — media bar, panels, the reply form: one calm zone
@@ -830,14 +859,23 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   flex-wrap: wrap;
 }
 
-/* Send rides at the action row's right end, compact (founder's
-   hand sketch, Oct 29, 2026): the full-width bar is gone. It
-   keeps the primary ember styling through .small (auto width,
-   the row's 52px height) and is pushed right by the auto
-   margin; on a narrow screen it wraps, still right-aligned.
-   It stays a real, visible button — typed input needs a
-   visible send affordance. */
-.composer-actions .send-btn { margin-left: auto; }
+/* Send rides at the action row's right end as a full pill
+   (founder's vetted mockup, Oct 29, 2026 — superseding the
+   sketch pass's compact button): the same pill shape and
+   52px height as Talk to Liv, with generous horizontal
+   padding, pushed right by the auto margin; on a narrow
+   screen it wraps, still right-aligned. It stays a real,
+   visible button — typed input needs a visible send
+   affordance. */
+.composer-actions .send-btn {
+  margin-left: auto;
+  border-radius: 999px;
+}
+
+.reply-band .composer-actions .send-btn {
+  padding-left: 2.6rem;
+  padding-right: 2.6rem;
+}
 
 .mic-btn {
   font: inherit;
@@ -893,16 +931,26 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   margin: 0.6rem 0 0;
 }
 
-/* The reply section is its own dark band (founder
-   refinement, Oct 29, 2026): the reply form — label,
-   field, and the action row — sits on ink, in the same
-   rounded language as the conversation box above it, so
-   the place where the storyteller writes reads as a
-   distinct room from the place where the conversation
-   lives. Button positions inside it are unchanged. On
-   the dark ground: the label and the status line are
-   paper (14.0:1); the field stays white with ink text
-   (15.0:1 — the strongest pairing on the page, where
+/* The reply section is a dark band that breaks out to the
+   full width of the viewport (founder's vetted mockup,
+   Oct 29, 2026 — the inset rounded panel of the earlier
+   refinement is superseded): the reply form — label,
+   field, and the action row — sits on ink, edge to edge,
+   so the place where the storyteller writes reads as a
+   distinct country from the conversation above the seam.
+   The breakout is the standard one: width 100vw with
+   negative half-viewport margins centres the band on the
+   page (body's overflow-x: clip swallows the scrollbar
+   delta), and the side padding re-aligns the band's
+   content to the app's column — main's content width is
+   39.5rem (42rem max-width less its 2 × 1.25rem padding),
+   so past that width the padding grows to keep the same
+   column; below it, the 1.25rem gutter matches main's.
+   The session actions and the "Take your time" line now
+   live INSIDE the band (below). Button positions are
+   unchanged. On the dark ground: the label and the status
+   line are paper (14.0:1); the field stays white with ink
+   text (15.0:1 — the strongest pairing on the page, where
    his words are composed); the ember pills carry a
    paper border, because ember against ink alone
    measures 1.92:1 and a control's boundary must clear
@@ -911,12 +959,34 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
    outlined in paper, not ember, on this ground. */
 .reply-band {
   background: var(--ink);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-  padding: 1.4rem 1.5rem 1.5rem;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 1.6rem max(1.25rem, calc((100vw - 39.5rem) / 2)) 2rem;
 }
 
-#chat-form.reply-band label { color: var(--paper); }
+/* The band's label, as drawn in the mockup: plain title
+   case, full size — not the small letterspaced caps the
+   form label carries elsewhere. */
+#chat-form.reply-band label {
+  color: var(--paper);
+  font-size: 1.2rem;
+  letter-spacing: normal;
+  text-transform: none;
+  margin-bottom: 0.8rem;
+}
+
+/* The field on the band (vetted mockup): white, a paper
+   border, and the mockup's generous 24px radius. */
+.reply-band #chat-input {
+  border: 2px solid var(--paper);
+  border-radius: 24px;
+}
+
+.reply-band #chat-input:focus {
+  border-color: var(--paper);
+  box-shadow: 0 0 0 3px rgba(251, 247, 239, 0.35);
+}
 
 .reply-band .voice-status { color: var(--paper); }
 
@@ -955,6 +1025,20 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 
 .chat-actions { text-align: center; margin-top: 1.4rem; }
 
+/* Inside the band, the session actions are ghost outline
+   buttons in a centred row (founder's vetted mockup): the
+   .reply-band button.secondary rules above already give
+   them paper words and a paper-alpha edge on the ink.
+   Nothing of the session area remains on the canvas below
+   the band. */
+.reply-band .chat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.9rem;
+  margin: 2.2rem 0 0;
+}
+
 #chat-screen .quiet {
   text-align: center;
   font-family: "Cormorant Garamond", Georgia, serif;
@@ -963,21 +1047,35 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   color: var(--ink-soft);
 }
 
+/* The "Take your time" line inside the band: paper, plain,
+   centred — the mockup sets it in the band's own voice, not
+   the letter italic it wears elsewhere. */
+#chat-screen #chat-form .quiet {
+  color: var(--paper);
+  font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+  font-style: normal;
+  font-size: 1.05rem;
+  margin: 1.6rem 0 0;
+}
+
 /* Small screens — his phone is the test device. */
 
 @media (max-width: 560px) {
   .masthead { padding-top: 1.5rem; }
-  .brand-mark { width: 2.35rem; height: 2.35rem; }
-  .brand-name { font-size: 1.75rem; }
+  .brand-name { font-size: 1.95rem; }
+  .brand-flame svg { height: 2.05rem; }
   main { padding: 0.5rem 1rem 3rem; }
   h1 { font-size: 2.5rem; margin-top: 1.2rem; }
   .companion-intro, .plain-box { padding: 1.35rem 1.15rem; }
   .msg.storyteller { max-width: 94%; padding: 0.9rem 1.05rem; }
   .msg.companion { font-size: 1.15rem; padding: 0.9rem 1.05rem; }
   .media-btn { flex: 1 1 6.8rem; font-size: 0.98rem; }
-  .chat-subtitle { font-size: 1.22rem; }
+  .chat-subtitle { font-size: 1.15rem; }
   .conversation-panel { padding: 1.15rem 1rem 1.05rem; border-radius: 16px; }
-  .reply-band { padding: 1.15rem 1.05rem 1.25rem; border-radius: 16px; }
+  /* The band's side padding re-derives for the small-screen
+     column (main's gutter is 1rem here, its content 40rem
+     at the cap). */
+  .reply-band { padding: 1.3rem max(1rem, calc((100vw - 40rem) / 2)) 1.6rem; }
 }
 
 /* Chapter screen (Day 4 slice, pulled forward) — plan, draft,
