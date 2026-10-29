@@ -59,7 +59,6 @@ from .canned import (                        # noqa: E402
     detect_crisis,
     detect_present_minor,
     detect_promise_ask,
-    normalize_companion_name,
 )
 from .config import META_API_BASE_URL, MODEL_API_KEY  # noqa: E402
 from .meta_client import MetaClient          # noqa: E402
@@ -68,11 +67,11 @@ WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 
 def build_system_prompt(companion_name):
-    """Persona prompt for the live model, carrying the chosen name.
+    """Persona prompt for the live model, carrying the companion's name.
 
-    The companion's name is chosen by the storyteller on the consent
-    screen (Livio, Livia, or Liv) and stored per session, so the live
-    model speaks as that named companion from the first turn.
+    The companion is Liv — only Liv (founder ruling, Oct 29, 2026) —
+    so the name is the session's stored name, always "Liv", and the
+    live model speaks as Liv from the first turn.
     """
     return (
     "Your name is " + companion_name + ". "
@@ -799,13 +798,11 @@ def handle_chat(payload):
             if item is not None:
                 media_items.append(item)
 
-    # The storyteller's companion choice (Livio / Livia / Liv) is set
-    # BEFORE the conversation starts and then kept for the whole
-    # session, so a name can never bleed or switch mid-conversation;
-    # different sessions hold different choices independently.
-    requested_name = payload.get("companion") or payload.get("companion_name")
-    if requested_name is not None and not sess["history"]:
-        sess["companion_name"] = normalize_companion_name(requested_name)
+    # Liv-only (founder ruling, Oct 29, 2026): the companion is Liv.
+    # A client-supplied companion/companion_name value is accepted
+    # and ignored — the session's name is set at creation ("Liv")
+    # and never changes, so a name can never bleed or switch
+    # mid-conversation.
     companion_name = sess["companion_name"]
     companion = sess["companion"]
     companion.name = companion_name

@@ -150,23 +150,23 @@ boundaried. Concretely:
 """
 import re
 
-# The companion has a name, chosen by the storyteller (Petro's decision,
-# Oct 26, 2026): Livio, Livia, or Liv — Liv is the default.
-COMPANION_NAMES = ("Livio", "Livia", "Liv")
+# The companion is Liv — only Liv (founder ruling, Oct 29, 2026,
+# superseding the Oct 26 naming model). The Livio/Livia variants
+# mapped to voices, but TTS was cut from this build, so the choice
+# changed nothing real and only taxed the storyteller a decision on
+# the consent screen; the variants are parked for the future real
+# platform, where voices exist. Every requested name normalizes to
+# Liv: a client-supplied value is accepted and ignored, never kept.
+COMPANION_NAMES = ("Liv",)
 DEFAULT_COMPANION_NAME = "Liv"
 
 
 def normalize_companion_name(value):
-    """Return the canonical companion name, or the default.
+    """Return the companion's name: always "Liv".
 
-    Anything that is not one of the three offered names falls back to
-    the default, so a session always carries a valid name.
+    Whatever a client sends — a parked variant, a typo, nothing —
+    the answer is Liv, so a session can never carry another name.
     """
-    if isinstance(value, str):
-        candidate = value.strip()
-        for name in COMPANION_NAMES:
-            if candidate.lower() == name.lower():
-                return name
     return DEFAULT_COMPANION_NAME
 
 
@@ -2312,11 +2312,12 @@ class CannedCompanion:
         return _MEDIA_ACK.get(kind, _MEDIA_ACK["any"])
 
     def greeting(self):
-        # The first message introduces the companion by the chosen
-        # name, makes boundaries easy, and — Persona Directive #2 —
-        # politely asks what the storyteller would like to be called,
-        # with the door open to decline.
-        return ("Hello, I’m " + self.name + ". I’m here to listen — "
+        # The first message introduces Liv in the founder's words —
+        # "Hi, I'm Liv!" (Oct 29, 2026) — makes boundaries easy, and
+        # — Persona Directive #2 — politely asks what the
+        # storyteller would like to be called, with the door open
+        # to decline.
+        return ("Hi, I’m " + self.name + "! I’m here to listen — "
                 "we can go at your pace. And we can skip anything — "
                 "just say so. "
                 "Before we begin — what would you like me to call "

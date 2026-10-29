@@ -571,7 +571,7 @@ _STOP_WORDS = {
     "There", "Here", "Now", "After", "Before", "For", "In", "On",
     "At", "To", "With", "From", "One", "Every", "What", "Who",
     "If", "As", "By", "You", "Your", "Our", "Their", "Tell",
-    "Thank", "Chapter", "I", "Liv", "Livio", "Livia",
+    "Thank", "Chapter", "I", "Liv",
 } | set(_MONTHS)
 
 
