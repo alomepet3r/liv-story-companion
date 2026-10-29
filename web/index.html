@@ -23,7 +23,8 @@
 <main>
   <!-- Screen 1 — Consent. Nothing else is reachable until the
        storyteller agrees; the server enforces the same gate. The
-       storyteller also chooses their companion's name here. -->
+       companion, Liv, is introduced here — there is no name to
+       choose (Liv-only, founder ruling Oct 29, 2026). -->
   <section id="consent-screen" aria-labelledby="consent-heading">
     <h1 id="consent-heading">Your stories, in <em>your own voice</em></h1>
     <p class="lede">Sit down with <span class="js-companion-name">Liv</span>,
@@ -33,32 +34,12 @@
 
     <div class="divider" aria-hidden="true"><span class="divider-diamond"></span></div>
 
-    <div class="companion-choice">
-      <h2 id="companion-choice-heading">Who would you like to talk with?</h2>
+    <div class="companion-intro">
+      <h2>Meet <span class="js-companion-name">Liv</span></h2>
       <p>You will be talking with <strong class="js-companion-name">Liv</strong> —
         a patient listener who will sit with you, at your pace, for as
         long as you would like to talk. And we can skip anything — just
-        say so. Choose the name you like best:</p>
-      <div class="choice-options" role="radiogroup" aria-labelledby="companion-choice-heading">
-        <label class="choice-card">
-          <input type="radio" name="companion" value="Livio">
-          <span class="choice-text"><span class="choice-name">Livio</span>
-            <span class="choice-desc">male voice</span></span>
-        </label>
-        <label class="choice-card">
-          <input type="radio" name="companion" value="Livia">
-          <span class="choice-text"><span class="choice-name">Livia</span>
-            <span class="choice-desc">female voice</span></span>
-        </label>
-        <label class="choice-card">
-          <input type="radio" name="companion" value="Liv" checked>
-          <span class="choice-text"><span class="choice-name">Liv</span>
-            <span class="choice-desc">keep it simple</span></span>
-        </label>
-      </div>
-      <p class="quiet">The name also chooses the voice you will hear when
-        talking out loud begins: Livio speaks with a man’s voice, Livia
-        with a woman’s voice, and Liv keeps it simple.</p>
+        say so.</p>
     </div>
 
     <ul class="promises">
@@ -298,7 +279,7 @@
       <div class="composer-actions">
         <button id="mic-btn" class="mic-btn" type="button"
           aria-pressed="false">
-          <span class="mic-icon" aria-hidden="true">🎙</span>
+          <span class="mic-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="9" y="2.5" width="6" height="11" rx="3" fill="currentColor" stroke="none"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5"/></svg></span>
           <span id="mic-label">Talk to Liv</span>
         </button>
         <button id="mic-discard" class="secondary" type="button"

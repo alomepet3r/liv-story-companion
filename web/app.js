@@ -1,10 +1,10 @@
-// Day 1 shell behaviour, with the companion-name choice (Oct 26).
+// Day 1 shell behaviour.
 // Screen 1 (consent) gates Screen 2 (conversation): the chat UI is not
 // shown until the storyteller agrees, and every /api/chat call carries
-// the consent flag, which the server also enforces. The storyteller
-// chooses their companion's name on Screen 1 — Livio, Livia, or Liv
-// (Liv is the default) — and the choice is sent with every call so the
-// server keeps it for the whole session.
+// the consent flag, which the server also enforces. The companion is
+// Liv — only Liv (founder ruling, Oct 29, 2026): no name is chosen on
+// Screen 1 and none is sent; the name spans in the page already say
+// "Liv", and the server keeps every session's companion as Liv.
 // Age posture (Petro, Oct 26): lone users are adults only. The Begin
 // button stays disabled until BOTH the consent checkbox and the
 // "I confirm I am 18 or older" attestation are checked, and every
@@ -32,7 +32,7 @@
     Math.random().toString(36).slice(2, 8);
   var consented = false;
   var ageConfirmed = false;
-  var companionName = "Liv";
+  var companionName = "Liv";  // Liv's display name; it never varies.
 
   var beginBtn = document.getElementById("begin-btn");
   var consentCheck = document.getElementById("consent-check");
@@ -63,23 +63,6 @@
   function setListening(on) {
     if (listening) { listening.hidden = !on; }
   }
-
-  function setCompanionName(name) {
-    companionName = name;
-    var spans = document.querySelectorAll(".js-companion-name");
-    for (var i = 0; i < spans.length; i++) {
-      spans[i].textContent = name;
-    }
-  }
-
-  var radios = document.querySelectorAll('input[name="companion"]');
-  for (var r = 0; r < radios.length; r++) {
-    radios[r].addEventListener("change", function () {
-      if (this.checked) { setCompanionName(this.value); }
-    });
-    if (radios[r].checked) { companionName = radios[r].value; }
-  }
-  setCompanionName(companionName);
 
   function mediaUrl(item) {
     return "/api/media/" + item.id + "?session_id=" +
@@ -185,7 +168,6 @@
         message: message,
         consent: consented,
         age_confirmed: ageConfirmed,
-        companion: companionName,
         media_ids: ids
       })
     })
