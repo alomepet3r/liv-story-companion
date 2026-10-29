@@ -77,7 +77,8 @@ the value).
 With the URL from step c3:
 
 1. **Consent page:** open the URL in a browser → the consent screen
-   loads (cream page, one primary button, the "Yours. Always." line).
+   loads (cream page, one primary button, the qualified
+   "Yours. Always." sovereignty line).
    Command-line equivalent:
    `curl -s -o /dev/null -w "%{http_code}\n" <URL>/` → expect `200`.
 2. **Health:** `curl -s <URL>/api/health` → expect `{"ok": true}`.
