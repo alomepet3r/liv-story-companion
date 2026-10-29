@@ -3,9 +3,10 @@
 The Day 1 app shell (built Oct 26, 2026). A single page, two screens:
 
 - **index.html** — Screen 1: the consent gate (plain-language copy,
-  the qualified sovereignty line ("Yours. Always. Delete anything,
-  anytime — except the narrow slice the law requires us to
-  preserve…"), and a ~30-second consent script to read aloud for
+  the qualified sovereignty line ("Your stories are yours, always.
+  You can delete anything, anytime. The only time we could not
+  delete something is if a court, or the law protecting a child,
+  required us to keep it…"), and a ~30-second consent script to read aloud for
   recorded sessions). Screen 2: the conversation — large-type,
   accessibility-first chat.
 - **styles.css** — design tokens from the brief: cream paper `#FBF7EF`,

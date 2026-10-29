@@ -338,8 +338,10 @@ class TestPresenceDirective6(unittest.TestCase):
 
 
 class TestTruthPassCopy(unittest.TestCase):
-    QUALIFIED = ("Delete anything, anytime — except the narrow "
-                 "slice the law requires us to preserve")
+    QUALIFIED = ("You can delete anything, anytime. The only "
+                 "time we could not delete something is if a "
+                 "court, or the law protecting a child, required "
+                 "us to keep it")
 
     def test_consent_carries_the_qualified_line(self):
         html = " ".join(
