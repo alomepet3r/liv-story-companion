@@ -19,3 +19,7 @@
 - Chapter wart fixes ×3 (material labels, suggested-title fragments, name-answer turn in chapters).
 - Demo rough cut from DEMO-SCRIPT.md (script delivered this morning).
 - Founder decisions pending: sovereignty-slogan wording (qualified line is live per the standing default; founder reviewing options), Facebook DYI export (recommendation given: request it — the clock is the only irreversible part).
+
+## Sovereignty line — founder's ruling (Oct 29, 2026, ~10:01 AM CT)
+
+Offered three softer fittings of the legal memo's qualified line, Petro chose **C — the plainest, no legal nouns**: "Your stories are yours, always. You can delete anything, anytime. The only time we could not delete something is if a court, or the law protecting a child, required us to keep it — and then we would keep it locked away and let you know." Swapped on both surfaces (consent display line + spoken script), the web README, and the copy-contract test; suite still 102/102; redeployed and verified live (new line ×2, old phrasing ×0).
