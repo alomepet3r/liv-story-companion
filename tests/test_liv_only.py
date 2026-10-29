@@ -20,28 +20,35 @@ Three rulings pinned here:
   (never the emoji glyph), an always-visible "Talk to Liv"
   label, and a distinct recording state in CSS.
 - CONVERSATION LAYOUT (founder ruling, same day; refined by
-  his hand sketch, same day; refined again on his review of
-  the deployed build, same day): the header is one compact
-  brand lockup — the flame-in-ring mark beside the word
-  Fireside, the project's filed public name — with "Talking
-  to Liv" (his phrasing: to, not with) as the quiet sub-line
-  beneath it. The transcript lives in a contained panel (the
-  box), composer below it. Speaker labels ride above each
-  turn, small — LIV left, YOU right, in capitals set by CSS,
-  with NO marker glyphs (the sketch's diamonds/dots were
-  removed on review); the DOM text stays "Liv" / "You" for
-  assistive technology. Both speakers' turns live in the
-  SAME shaped box (same radius, border, padding), a step
-  or two darker than the panel: Liv's in ember-tint ruled
-  ember at the left, the storyteller's in paper-3 ruled
-  ink at the right — the rule and the tint are the only
-  differentiators. The reply section is a distinct dark
-  band (the form on ink, same rounded language; button
-  positions unchanged). The composer follows the sketch:
-  reply label, field, then one action row (Talk to Liv ·
-  + Add · compact Send at the right end) — no full-width
-  send bar. Standing UI principle, in his words:
-  minimalist but very functional, conversational,
+  his hand sketch, then his review of the deployed build;
+  finally rebuilt to HIS OWN vetted mockup, same day): the
+  header is the wordmark as he drew it — "FireSide" in bold
+  italic near-black with an ember flame glyph after the
+  word — over the sub-line "Talking To Liv" (title case as
+  drawn; his phrasing: to, not with), Atkinson bold, quiet
+  gray, left-aligned. The transcript lives in a contained
+  panel (the box); an ember seam (4px) runs under it; then
+  the reply band. Speaker labels ride above each turn,
+  small — LIV left in ember-deep, YOU right in the
+  storyteller's blue (--user-blue #1458B4, declared by his
+  design), in capitals set by CSS with NO marker glyphs;
+  the DOM text stays "Liv" / "You" for assistive
+  technology. Both speakers' turns live in the SAME shaped
+  box on ONE shared tint (--box); the differentiators are
+  the 14px slabs — ember at Liv's LEFT, user-blue at the
+  storyteller's RIGHT — and the label colours. AMENDMENT
+  (founder, same day): dialogue boxes are RECTANGULAR
+  (border-radius 0, slabs flush); the panel, the field,
+  and the buttons keep their curves. The reply section is
+  a full-bleed dark band (the form on ink, broken out to
+  the viewport's width, content aligned to the column):
+  label "Reply", a white field with the mockup's 24px
+  radius, one action row (Talk to Liv · + Add · Send as a
+  full pill at the right end), and the session actions
+  inside the band as ghost outline buttons with "Take
+  your time" beneath them — nothing of the session area
+  remains on the canvas. Standing UI principle, in his
+  words: minimalist but very functional, conversational,
   intuitive, effective.
 """
 import unittest
@@ -236,18 +243,37 @@ class TestConversationLayout(unittest.TestCase):
             "<title>Fireside — Your stories, in your own voice"
             "</title>", self.html)
 
-    def test_brand_lockup_mark_beside_fireside(self):
+    def test_brand_lockup_wordmark_and_flame(self):
+        # The vetted mockup's wordmark: bold italic "FireSide"
+        # (capital F, capital S) with the ember flame glyph
+        # AFTER the word — the flame-in-ring medallion and the
+        # Cormorant name are gone.
         self.assertIn('class="brand-lockup"', self.html)
-        self.assertIn('<span class="brand-name">Fireside</span>',
+        self.assertIn('<span class="brand-name">FireSide</span>',
                       self.html)
-        # The old roundel-over-"Liv" stack is gone.
-        self.assertNotIn('class="wordmark', self.html)
+        self.assertIn('class="brand-flame"', self.html)
+        self.assertLess(self.html.index('class="brand-name"'),
+                        self.html.index('class="brand-flame"'))
+        self.assertNotIn('class="brand-mark"', self.html)
+        name = self.css.split(".brand-name {", 1)[1].split("}", 1)[0]
+        self.assertIn("font-style: italic", name)
+        self.assertIn("font-weight: 700", name)
+        flame = self.css.split(".brand-flame {", 1)[1]
+        flame = flame.split("}", 1)[0]
+        self.assertIn("color: var(--ember)", flame)
 
     def test_sub_line_is_the_founders_phrasing(self):
+        # His phrasing ("to", not "with"), presented title
+        # case as drawn in the vetted mockup — Atkinson bold,
+        # left-aligned, no longer Cormorant italic.
         self.assertIn(
             '<h1 id="chat-heading" class="chat-subtitle">'
-            "Talking to Liv</h1>", self.html)
+            "Talking To Liv</h1>", self.html)
         self.assertNotIn("Talking with", self.html)
+        sub = self.css.split(".chat-subtitle {", 1)[1].split("}", 1)[0]
+        self.assertIn("font-weight: 700", sub)
+        self.assertIn("text-align: left", sub)
+        self.assertNotIn("italic", sub)
 
     def test_conversation_lives_in_a_panel(self):
         panel = self.html.index('class="conversation-panel"')
@@ -291,25 +317,29 @@ class TestConversationLayout(unittest.TestCase):
         you = you.split("}", 1)[0]
         self.assertIn("text-align: right", you)
 
-    def test_turn_boxes_unified_with_mirrored_rules(self):
-        # Refinement (Oct 29, 2026): both speakers' turns live
-        # in the SAME shaped box — same radius, border, and
-        # padding. The only differentiators are the heavy
-        # rule (Liv's ember at the LEFT, the storyteller's
-        # ink at the RIGHT — the sketch's hatched edges) and
-        # the tint: both a step or two darker than the panel
-        # (paper-2), one step apart — ember-tint for Liv,
-        # paper-3 for the storyteller. Ink text holds past
-        # 11:1 on both (12.9:1 and 12.0:1, measured).
+    def test_turn_boxes_unified_with_mirrored_slabs(self):
+        # Vetted mockup (Oct 29, 2026): both speakers' turns
+        # live in the SAME shaped box on ONE shared tint
+        # (--box) — the ember-tint / paper-3 split is gone.
+        # The differentiators are the 14px slabs (ember at
+        # Liv's LEFT, the storyteller's blue at his RIGHT)
+        # and the label colours. AMENDMENT (founder, same
+        # day): dialogue boxes are RECTANGULAR — radius 0,
+        # slabs flush at the square edges; the panel, the
+        # field, and the buttons keep their curves. Ink text
+        # on the box measures 12.4:1.
+        self.assertIn("--box: #EFE9DC", self.css)
+        self.assertIn("--user-blue: #1458B4", self.css)
         liv = self.css.split(".msg.companion {", 1)[1].split("}", 1)[0]
-        self.assertIn("border-left: 3px solid var(--ember)", liv)
-        self.assertIn("background: var(--ember-tint)", liv)
-        self.assertIn("border-radius: var(--radius)", liv)
+        self.assertIn("border-left: 14px solid var(--ember)", liv)
+        self.assertIn("background: var(--box)", liv)
+        self.assertIn("border-radius: 0", liv)
         you = self.css.split(".msg.storyteller {", 1)[1]
         you = you.split("}", 1)[0]
-        self.assertIn("border-right: 3px solid var(--ink)", you)
-        self.assertIn("background: var(--paper-3)", you)
-        self.assertIn("border-radius: var(--radius)", you)
+        self.assertIn("border-right: 14px solid var(--user-blue)",
+                      you)
+        self.assertIn("background: var(--box)", you)
+        self.assertIn("border-radius: 0", you)
         # Same shape: the padding declaration is identical.
         liv_pad = [ln.strip() for ln in liv.splitlines()
                    if "padding:" in ln]
@@ -317,6 +347,16 @@ class TestConversationLayout(unittest.TestCase):
                    if "padding:" in ln]
         self.assertEqual(liv_pad, you_pad)
         self.assertEqual(liv_pad, ["padding: 1rem 1.25rem;"])
+        # The label colours ride with the speakers: LIV in
+        # ember-deep (8.4:1 on the box), YOU in his blue
+        # (5.6:1 on the box).
+        liv_who = self.css.split(".msg.companion .who {", 1)[1]
+        liv_who = liv_who.split("}", 1)[0]
+        self.assertIn("color: var(--ember-deep)", liv_who)
+        you_who = self.css.split(".msg.storyteller .who {", 1)[1]
+        you_who = you_who.split("}", 1)[0]
+        self.assertIn("color: var(--user-blue)", you_who)
+        self.assertIn("text-align: right", you_who)
 
     def test_composer_follows_the_sketch(self):
         # Below the box: the reply label and field, then ONE
@@ -341,21 +381,50 @@ class TestConversationLayout(unittest.TestCase):
         rule = rule.split("}", 1)[0]
         self.assertIn("margin-left: auto", rule)
 
-    def test_reply_section_is_a_dark_band(self):
-        # Refinement (Oct 29, 2026): the reply section is
-        # distinct — the form sits on ink, in the conversation
-        # box's rounded language, with the session actions and
-        # the "Take your time" line left below it on the
-        # canvas. Button positions inside are unchanged (the
-        # sketch test above still pins their order).
+    def test_reply_section_is_a_full_bleed_dark_band(self):
+        # Vetted mockup (Oct 29, 2026): the reply band breaks
+        # out to the full viewport width — the inset rounded
+        # panel is superseded. The ember seam stands between
+        # the conversation panel and the band. The session
+        # actions and the "Take your time" line live INSIDE
+        # the band; nothing of the session area remains on
+        # the canvas below it. Button positions inside are
+        # unchanged (the sketch test above still pins their
+        # order).
         self.assertIn('<form id="chat-form" class="reply-band">',
+                      self.html)
+        self.assertIn('<label for="chat-input">Reply</label>',
                       self.html)
         band = self.css.split(".reply-band {", 1)[1].split("}", 1)[0]
         self.assertIn("background: var(--ink)", band)
-        self.assertIn("border-radius: 18px", band)
+        self.assertIn("width: 100vw", band)
+        self.assertIn("margin-left: calc(50% - 50vw)", band)
+        # The seam: 4px of ember, spanning the column, in the
+        # DOM immediately before the band.
+        self.assertIn('class="seam"', self.html)
+        self.assertLess(self.html.index('class="seam"'),
+                        self.html.index('<form id="chat-form"'))
+        seam = self.css.split(".seam {", 1)[1].split("}", 1)[0]
+        self.assertIn("height: 4px", seam)
+        self.assertIn("background: var(--ember)", seam)
+        # The session area is inside the form (the band):
+        form_open = self.html.index('<form id="chat-form"')
+        form_close = self.html.index("</form>")
+        for frag in ('id="finish-btn"', 'id="chapter-btn"',
+                     'id="end-session-btn"',
+                     "Take your time. There is no hurry here."):
+            where = self.html.index(frag)
+            self.assertLess(form_open, where, frag)
+            self.assertLess(where, form_close, frag)
         # On the dark ground the words are paper (14.0:1)…
         self.assertIn("#chat-form.reply-band label", self.css)
         self.assertIn(".reply-band .voice-status", self.css)
+        # …the field is white with a paper border and the
+        # mockup's 24px radius…
+        field = self.css.split(".reply-band #chat-input {", 1)[1]
+        field = field.split("}", 1)[0]
+        self.assertIn("border: 2px solid var(--paper)", field)
+        self.assertIn("border-radius: 24px", field)
         # …and the ember pills carry a paper border, because
         # ember against ink alone is 1.92:1 — under WCAG
         # 1.4.11's 3:1 for a control's boundary.
@@ -365,6 +434,12 @@ class TestConversationLayout(unittest.TestCase):
         send = self.css.split(".reply-band button.primary {", 1)[1]
         send = send.split("}", 1)[0]
         self.assertIn("border: 1.5px solid var(--paper)", send)
+        # Send is a full pill now, matching Talk to Liv's
+        # shape, still at the row's right end.
+        row = self.css.split(".composer-actions .send-btn {", 1)[1]
+        row = row.split("}", 1)[0]
+        self.assertIn("margin-left: auto", row)
+        self.assertIn("border-radius: 999px", row)
 
 
 if __name__ == "__main__":
