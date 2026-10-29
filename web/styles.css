@@ -390,39 +390,42 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 .msg { animation: rise 0.38s ease-out both; }
 
 /* Speaker names ride above each turn, small and quiet
-   (founder's hand sketch, Oct 29, 2026 — refining the same
-   day's tag removal): a whisper, not the old shout. "◆ Liv"
-   over her blocks, left; "● You" over the storyteller's
-   cards, right. The label span stays in every turn, so
-   assistive technology reads the speaker as before. */
+   (founder's hand sketch, Oct 29, 2026; refined the same
+   day): LIV over her boxes, left; YOU over the storyteller's,
+   right — no marker glyphs, just the name itself, set in
+   capitals by CSS so the text assistive technology reads
+   stays "Liv" / "You". The label span stays in every turn,
+   so AT reads the speaker as before. */
 .msg .who {
   display: block;
   font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--ink-soft);
   margin-bottom: 0.3rem;
 }
 
-.msg.companion .who::before {
-  content: "◆ ";
-  color: var(--ember);
-}
-
 .msg.storyteller .who { text-align: right; }
 
-.msg.storyteller .who::before {
-  content: "● ";
-  color: var(--ink-soft);
-}
-
-/* Liv's replies: open editorial blocks, ruled at the left —
-   no plastic bubbles. The rule is ember, mirrored by the
-   storyteller's ink rule at the right (founder's hand
-   sketch, Oct 29, 2026: hatched edges on both sides). */
+/* Both speakers' turns live in the same shaped box
+   (founder refinement, Oct 29, 2026): same radius, border,
+   and padding — what differs is only the heavy rule and
+   the tint. Liv's box takes the ember-tint step, ruled
+   ember at the LEFT; the storyteller's (below) takes
+   paper-3, ruled ink at the RIGHT. Both tints sit darker
+   than the panel that holds them (paper-2) so the words
+   stand out, and ink text holds past 11:1 on both —
+   12.9:1 on ember-tint, 12.0:1 on paper-3 (measured,
+   Oct 29, 2026). The one deeper paper tone in the file,
+   #DCD2BF, was measured and rejected: ink on it is
+   10.0:1, under the founder's bar. */
 .msg.companion {
+  background: var(--ember-tint);
+  border: 1px solid rgba(43, 38, 34, 0.07);
   border-left: 3px solid var(--ember);
-  padding: 0.15rem 0 0.15rem 1.15rem;
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
   font-size: 1.21rem;
   line-height: 1.75;
 }
@@ -438,9 +441,10 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   line-height: 1.55;
 }
 
-/* The storyteller's words: a quiet tinted card, right-weighted,
-   ruled at the RIGHT in ink — the mirror of Liv's ember rule
-   at the left (founder's hand sketch, Oct 29, 2026). */
+/* The storyteller's words: the same shaped box as Liv's
+   (founder refinement, Oct 29, 2026), right-weighted, in
+   the paper-3 step, ruled at the RIGHT in ink — the mirror
+   of her ember rule at the left. */
 .msg.storyteller {
   align-self: flex-end;
   max-width: 88%;
@@ -889,6 +893,66 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   margin: 0.6rem 0 0;
 }
 
+/* The reply section is its own dark band (founder
+   refinement, Oct 29, 2026): the reply form — label,
+   field, and the action row — sits on ink, in the same
+   rounded language as the conversation box above it, so
+   the place where the storyteller writes reads as a
+   distinct room from the place where the conversation
+   lives. Button positions inside it are unchanged. On
+   the dark ground: the label and the status line are
+   paper (14.0:1); the field stays white with ink text
+   (15.0:1 — the strongest pairing on the page, where
+   his words are composed); the ember pills carry a
+   paper border, because ember against ink alone
+   measures 1.92:1 and a control's boundary must clear
+   3:1 (WCAG 1.4.11); the quiet controls (Discard,
+   + Add) take paper words and a paper edge; focus is
+   outlined in paper, not ember, on this ground. */
+.reply-band {
+  background: var(--ink);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.4rem 1.5rem 1.5rem;
+}
+
+#chat-form.reply-band label { color: var(--paper); }
+
+.reply-band .voice-status { color: var(--paper); }
+
+.reply-band :focus-visible { outline-color: var(--paper); }
+
+.reply-band .mic-btn { border-color: var(--paper); }
+
+.reply-band .mic-btn.recording {
+  border-color: var(--paper);
+  box-shadow: 0 0 0 3px rgba(251, 247, 239, 0.25);
+}
+
+.reply-band button.primary { border: 1.5px solid var(--paper); }
+
+.reply-band button.secondary {
+  color: var(--paper);
+  border-color: rgba(251, 247, 239, 0.75);
+  background: transparent;
+}
+
+.reply-band button.secondary:hover {
+  border-color: var(--paper);
+  background: rgba(251, 247, 239, 0.12);
+}
+
+.reply-band .attach-btn.attach-quiet { color: var(--paper); }
+
+.reply-band .attach-btn.attach-quiet:hover {
+  background: rgba(251, 247, 239, 0.14);
+  color: var(--paper);
+}
+
+/* The picker's open state keeps its own light ground
+   (ember words on the ember tint) even on the band. */
+.reply-band .attach-btn[aria-expanded="true"] { color: var(--ember); }
+
 .chat-actions { text-align: center; margin-top: 1.4rem; }
 
 #chat-screen .quiet {
@@ -908,11 +972,12 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   main { padding: 0.5rem 1rem 3rem; }
   h1 { font-size: 2.5rem; margin-top: 1.2rem; }
   .companion-intro, .plain-box { padding: 1.35rem 1.15rem; }
-  .msg.storyteller { max-width: 94%; }
-  .msg.companion { font-size: 1.15rem; padding-left: 0.95rem; }
+  .msg.storyteller { max-width: 94%; padding: 0.9rem 1.05rem; }
+  .msg.companion { font-size: 1.15rem; padding: 0.9rem 1.05rem; }
   .media-btn { flex: 1 1 6.8rem; font-size: 0.98rem; }
   .chat-subtitle { font-size: 1.22rem; }
   .conversation-panel { padding: 1.15rem 1rem 1.05rem; border-radius: 16px; }
+  .reply-band { padding: 1.15rem 1.05rem 1.25rem; border-radius: 16px; }
 }
 
 /* Chapter screen (Day 4 slice, pulled forward) — plan, draft,
