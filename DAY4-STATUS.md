@@ -23,3 +23,7 @@
 ## Sovereignty line — founder's ruling (Oct 29, 2026, ~10:01 AM CT)
 
 Offered three softer fittings of the legal memo's qualified line, Petro chose **C — the plainest, no legal nouns**: "Your stories are yours, always. You can delete anything, anytime. The only time we could not delete something is if a court, or the law protecting a child, required us to keep it — and then we would keep it locked away and let you know." Swapped on both surfaces (consent display line + spoken script), the web README, and the copy-contract test; suite still 102/102; redeployed and verified live (new line ×2, old phrasing ×0).
+
+## Facebook DYI export — REQUESTED (Oct 29, 2026, 3:48 PM CT)
+
+Founder walked the Accounts Center export flow with Hugo routing from screenshots: profile **Alomepe Peter (Facebook)** · **Export to Device** · **Posts only** (this exporter folds photos into Posts; no separate photos category exists) · **Format: JSON** · **Date range: All time** · Media quality: Medium. Status at request: "Your information is being prepared for export" (Current activity → Requested, 10/29/26); ready-notification goes to his Gmail; download window is four days once ready. The Oct 30 cut default is beaten — **the archive beat stays alive for the Nov 2 filming.** When the zip lands, test the importer against real data before filming day.
