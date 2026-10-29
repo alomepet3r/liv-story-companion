@@ -19,16 +19,21 @@ Three rulings pinned here:
 - MIC BUTTON (UI/UX ruling, same day): an inline SVG microphone
   (never the emoji glyph), an always-visible "Talk to Liv"
   label, and a distinct recording state in CSS.
-- CONVERSATION LAYOUT (founder ruling, same day): the header is
-  one compact brand lockup — the flame-in-ring mark beside the
-  word Fireside, the project's filed public name — with
-  "Talking to Liv" (his phrasing: to, not with) as the quiet
-  sub-line beneath it. The transcript lives in a contained
-  panel (the box), composer below it. The visible ◆ LIV / YOU
-  speaker tags are gone; the speaker label stays in every turn,
-  visually hidden, for assistive technology. Standing UI
-  principle, in his words: minimalist but very functional,
-  conversational, intuitive, effective.
+- CONVERSATION LAYOUT (founder ruling, same day; refined by
+  his hand sketch, same day): the header is one compact brand
+  lockup — the flame-in-ring mark beside the word Fireside,
+  the project's filed public name — with "Talking to Liv"
+  (his phrasing: to, not with) as the quiet sub-line beneath
+  it. The transcript lives in a contained panel (the box),
+  composer below it. Speaker labels ride above each turn,
+  small and quiet — "◆ Liv" left, "● You" right — after the
+  sketch reversed the brief tag removal; Liv's blocks are
+  ruled ember at the left, the storyteller's cards ink at
+  the right. The composer follows the sketch: reply label,
+  field, then one action row (Talk to Liv · + Add · compact
+  Send at the right end) — no full-width send bar. Standing
+  UI principle, in his words: minimalist but very
+  functional, conversational, intuitive, effective.
 """
 import unittest
 from pathlib import Path
@@ -251,16 +256,65 @@ class TestConversationLayout(unittest.TestCase):
         self.assertIn("border: 1px solid var(--line)", block)
         self.assertIn("border-radius: 18px", block)
 
-    def test_speaker_tags_hidden_but_present_for_at(self):
-        # app.js still labels every turn; CSS hides the label
-        # visually (the standard visually-hidden recipe).
+    def test_speaker_labels_small_visible_and_kept_for_at(self):
+        # The founder's sketch reversed the tag removal: labels
+        # ride above each turn, small and quiet — a whisper, not
+        # the old shout. app.js still builds the label span for
+        # every turn, so AT reads the speaker as before.
         self.assertIn('label.className = "who"', self.js)
         block = self.css.split(".msg .who {", 1)[1].split("}", 1)[0]
-        self.assertIn("position: absolute", block)
-        self.assertIn("clip-path: inset(50%)", block)
-        self.assertNotIn("text-transform: uppercase", block)
-        # The visible tag's ember diamond is gone.
-        self.assertNotIn(".who::before", self.css)
+        self.assertIn("display: block", block)
+        self.assertIn("font-size: 0.82rem", block)
+        # The visually-hidden recipe is gone.
+        self.assertNotIn("clip-path: inset(50%)", block)
+        self.assertNotIn("position: absolute", block)
+        # The sketch's markers: an ember diamond for Liv, a
+        # quiet dot for the storyteller, whose label aligns
+        # right over his cards.
+        liv = self.css.split(".msg.companion .who::before {", 1)[1]
+        liv = liv.split("}", 1)[0]
+        self.assertIn('"◆ "', liv)
+        self.assertIn("var(--ember)", liv)
+        you = self.css.split(".msg.storyteller .who {", 1)[1]
+        you = you.split("}", 1)[0]
+        self.assertIn("text-align: right", you)
+        dot = self.css.split(".msg.storyteller .who::before {", 1)[1]
+        dot = dot.split("}", 1)[0]
+        self.assertIn('"● "', dot)
+
+    def test_mirrored_edge_rules(self):
+        # Liv's blocks: a heavy ember rule at the left. The
+        # storyteller's cards: a heavy ink rule at the right,
+        # mirroring hers (the sketch's hatched edges).
+        liv = self.css.split(".msg.companion {", 1)[1].split("}", 1)[0]
+        self.assertIn("border-left: 3px solid var(--ember)", liv)
+        you = self.css.split(".msg.storyteller {", 1)[1]
+        you = you.split("}", 1)[0]
+        self.assertIn("border-right: 3px solid var(--ink)", you)
+        self.assertIn("background: var(--paper-3)", you)
+
+    def test_composer_follows_the_sketch(self):
+        # Below the box: the reply label and field, then ONE
+        # action row — Talk to Liv, + Add (quiet, moved down
+        # from its old row above the field), Send compact at
+        # the row's right end. No full-width send bar.
+        field = self.html.index('id="chat-input"')
+        mic = self.html.index('id="mic-btn"')
+        attach = self.html.index('id="btn-attach"')
+        send = self.html.index('class="primary small send-btn"')
+        self.assertLess(field, mic)
+        self.assertLess(mic, attach)
+        self.assertLess(attach, send)
+        self.assertIn('class="attach-btn attach-quiet"', self.html)
+        # The button left the old standalone attach row; the
+        # picker it controls stayed in place above the form.
+        row = self.html.split('class="attach-row"', 1)[1]
+        row = row.split("</div>", 1)[0]
+        self.assertNotIn('id="btn-attach"', row)
+        self.assertIn('id="attach-picker"', row)
+        rule = self.css.split(".composer-actions .send-btn {", 1)[1]
+        rule = rule.split("}", 1)[0]
+        self.assertIn("margin-left: auto", rule)
 
 
 if __name__ == "__main__":
