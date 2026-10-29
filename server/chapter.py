@@ -58,21 +58,212 @@ def _clean_turn(text):
     return _BRACKET_NOTE_RE.sub("", text or "").strip()
 
 
+# ------------------------------------------------------------------
+# Housekeeping turns (wart 3, Day 4): the conversation's plumbing
+# is not story material. The answer to "what would you like me to
+# call you?", a bare greeting, a decline of the name question, a
+# closing phrase, a question TO Liv about the conversation — none
+# of these are tellings, and none may enter a chapter's sources.
+# Detection is deliberately narrow and shape-based (the same
+# discipline as the companion's own name capture): a substantive
+# telling that merely happens to be short ("It did not stay with
+# me.") is never housekeeping.
+# ------------------------------------------------------------------
+
+_NAME_TOKEN = r"[A-Za-z][A-Za-z'’\-]*"
+_DECLARATION_RE = re.compile(
+    r"^(?:please\s+)?(?:call me|calls me|my name is|this is|"
+    r"you can call me|i am|i'?m)\s+(?P<name>" + _NAME_TOKEN +
+    r"(?:\s+" + _NAME_TOKEN + r")?)"
+    r"(?:\s*,?\s*(?:please|thanks|thank you))?\s*[.!]?$",
+    re.IGNORECASE)
+_JUST_NAME_RE = re.compile(
+    r"^just\s+(?:call me\s+)?(?P<name>" + _NAME_TOKEN +
+    r"(?:\s+" + _NAME_TOKEN + r")?)\s*[.!]?$", re.IGNORECASE)
+# Words that can never be a preferred name — sentence glue that
+# follows "I'm …" / "call me …" in ordinary speech ("I'm from
+# Bamenda", "call me back later"). Mirrors the companion's own
+# name-capture stop list in canned.py.
+_NAME_GLUE = {
+    "from", "here", "there", "just", "not", "back", "later",
+    "when", "if", "so", "very", "really", "fine", "okay", "ok",
+    "ready", "telling", "going", "looking", "trying", "hoping",
+    "glad", "happy", "sorry", "afraid", "sure", "name", "called",
+    "a", "an", "the", "and", "but", "because", "today", "now",
+    "please", "thanks", "thank", "you", "me", "my", "this",
+    "that", "it", "is", "am", "are", "was", "were", "be", "been",
+    "i", "we", "he", "she", "they", "in", "at", "on", "with",
+    "for", "born", "breathe",
+}
+_DECLINE_RE = re.compile(
+    r"^(?:no(?:\s+name)?|no thanks|i'?d rather not(?:\s+say)?|"
+    r"rather not(?:\s+say)?|prefer not(?:\s+to say)?|"
+    r"don'?t want to say|"
+    r"do not want to say|not comfortable|skip(?:\s+it)?|pass)"
+    r"(?:\s*,?\s*(?:please|thanks|thank you))?\s*[.!]?$",
+    re.IGNORECASE)
+_GREETING_RE = re.compile(
+    r"^(?:hello|hi|hey|greetings|good morning|good afternoon|"
+    r"good evening)(?:\s+(?:liv|livio|livia|there))?\s*[.!]?$",
+    re.IGNORECASE)
+_CLOSE_RE = re.compile(
+    r"^(?:finish for today|that'?s all(?:\s+for today)?|"
+    r"i'?m done(?:\s+for today)?|let'?s stop(?:\s+here)?|"
+    r"we can stop(?:\s+here)?|goodbye|good night|bye)\s*[.!]?$",
+    re.IGNORECASE)
+_META_RE = re.compile(
+    r"^(?:what do you think (?:about|of) (?:our|this) "
+    r"conversation.*|are you listening.*|"
+    r"what have we talked about.*|do you remember .*|"
+    r"can you hear me.*)\?$", re.IGNORECASE)
+_NOT_A_NAME = {
+    "hello", "hi", "hey", "yes", "yeah", "no", "okay", "ok",
+    "sure", "fine", "thanks", "thank", "ready", "begin", "start",
+    "story", "none", "nothing", "skip", "pass", "well", "right",
+    "good", "today", "tonight", "now", "please",
+}
+
+
+def _is_bare_name(text):
+    """A whole turn that is only a name: one token in any case, or
+    up to three tokens that are all capitalised name shapes. A
+    short sentence ("Boxing saved me.") is not a name — its later
+    words are not capitalised and it is never treated as one."""
+    tokens = re.findall(r"[A-Za-z][A-Za-z'’\-]*", text)
+    if not tokens or len(tokens) > 3:
+        return False
+    if any(t.lower() in _NOT_A_NAME for t in tokens):
+        return False
+    if len(tokens) == 1:
+        return True
+    return all(t[:1].isupper() for t in tokens)
+
+
+def _is_declaration(text):
+    """A pure name declaration ("Call me Margaret.", "I'm
+    Margaret.", "Just Margaret.") whose name part is really a
+    name — no sentence glue."""
+    for pattern in (_DECLARATION_RE, _JUST_NAME_RE):
+        match = pattern.match(text)
+        if match:
+            tokens = match.group("name").lower().split()
+            if not any(t.strip("’'") in _NAME_GLUE for t in tokens):
+                return True
+    return False
+
+
+def _is_housekeeping_sentence(text):
+    """One sentence that is purely conversational plumbing: a
+    name declaration or a bare greeting."""
+    text = text.strip()
+    return bool(_is_declaration(text) or _GREETING_RE.match(text))
+
+
+def _is_housekeeping_turn(text, is_first):
+    """A whole user turn that is housekeeping, not a telling.
+    Bare names and declines only count at the conversation's
+    opening, where they answer Liv's first question; the same
+    shapes mid-story are the storyteller's business."""
+    text = text.strip()
+    if _is_housekeeping_sentence(text):
+        return True
+    if _CLOSE_RE.match(text) or _META_RE.match(text):
+        return True
+    if is_first and (_DECLINE_RE.match(text) or _is_bare_name(text)):
+        return True
+    return False
+
+
+def _content_turn(text, is_first):
+    """The chapter-worthy part of a user turn: "" when the turn
+    is housekeeping, the turn minus a leading housekeeping
+    sentence when a telling follows one ("Call me Petro. My dad
+    had just passed…" keeps the telling), else the turn itself."""
+    if _is_housekeeping_turn(text, is_first):
+        return ""
+    parts = re.split(r"(?<=[.!?])\s+", text)
+    if len(parts) > 1 and _is_housekeeping_sentence(parts[0]):
+        rest = " ".join(parts[1:]).strip()
+        if rest:
+            return rest
+    return text
+
+
+# ------------------------------------------------------------------
+# Labels (wart 1, Day 4): a material the storyteller cannot
+# recognise cannot be knowingly included or excluded, so every
+# material is labelled by its own opening — a telling by its
+# first words, a media item by the most identifying detail it
+# carries (caption, then date, then album, then share time).
+# ------------------------------------------------------------------
+
+def _excerpt(text, max_words=10):
+    """The opening of a text, cut cleanly: at most max_words
+    words, backing off to the last clause boundary in reach
+    rather than chopping mid-phrase. An ellipsis appears only
+    when text was actually left behind, at that clean cut."""
+    text = " ".join((text or "").split())
+    words = text.split()
+    if len(words) <= max_words:
+        return text
+    cut = max_words
+    for i in range(max_words, 5, -1):
+        if words[i - 1].endswith((",", ";", ":")):
+            cut = i
+            break
+    excerpt = " ".join(words[:cut]).rstrip(",;:.!?")
+    return excerpt + "\u2026"
+
+
+def _telling_label(text):
+    return "\u201c" + _excerpt(text, 10) + "\u201d"
+
+
+def _media_label(item):
+    kind = item.get("kind", "photo")
+    base = {"photo": "A photo", "audio": "A voice recording",
+            "video": "A video"}.get(kind, "A photo")
+    if item.get("source") == "archive":
+        base += " from your archive"
+        if item.get("caption"):
+            return base + " — \u201c" + _excerpt(
+                item["caption"], 6) + "\u201d"
+        if item.get("date_str"):
+            return base + ", dated " + item["date_str"]
+        if item.get("album"):
+            return base + ", from the album \u201c" + \
+                item["album"] + "\u201d"
+        return base
+    label = base + " you shared"
+    if item.get("caption"):
+        return label + " — \u201c" + _excerpt(
+            item["caption"], 6) + "\u201d"
+    if item.get("shared_at"):
+        return label + " · " + item["shared_at"]
+    return label
+
+
 def gather_sources(sess):
     """The session's chapter materials, in telling order.
 
-    Conversation turns (the storyteller's own words) first, then
-    the media they shared in this session — including archive
-    photos they explicitly selected, whose captions are their own
-    words from the time of the photo.
+    Conversation turns (the storyteller's own words, minus
+    housekeeping turns) first, then the media they shared in this
+    session — including archive photos they explicitly selected,
+    whose captions are their own words from the time of the photo.
     """
     sources = []
     n = 0
     told = []           # the storyteller's typed/spoken turn texts
+    seen_turn = False
     for turn in sess.get("history", []):
         if turn.get("role") != "user":
             continue
         text = _clean_turn(turn.get("content"))
+        if not text:
+            continue
+        is_first = not seen_turn
+        seen_turn = True
+        text = _content_turn(text, is_first)
         if not text:
             continue
         n += 1
@@ -80,7 +271,7 @@ def gather_sources(sess):
         sources.append({
             "id": "s%d" % n,
             "kind": "words",
-            "label": "Something you told Liv",
+            "label": _telling_label(text),
             "text": text,
             "media_id": None,
         })
@@ -88,18 +279,7 @@ def gather_sources(sess):
     for media_id, item in sess.get("media", {}).items():
         n += 1
         kind = item.get("kind", "photo")
-        if item.get("source") == "archive":
-            label = "A photo from your archive"
-            if item.get("date_str"):
-                label += ", dated " + item["date_str"]
-            if item.get("caption"):
-                label += " — \u201c" + item["caption"] + "\u201d"
-        elif kind == "photo":
-            label = "A photo you shared"
-        elif kind == "audio":
-            label = "A voice recording you shared"
-        else:
-            label = "A video you shared"
+        label = _media_label(item)
         text = item.get("caption") or ""
         # Day 3: a transcript IS a telling. When a recording's
         # words already ride in the conversation turns above (they
@@ -114,7 +294,8 @@ def gather_sources(sess):
             text = transcript
             label = ("Words you spoke in " +
                      ("a recording" if kind == "audio"
-                      else "a video") + " you shared")
+                      else "a video") + ": \u201c" +
+                     _excerpt(transcript, 8) + "\u201d")
         sources.append({
             "id": "s%d" % n,
             "kind": kind,
@@ -122,6 +303,16 @@ def gather_sources(sess):
             "text": text,
             "media_id": media_id,
         })
+    # No two materials whose content differs may share a label:
+    # a repeated label earns an honest distinguishing number.
+    seen_labels = {}
+    for src in sources:
+        label = src["label"]
+        if label in seen_labels:
+            seen_labels[label] += 1
+            src["label"] = "%s (%d)" % (label, seen_labels[label])
+        else:
+            seen_labels[label] = 1
     return sources
 
 
@@ -141,19 +332,59 @@ _SECTION_HEADINGS = {
 }
 
 
+_TITLE_DANGLING = {
+    "in", "on", "at", "the", "a", "an", "and", "but", "or", "of",
+    "to", "with", "from", "by", "for", "was", "is", "it", "i",
+    "my", "his", "her", "their", "our", "your", "when", "then",
+}
+
+
+def _title_from_sentence(sentence):
+    """A title from one sentence, or None. A short complete
+    sentence may stand whole; a long one is cut only at a clause
+    boundary (comma, semicolon, colon, dash, or a conjunction)
+    that leaves a phrase of 4–9 words not ending on a dangling
+    word. A sentence that offers neither is not a title — the
+    caller moves on rather than chopping it mid-thought."""
+    sentence = sentence.strip().strip("\u201c\u201d\"' ")
+    words = sentence.split()
+    if len(words) < 2:
+        return None
+    if len(words) <= 8:
+        title = sentence.rstrip(".!?").strip()
+        return title or None
+    for cut in range(4, 10):
+        token = words[cut - 1].strip(",;:").lower()
+        raw = words[cut - 1]
+        following = words[cut].strip(",;:").lower() \
+            if cut < len(words) else ""
+        boundary = raw.endswith((",", ";", ":")) \
+            or raw in ("\u2014", "-") \
+            or following in ("and", "but")
+        if boundary and token not in _TITLE_DANGLING:
+            title = " ".join(words[:cut]).rstrip(",;:.!?-").strip()
+            if title:
+                return title
+    return None
+
+
 def suggest_title(sources):
-    """A title grown from the storyteller's own longest telling —
-    the first words of its first sentence, offered as a suggestion
-    they can change."""
+    """A title grown from the storyteller's own words — a
+    complete short sentence, or a clean clause of a longer one,
+    taken from the tellings in the order they were told (wart 2,
+    Day 4). Never a truncated fragment: when no telling offers a
+    clean derivation, the honest fallback is offered instead and
+    the naming is left to the storyteller."""
     words = [s for s in sources if s["kind"] == "words" and s["text"]]
     if not words:
         return "A chapter from our conversation"
-    longest = max(words, key=lambda s: len(s["text"]))
-    first = re.split(r"(?<=[.!?])\s+", longest["text"])[0].strip()
-    tokens = first.split()
-    if len(tokens) > 7:
-        first = " ".join(tokens[:7]) + "\u2026"
-    return first or "A chapter from our conversation"
+    for src in words:
+        sentences = re.split(r"(?<=[.!?])\s+", src["text"])
+        for sentence in sentences[:3]:
+            title = _title_from_sentence(sentence)
+            if title:
+                return title
+    return "Untitled \u2014 yours to name"
 
 
 def build_outline(sources, excluded=()):

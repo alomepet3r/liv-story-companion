@@ -21,6 +21,7 @@ import os
 import re
 import secrets
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -547,6 +548,10 @@ def handle_media_upload(fields, files):
         "name": filename,
         "transcript": None,
         "transcript_status": None,
+        # When it was shared, for the chapter plan's material
+        # labels (a media item is identified by the detail it
+        # carries: caption, date, album, or this share time).
+        "shared_at": time.strftime("%I:%M %p").lstrip("0"),
     }
     if kind in ("audio", "video"):
         item["transcript_status"] = "unavailable"
