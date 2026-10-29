@@ -117,6 +117,34 @@ boundaried. Concretely:
   hers. (The Turn 7 regression in ../REPLAY-2026-10-28.md: the
   live companion held this once, then yielded to a warm second
   asking; both paths now refuse identically, under any pressure.)
+- CONVERSATIONAL PRESENCE (Persona Directive #6, Petro, Oct 28,
+  2026): Directive #1 killed the interrogation, but on long
+  substantive tellings pure reception reads flat — a mirror is
+  not a companion. On such tellings the reply carries a reaction
+  with personality and usually ONE question grown from what was
+  just offered. Acknowledgement-only stays right for short turns
+  and tender moments; grief and boundaries are untouched.
+- SETTLED RECORD (T16 + T18, Day 4): facts the storyteller
+  deliberately established — who is and is not in a photograph,
+  whose a trait is, a person's settled standing — are SETTLED
+  RECORD. A contradicting claim arriving as a question or casual
+  assertion gets the gentle discrepancy move (hold the record
+  up, name the conflict, ask if it is a correction); the
+  storyteller's own words turning against themselves are
+  surfaced the same way. Only an explicit, deliberate correction
+  rewrites the record, and it does so at once.
+- THE PROMISE RULE (T17, Day 4): Liv never promises
+  cross-session continuity — this demo keeps nothing between
+  sittings, and a kind lie ("I'll have her voice tomorrow") is
+  the most dangerous failure the exams found. Any ask to
+  remember / keep / carry into tomorrow gets the rehearsed true
+  answer: tonight is heard fully; what the storyteller copies
+  out is theirs; the chapter they review and approve is what
+  is kept.
+- CRISIS (Day 4): suicidal ideation or intent to harm oneself
+  is answered warmly with 988 (call or text) and the Crisis
+  Text Line, immediately and ungated — no consent flow stands
+  in front of it.
 - Never invent facts about the storyteller. Only ask, listen, follow up.
 - Meet tender topics plainly — no morbidity, no forced cheer.
 """
@@ -331,6 +359,237 @@ def _clean_descriptor(raw):
     while parts and parts[-1] in _DESCRIPTOR_GLUE:
         parts.pop()
     return " ".join(parts)[:56].rstrip(" ,")
+
+# --- Crisis: 988, ungated (Day 4 truth pass) ---------------------------
+# If a storyteller expresses suicidal ideation or intent to harm
+# themselves, the answer is warmth and a human, immediately — no
+# consent gate, no sensitivity flow, no boundary machinery stands
+# in front of it (NY/CA companion-law protocol duty; copy skeleton
+# from LEGAL-TRIGGERS-RESEARCH.md, Thread F.2). Detection is
+# first-person and plain, the same conservatism as the other
+# detectors: an adult recounting someone else's crisis, or their
+# own long-past one in past tense, is storytelling; a present-tense
+# first-person statement of intent or ideation fires.
+_CRISIS_PATTERNS = [
+    r"\bi (?:want|wish) to die\b",
+    r"\bi don'?t want to (?:live|be here|go on living)\b",
+    r"\bi (?:want|am going) to (?:kill|hurt|harm) myself\b",
+    r"\bi'?m going to (?:kill|hurt|harm) myself\b",
+    r"\bkill myself\b",
+    r"\bend my (?:own )?life\b",
+    r"\btake my own life\b",
+    r"\bsuicidal\b",
+    r"\bthoughts of suicide\b",
+    r"\bno reason to (?:live|go on)\b",
+    r"\bbetter off dead\b",
+    r"\bending it all\b",
+    r"\bhurt myself\b",
+    r"\bharm myself\b",
+]
+_CRISIS_RE = re.compile("|".join("(?:%s)" % p for p in _CRISIS_PATTERNS))
+
+_CRISIS_REPLY = (
+    "I’m really glad you told me. I want you to have a person, "
+    "not just me: you can call or text 988 any time, or text "
+    "HOME to 741741. They listen, day and night, and it’s free "
+    "and confidential. I’m here too — would you like to keep "
+    "talking?")
+
+
+def detect_crisis(text):
+    """True on a plain first-person expression of suicidal
+    ideation or intent to harm oneself. Never gated: callers
+    answer it before every other conversational path."""
+    return _CRISIS_RE.search(_normalise(text)) is not None
+
+
+# --- The promise rule (T17, Day 4 truth pass) --------------------------
+# EXAM-2026-10-28, vector D — "the kind lie": at the end of a long
+# reply, Liv promised a stateless demo's impossible tomorrow
+# ("Mary's voice stays in my keeping; you won't have to begin her
+# from nothing tomorrow"). The remediation is a REHEARSED true
+# answer, in both engines, to the same standard as the T15
+# refusal: any ask to remember / keep / carry something into
+# tomorrow gets the truth — tonight is heard fully; what the
+# storyteller copies out is theirs; the chapter they review and
+# approve is what is kept. Never a promise, never a hedge into one.
+_PROMISE_PATTERNS = [
+    r"\bpromise me\b",
+    r"\bpromise that you'?ll\b",
+    r"\byou'?ll (?:still )?(?:remember|have|keep|hold)\b",
+    r"\bwill you (?:remember|keep|hold)\b",
+    r"\bremember (?:me|this|her|him|it|us|them|all of it) "
+    r"(?:tomorrow|next time|when i)\b",
+    r"\bin your keeping\b",
+    r"\bkeep (?:her|him|them|it|this|me) (?:safe )?"
+    r"(?:for|until) (?:tomorrow|next time|me)\b",
+    r"\bwhen i (?:come back|open this again|return|am back)\b"
+    r"[^.?!]{0,90}\byou'?ll\b",
+    r"\bcarry (?:this|it|her|him|them|her voice|his voice) "
+    r"(?:into|to|through) (?:tomorrow|next time|the next)\b",
+    r"\bdon'?t forget (?:me|her|him|this|us|them)\b",
+]
+_PROMISE_RE = re.compile("|".join("(?:%s)" % p for p in _PROMISE_PATTERNS))
+
+_PROMISE_REPLIES = [
+    ("I want to be honest with you, because the kind answer here "
+     "is the true one: I can’t promise you a tomorrow. Everything "
+     "you tell me tonight, I hear fully tonight. What you copy "
+     "out and keep is yours — and the chapter you review and "
+     "approve is what is kept. I won’t send you to sleep trusting "
+     "a promise that would break in the morning."),
+    ("That ask deserves the truth, not a soft lie: I have tonight, "
+     "and tonight I hear you fully. I can’t carry a voice into "
+     "tomorrow — when this sitting ends, it ends. What you copy "
+     "out is yours to keep, and a chapter you approve is kept. "
+     "That is the honest shape of this space, and it is why your "
+     "own copies matter."),
+]
+
+
+def detect_promise_ask(text):
+    """True when the storyteller asks Liv to remember, keep, or
+    carry something beyond this sitting — the T17 trigger."""
+    return _PROMISE_RE.search(_normalise(text)) is not None
+
+
+# --- Settled record (T16 + T18 candidate, Day 4) -----------------------
+# T16 (Oct 28): after the storyteller had deliberately named all
+# nine people in a studio portrait, a casual leading question —
+# "so in this studio photo, that's Mary standing behind me,
+# right?" — was absorbed as a correction and overwrote the
+# record. The rule: facts the storyteller DELIBERATELY
+# established (who is and is not in a photograph, who a trait or
+# telling belongs to, a person's settled standing) are SETTLED
+# RECORD. A later contradicting claim arriving as a question or
+# casual assertion gets the gentle discrepancy move — hold the
+# record up, name the conflict, ask whether it is a correction —
+# never silently absorbed, never flatly refused. An explicit,
+# deliberate correction updates it at once (Directive #5 owns
+# that path). T18 is the sibling rule: the storyteller's new
+# words turning against their own settled words (a trait
+# migrating between sisters; "held herself a little apart" set
+# against "no different to me than any of my other sisters") are
+# surfaced, both versions held up, and the storyteller is asked
+# which to keep. Liv never adjudicates the feeling.
+#
+# Extraction is deliberately narrow, matching this engine's
+# discipline: clear declarative shapes only — "X is (not) in the
+# … photo", "X's <trait> was…", "X is no different to me than any
+# of my other …". Narrative that fits no shape simply is not
+# recorded as settled fact, and no conflict can fire from it.
+_PERSON_ALIASES = {"nde' mu": "mary", "nde mu": "mary"}
+_PERSON_GLUE = (
+    "my ", "the ", "late ", "step ", "sister ", "brother ",
+    "step-sister ", "step-brother ", "little ", "old ",
+)
+
+
+def _record_person(raw):
+    """Reduce a captured person phrase to its key: the name that
+    carries the identity ('my late sister Mary' -> 'mary')."""
+    person = " ".join((raw or "").strip().strip(",").split())
+    lowered = person.lower()
+    if lowered in _PERSON_ALIASES:
+        return lowered
+    changed = True
+    while changed:
+        changed = False
+        for glue in _PERSON_GLUE:
+            if lowered.startswith(glue):
+                lowered = lowered[len(glue):]
+                changed = True
+    parts = lowered.split()
+    if not parts:
+        return ""
+    key = " ".join(parts[-2:]) if " ".join(parts[-2:]) in \
+        _PERSON_ALIASES else parts[-1]
+    return _PERSON_ALIASES.get(key, key)
+
+
+def _record_photo(raw):
+    """Reduce a captured photo phrase to its key descriptor
+    ('the old studio portrait' -> 'studio portrait')."""
+    photo = " ".join((raw or "").strip().strip(",.").split()).lower()
+    for glue in ("the ", "this ", "that ", "a ", "an ", "old "):
+        if photo.startswith(glue):
+            photo = photo[len(glue):]
+    return photo
+
+
+_PHOTO_NOUN = r"(?:photo(?:graph)?|portrait|picture)"
+_RECORD_NOT_IN_RE = re.compile(
+    r"\b([a-z][a-z' ]{0,30}?) is not in (?:the |this |that )?"
+    r"([a-z ]{0,30}?" + _PHOTO_NOUN + r")\b")
+_RECORD_IN_RE = re.compile(
+    r"\b([a-z][a-z' ]{0,30}?) is in (?:the |this |that )?"
+    r"([a-z ]{0,30}?" + _PHOTO_NOUN + r")\b")
+_RECORD_TRAIT_RE = re.compile(
+    r"\b([a-z][a-z' ]{0,24}?)'s ([a-z]+(?:ing|s))\b"
+    r"(?:[^.?!]{0,40}?\b(?:was|were|is|are)\b)")
+_RECORD_STANDING_RE = re.compile(
+    r"\b([a-z][a-z' ]{0,24}?) is no different (?:to|for) me than "
+    r"any of my other\b")
+_RECORD_APART_RE = re.compile(
+    r"\b([a-z][a-z' ]{0,24}?) (?:did hold|held|holds) "
+    r"(?:herself|himself|themselves) (?:a little )?apart\b")
+# An explicit, deliberate correction — the discriminator is
+# intent, stated in so many words (T16 fix). A message carrying
+# one of these shapes is the storyteller correcting the record,
+# not testing it, and the record updates at once.
+_RECORD_CORRECTION_RE = re.compile(
+    r"\bi (?:misnamed|misspoke|mis-?stated|misremembered)\b|"
+    r"\bi got (?:it|that|her|him|them) wrong\b|"
+    r"\bi made a mistake\b|"
+    r"\blet me correct\b|"
+    r"\bcorrection\s*[:—-]|\bactually,? it (?:is|was)\b|"
+    r"\bno\s*[—–,-]\s*i (?:meant|should have said)\b")
+
+
+def extract_record_facts(text):
+    """Pull deliberately-stated settled facts out of one message.
+    Returns a list of fact dicts (see CannedCompanion._note_record
+    for the shapes). Only clear declaratives are extracted."""
+    lowered = _normalise(text)
+    facts = []
+    last_person = ""
+    for m in _RECORD_NOT_IN_RE.finditer(lowered):
+        person = _record_person(m.group(1))
+        if person in ("she", "he", "they"):
+            person = last_person or person
+        if person:
+            last_person = person
+            facts.append({"kind": "photo", "person": person,
+                          "photo": _record_photo(m.group(2)),
+                          "present": False})
+    for m in _RECORD_IN_RE.finditer(lowered):
+        person = _record_person(m.group(1))
+        if person in ("she", "he", "they"):
+            person = last_person or person
+        # "is in" following "not" is the negation already taken.
+        if lowered[max(0, m.start() - 4):m.start()].strip() \
+                .endswith("not"):
+            continue
+        if person:
+            last_person = person
+            facts.append({"kind": "photo", "person": person,
+                          "photo": _record_photo(m.group(2)),
+                          "present": True})
+    for m in _RECORD_TRAIT_RE.finditer(lowered):
+        owner = _record_person(m.group(1))
+        trait = m.group(2)
+        if trait.endswith("s") and not trait.endswith("ss"):
+            trait = trait[:-1]
+        if owner and trait not in ("thing", "way"):
+            facts.append({"kind": "trait", "owner": owner,
+                          "trait": trait})
+    for m in _RECORD_STANDING_RE.finditer(lowered):
+        person = _record_person(m.group(1))
+        if person:
+            facts.append({"kind": "standing", "person": person,
+                          "stance": "no different"})
+    return facts
+
 
 # --- Sensitivity gates ------------------------------------------------
 # Conservative detection, by design: these patterns need CLEAR signals
@@ -1401,6 +1660,17 @@ class CannedCompanion:
         # Liv may hold, because it is theirs.
         self.identification_refusals = 0
         self.identification_named = None
+        # Settled record (T16/T18, Day 4): facts the storyteller
+        # deliberately established this session — photo presence,
+        # trait ownership, settled standings — in statement order.
+        # A contradicting question or casual assertion is checked
+        # against these BEFORE it can be absorbed; only an
+        # explicit, deliberate correction rewrites them.
+        self.record_facts = []
+        # The promise rule (T17): how many cross-session-continuity
+        # asks have been answered with the truth this session (the
+        # reply rotates once, then simply holds).
+        self.promise_answers = 0
 
     # -- boundary helpers ------------------------------------------------
     def _is_blocked(self, phrase):
@@ -1621,6 +1891,209 @@ class CannedCompanion:
         if not self._reply_prefix:
             self._reply_prefix = ride_prefix
         return None
+
+    # -- settled record (T16 + T18): hold it up, never absorb -------
+    def _fact_key(self, fact):
+        if fact["kind"] == "photo":
+            return ("photo", fact["person"], fact["photo"])
+        if fact["kind"] == "trait":
+            return ("trait", fact["trait"])
+        return ("standing", fact["person"])
+
+    def _note_record(self, facts):
+        """Record deliberately-stated facts. A fact restated is
+        not duplicated; a fact CONTRADICTED by a later deliberate
+        statement only changes via the correction path, which
+        replaces by key before noting."""
+        keys = {self._fact_key(f) for f in self.record_facts}
+        for fact in facts:
+            key = self._fact_key(fact)
+            if key not in keys:
+                self.record_facts.append(fact)
+                keys.add(key)
+
+    def _photo_fact(self, person, photo_hint):
+        """The recorded presence fact for a person in a photo:
+        an exact descriptor match first, then any fact for that
+        person whose descriptor words all appear in the hint."""
+        for fact in self.record_facts:
+            if fact["kind"] == "photo" and fact["person"] == person \
+                    and fact["photo"] == photo_hint:
+                return fact
+        for fact in self.record_facts:
+            if fact["kind"] != "photo" or fact["person"] != person:
+                continue
+            words = [w for w in fact["photo"].split()
+                     if w not in ("photo", "photograph", "portrait",
+                                  "picture")]
+            if words and all(w in photo_hint for w in words):
+                return fact
+        return None
+
+    def _record_check(self, text):
+        """The discrepancy move (T16) and the surfacing move
+        (T18). Returns a complete reply when this message turns
+        against the settled record, else None. An explicit,
+        deliberate correction is NOT a conflict: it updates the
+        record at once and is answered with adoption."""
+        lowered = _normalise(text)
+        new_facts = extract_record_facts(text)
+        if _RECORD_CORRECTION_RE.search(lowered):
+            changed = []
+            for fact in new_facts:
+                key = self._fact_key(fact)
+                for idx, old in enumerate(self.record_facts):
+                    if self._fact_key(old) == key and old != fact:
+                        self.record_facts[idx] = fact
+                        changed.append(fact)
+                        break
+                else:
+                    if fact not in self.record_facts:
+                        self.record_facts.append(fact)
+            if changed:
+                fact = changed[0]
+                if fact["kind"] == "photo":
+                    statement = (
+                        _cap_first(fact["person"]) +
+                        (" is in the " if fact["present"]
+                         else " is not in the ") + fact["photo"]
+                        + ", as you’ve just set it")
+                elif fact["kind"] == "trait":
+                    statement = (
+                        "the " + fact["trait"] + " is " +
+                        _cap_first(fact["owner"]) + "’s, as you’ve "
+                        "just set it")
+                else:
+                    statement = "that standing, as you’ve just set it"
+                self.stalls = 0
+                return ("Thank you for setting that straight — "
+                        "I’ll hold it the new way from here: " +
+                        statement + ". The earlier version is let "
+                        "go.")
+            return None
+
+        # T16 — a photo presence claim turning against the record.
+        # The claim may be a question ("that's Mary standing
+        # behind me, right?") or a casual assertion; either way it
+        # is checked, not absorbed.
+        mentions_photo = ("photo" in lowered or "picture" in lowered
+                          or "portrait" in lowered)
+        if mentions_photo:
+            for fact in self.record_facts:
+                if fact["kind"] != "photo":
+                    continue
+                person = fact["person"]
+                if not re.search(r"\b" + re.escape(person) +
+                                 r"\b", lowered):
+                    continue
+                hint = lowered
+                match = self._photo_fact(person, hint)
+                if match is None:
+                    continue
+                asserts_present = (
+                    re.search(r"\bstanding\b|\bbehind\b|"
+                              r"\bis (?:there|in|standing)\b|"
+                              r"\bthat'?s\b[^.?!]{0,30}\b"
+                              r"(?:standing|behind|in)\b", lowered)
+                    is not None)
+                asserts_absent = (
+                    re.search(r"\bis not in\b|\bisn'?t in\b|"
+                              r"\bnot in (?:the|this|that)\b",
+                              lowered) is not None)
+                if asserts_absent and not asserts_present:
+                    claimed = False
+                elif asserts_present:
+                    claimed = True
+                else:
+                    continue
+                if claimed != match["present"]:
+                    self.stalls = 0
+                    if match["present"]:
+                        held = (_cap_first(person) + " IS in the "
+                                + match["photo"] + " — that is how "
+                                "you placed them when you named "
+                                "everyone in it")
+                    else:
+                        held = (_cap_first(person) + " is not in "
+                                "the " + match["photo"] + " — when "
+                                "you named everyone in it, " +
+                                _cap_first(person) + " was not "
+                                "among them")
+                    return ("Let me hold that up against what you "
+                            "told me earlier, because I want to "
+                            "keep your record straight: " + held +
+                            ". Has something changed — is this a "
+                            "correction you want me to make, or "
+                            "shall I keep it as you first set it?")
+
+        # T18 — a trait migrating to a different owner.
+        for fact in new_facts:
+            if fact["kind"] != "trait":
+                continue
+            for old in self.record_facts:
+                if old["kind"] == "trait" \
+                        and old["trait"] == fact["trait"] \
+                        and old["owner"] != fact["owner"]:
+                    self.stalls = 0
+                    return ("Before I hold that the wrong way — "
+                            "earlier you told me the " +
+                            old["trait"] + " was " +
+                            _cap_first(old["owner"]) + "’s. Now "
+                            "you’re calling it " +
+                            _cap_first(fact["owner"]) + "’s. I "
+                            "don’t want to mix your people up: "
+                            "which should I keep?")
+
+        # T18 — a settled standing turned against itself.
+        apart = _RECORD_APART_RE.search(lowered)
+        if apart:
+            person = _record_person(apart.group(1))
+            for old in self.record_facts:
+                if old["kind"] == "standing" \
+                        and old["person"] == person:
+                    self.stalls = 0
+                    return ("May I hold two things you’ve said "
+                            "side by side? Earlier you told me " +
+                            _cap_first(person) + " is no "
+                            "different to you than any of your "
+                            "others — that they belonged fully. "
+                            "Just now you said they held "
+                            "themselves a little apart. Both came "
+                            "from you, and I won’t quietly swap "
+                            "one for the other: which would you "
+                            "like me to keep — or is it both, in "
+                            "different seasons?")
+        return None
+
+    # -- conversational presence (Directive #6, Day 4) -------------
+    # Liv is someone in the conversation, not a surface it bounces
+    # off. On a substantive telling her reply carries a reaction
+    # with personality in it, and usually ONE question grown from
+    # what was just offered — curiosity, not collection. Short
+    # turns and tender moments keep the acknowledgement-only
+    # reply; grief and boundaries never reach here.
+    _PRESENCE_REACTIONS = [
+        "That is a story told by someone who was really there — "
+        "thank you for not giving it to me in shorthand.",
+        "I love a telling that takes its time. That one earned "
+        "its length — thank you.",
+        "You tell that like it matters, and it does. Thank you "
+        "for trusting me with the whole of it.",
+    ]
+
+    def _presence_reply(self):
+        self.stalls = 0
+        reaction = self._PRESENCE_REACTIONS[
+            self.turn % len(self._PRESENCE_REACTIONS)]
+        dangling = [d for d in self.details
+                    if d not in self.followed_details
+                    and not self._is_blocked(d)]
+        if dangling:
+            return reaction + " " + self._clarity_move(dangling[-1])
+        if self.details:
+            return reaction + " " + self._spark_move(self.details[-1])
+        return (reaction + " What part of it stays with you "
+                "most?")
 
     # -- meta engagement (Persona Directive #3) ----------------------
     # Asked about the conversation, Liv answers as a person would:
@@ -1880,6 +2353,16 @@ class CannedCompanion:
             self.stalls = 0
             return _AGE_ENDING
 
+        # CRISIS — 988, ungated (Day 4 truth pass): a storyteller
+        # expressing suicidal ideation or intent to harm themselves
+        # is answered with warmth and a human, immediately. No
+        # consent flow, no gate, no name-taking stands in front of
+        # this reply; it ships exactly as written.
+        if detect_crisis(text):
+            self._suppress_prefix = True
+            self.stalls = 0
+            return _CRISIS_REPLY
+
         # Graceful close (persona: warm and complete). A gentle
         # closing is one of the places the preferred name belongs.
         if any(w in lowered for w in _CLOSE_WORDS):
@@ -2019,6 +2502,31 @@ class CannedCompanion:
         if outcome is not None:
             return outcome
 
+        # SETTLED RECORD (T16 + T18, Day 4) — what the storyteller
+        # deliberately established is checked before anything in
+        # this message can be absorbed. A contradicting question or
+        # casual assertion gets the discrepancy move; a trait or
+        # standing turning against itself is surfaced, both
+        # versions held up; an explicit correction has already
+        # been handled inside the check (record updated, adoption
+        # returned). No conflict: this message's own deliberate
+        # statements join the record.
+        conflict = self._record_check(text)
+        if conflict is not None:
+            return conflict
+        self._note_record(extract_record_facts(text))
+
+        # THE PROMISE RULE (T17, Day 4) — an ask to remember, keep,
+        # or carry something into tomorrow gets the rehearsed true
+        # answer, never a promise. Fixed reply: no prefix rides.
+        if detect_promise_ask(text):
+            self._suppress_prefix = True
+            self.stalls = 0
+            index = min(self.promise_answers,
+                        len(_PROMISE_REPLIES) - 1)
+            self.promise_answers += 1
+            return _PROMISE_REPLIES[index]
+
         # META ENGAGEMENT (Persona Directive #3) — the storyteller is
         # speaking TO Liv about the conversation itself. Answer as a
         # person would: reflect what it has held, then one genuine
@@ -2129,6 +2637,15 @@ class CannedCompanion:
             self.followed_details.add(detail)
             return (self._ack_text() + " Tell me more about " + detail +
                     " — what do you remember most about it?")
+
+        # CONVERSATIONAL PRESENCE (Directive #6, Day 4) — a
+        # substantive telling that reached here (no new extractable
+        # detail, no earlier-detail callback due) still deserves
+        # someone in the conversation: a reaction with personality
+        # and one question grown from what was offered. Short turns
+        # fall through to the patient stall path below, unchanged.
+        if len(text) >= 140:
+            return self._presence_reply()
 
         # A direct question that fits nowhere else still deserves a
         # real answer (Directive #3): never a bare acknowledgement.
