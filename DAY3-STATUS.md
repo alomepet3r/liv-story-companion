@@ -228,7 +228,7 @@ Repo is push-ready: judge-first README (elders/illustrated falsehoods
 retired, honest what's-live table, prior-work disclosure naming the
 Oct 15–20 Day-0 scaffold), MIT LICENSE added, working tree clean, 34
 tracked files, `.env` untracked and gitignored (only `.env.example`
-tracked, placeholder only), no internal/Solo material in this repo.
+tracked, placeholder only), no internal material in this repo.
 Target: a new PUBLIC repo `liv-story-companion` under
 github.com/alomepet3r (checked Oct 28 — the account has no public
 repos yet, the name is free). **Push blocker:** this environment has
