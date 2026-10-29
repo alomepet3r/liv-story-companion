@@ -49,3 +49,11 @@ As built:
 - **Speaker tags:** the visible ◆ LIV / YOU tags are removed; inside the box, Liv's left-ruled letter blocks and the storyteller's right-side tinted cards carry who is speaking. Speaker identification remains for assistive technology: app.js still labels every turn, and the label is now visually hidden (the standard 1px clip recipe), so screen readers announce "Liv" / "You" as before.
 
 Suite: **138/138** (5 new layout-contract cases in `tests/test_liv_only.py`). Commits: `4183123` (layout), `6a81aaa` (tests). DEMO-SCRIPT.md updated (Beat 2 must-be-true, Beat 3 screen action, §6 checklist item). **Not deployed** — parent verifies and deploys.
+
+## Founder's hand sketch — folded in (Oct 29, 2026, afternoon)
+
+Hours after the layout ruling, the founder hand-drew the conversation screen himself and sent the sketch. It refined the ruling in three places, all now built (suite 140/140, pushed, awaiting the parent's single deploy so the founder refreshes once into the finished surface):
+
+- **Speaker labels visible again — small.** The sketch keeps a quiet label inside the box above each turn ("◆ Liv" left, "● You" right, 0.82rem muted) — reversing the morning's full removal. A whisper, not the old shout; AT labelling unchanged.
+- **Mirrored edge rules.** Liv's blocks now carry a heavy ember rule at the left (3px); the storyteller's cards gained the matching heavy ink rule at the right — the sketch's hatched edges.
+- **Composer per the sketch.** Reply label → full-width field → one action row: Talk to Liv pill, "+ Add" as a quiet text-button (moved down from its separate row above the field; its picker still opens in its long-standing home above the field and is controlled by id from the row), and Send compact at the row's right end. The full-width send bar is gone; Send stays visible on the parent's accessibility call (typed input needs a visible send affordance).
