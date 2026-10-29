@@ -2316,13 +2316,16 @@ class CannedCompanion:
         # "Hi, I'm Liv!" (Oct 29, 2026) — makes boundaries easy, and
         # — Persona Directive #2 — politely asks what the
         # storyteller would like to be called, with the door open
-        # to decline.
+        # to decline. The ask carries its own skip, stated in the
+        # question itself (founder catch, Oct 29): a storyteller
+        # who doesn't want to answer is never stuck in a loop
+        # before their story can start.
         return ("Hi, I’m " + self.name + "! I’m here to listen — "
                 "we can go at your pace. And we can skip anything — "
                 "just say so. "
                 "Before we begin — what would you like me to call "
-                "you? A name, a nickname, or no name at all; "
-                "whatever feels right.")
+                "you? A name, a nickname, or no name at all — and "
+                "you can skip this too; whatever feels right.")
 
     def reply(self, text):
         # Wrapper: a greeting-back or name-correction prefix earned
