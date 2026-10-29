@@ -389,29 +389,39 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 
 .msg { animation: rise 0.38s ease-out both; }
 
-/* Speaker names are carried for assistive technology only
-   (founder layout ruling, Oct 29, 2026): inside the box, Liv's
-   left-ruled letter blocks and the storyteller's right-side
-   cards say who is speaking, so the visible ◆ LIV / YOU tags
-   are gone. The label span stays in every turn, visually
-   hidden, and is read by screen readers. */
+/* Speaker names ride above each turn, small and quiet
+   (founder's hand sketch, Oct 29, 2026 — refining the same
+   day's tag removal): a whisper, not the old shout. "◆ Liv"
+   over her blocks, left; "● You" over the storyteller's
+   cards, right. The label span stays in every turn, so
+   assistive technology reads the speaker as before. */
 .msg .who {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  margin-bottom: 0.3rem;
 }
 
-/* Liv's replies: open editorial blocks, ruled at the left — no
-   plastic bubbles. */
+.msg.companion .who::before {
+  content: "◆ ";
+  color: var(--ember);
+}
+
+.msg.storyteller .who { text-align: right; }
+
+.msg.storyteller .who::before {
+  content: "● ";
+  color: var(--ink-soft);
+}
+
+/* Liv's replies: open editorial blocks, ruled at the left —
+   no plastic bubbles. The rule is ember, mirrored by the
+   storyteller's ink rule at the right (founder's hand
+   sketch, Oct 29, 2026: hatched edges on both sides). */
 .msg.companion {
-  border-left: 2px solid var(--line-strong);
+  border-left: 3px solid var(--ember);
   padding: 0.15rem 0 0.15rem 1.15rem;
   font-size: 1.21rem;
   line-height: 1.75;
@@ -428,12 +438,15 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   line-height: 1.55;
 }
 
-/* The storyteller's words: a quiet tinted card, right-weighted. */
+/* The storyteller's words: a quiet tinted card, right-weighted,
+   ruled at the RIGHT in ink — the mirror of Liv's ember rule
+   at the left (founder's hand sketch, Oct 29, 2026). */
 .msg.storyteller {
   align-self: flex-end;
   max-width: 88%;
   background: var(--paper-3);
   border: 1px solid rgba(43, 38, 34, 0.07);
+  border-right: 3px solid var(--ink);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
   font-size: 1.08rem;
@@ -500,7 +513,10 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 
 /* The attach affordance (Day 3 conversation-first composer):
    one quiet "+" control; the picker is a row of choices that
-   exists only while open. The conversation is the interface. */
+   exists only while open. The conversation is the interface.
+   The wrapper now holds only the picker — since the sketch
+   pass (Oct 29, 2026) the button itself lives in the form's
+   action row and controls the picker by id from there. */
 
 .attach-row { margin: 0 0 1rem; }
 
@@ -531,6 +547,26 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 }
 
 .attach-plus { font-size: 1.5rem; line-height: 1; font-weight: 400; }
+
+/* In the action row, "+ Add" is a quiet text-button, not a
+   pill of its own (founder's hand sketch, Oct 29, 2026): no
+   fill, no border at rest — just the words, keeping step with
+   the Talk to Liv pill beside it. The open state still reads
+   clearly (ember words on the ember tint). */
+.attach-btn.attach-quiet {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  font-weight: 600;
+  padding: 0.6rem 0.9rem;
+  min-width: 0;
+}
+
+.attach-btn.attach-quiet:hover {
+  border-color: transparent;
+  background: var(--ember-tint);
+  color: var(--ember);
+}
 
 .attach-picker {
   display: flex;
@@ -789,6 +825,15 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   align-items: stretch;
   flex-wrap: wrap;
 }
+
+/* Send rides at the action row's right end, compact (founder's
+   hand sketch, Oct 29, 2026): the full-width bar is gone. It
+   keeps the primary ember styling through .small (auto width,
+   the row's 52px height) and is pushed right by the auto
+   margin; on a narrow screen it wraps, still right-aligned.
+   It stays a real, visible button — typed input needs a
+   visible send affordance. */
+.composer-actions .send-btn { margin-left: auto; }
 
 .mic-btn {
   font: inherit;

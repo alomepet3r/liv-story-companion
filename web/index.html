@@ -192,12 +192,11 @@
       </p>
     </div>
 
+    <!-- The picker keeps its home above the reply field (where
+         it has always opened); its button moved down into the
+         form's action row in the sketch pass (founder's hand
+         sketch, Oct 29, 2026) and still controls it by id. -->
     <div class="attach-row">
-      <button id="btn-attach" class="attach-btn" type="button"
-        aria-expanded="false" aria-controls="attach-picker"
-        aria-label="Add a photo, a recording, a video, or a document to the conversation">
-        <span class="attach-plus" aria-hidden="true">+</span> Add
-      </button>
       <div id="attach-picker" class="attach-picker" hidden role="group"
         aria-label="Add to your conversation">
         <button id="btn-photo" class="media-btn" type="button" aria-expanded="false" aria-controls="panel-photo">Photo or camera</button>
@@ -293,7 +292,12 @@
         </button>
         <button id="mic-discard" class="secondary" type="button"
           hidden>Discard</button>
-        <button class="primary" type="submit">Send</button>
+        <button id="btn-attach" class="attach-btn attach-quiet" type="button"
+          aria-expanded="false" aria-controls="attach-picker"
+          aria-label="Add a photo, a recording, a video, or a document to the conversation">
+          <span class="attach-plus" aria-hidden="true">+</span> Add
+        </button>
+        <button class="primary small send-btn" type="submit">Send</button>
       </div>
       <p id="voice-status" class="voice-status" role="status"></p>
     </form>
