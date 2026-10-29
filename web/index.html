@@ -137,6 +137,7 @@
 
     <button id="begin-btn" class="primary" type="button" disabled>I understand — let’s begin</button>
     <p class="not-now-row"><a href="#" id="not-now">Not now</a> <span id="not-now-msg" class="quiet" role="status" hidden>That is quite all right. This page will be here whenever you are ready.</span></p>
+    <p id="session-ended-msg" class="quiet" role="status" hidden>That session has ended, and everything from it — the conversation, anything you shared, and any chapter — has been deleted from this demo.</p>
   </section>
 
   <!-- Screen 2 — Conversation. Hidden until consent is given. -->
@@ -293,11 +294,22 @@
       <label for="chat-input">Your reply</label>
       <textarea id="chat-input" rows="3"
         placeholder="Type here, in your own time…"></textarea>
-      <button class="primary" type="submit">Send</button>
+      <div class="composer-actions">
+        <button id="mic-btn" class="mic-btn" type="button"
+          aria-pressed="false">
+          <span class="mic-icon" aria-hidden="true">🎙</span>
+          <span id="mic-label">Talk to Liv</span>
+        </button>
+        <button id="mic-discard" class="secondary" type="button"
+          hidden>Discard</button>
+        <button class="primary" type="submit">Send</button>
+      </div>
+      <p id="voice-status" class="voice-status" role="status"></p>
     </form>
     <p class="chat-actions">
       <button id="finish-btn" class="secondary" type="button">Finish for today</button>
       <button id="chapter-btn" class="secondary" type="button">Arrange this into a chapter</button>
+      <button id="end-session-btn" class="secondary" type="button">End session &amp; delete everything</button>
     </p>
     <p class="quiet">Take your time. There is no hurry here.</p>
     </div>

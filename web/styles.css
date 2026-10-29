@@ -830,6 +830,49 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   box-shadow: 0 0 0 3px rgba(157, 34, 36, 0.16);
 }
 
+/* The composer's action row (Day 4): Send, and beside it the
+   dedicated mic button — a first-class, large-tap-target equal
+   of typing, labelled with icon AND words ("Talk to Liv"). */
+.composer-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.mic-btn {
+  font: inherit;
+  font-size: 1.13rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--card);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.95rem 1.4rem;
+  min-height: 3.4rem;
+  cursor: pointer;
+}
+
+.mic-btn:hover { border-color: var(--ink); background: var(--paper-2); }
+
+.mic-btn .mic-icon { margin-right: 0.45rem; }
+
+/* Recording is a state you can SEE (ember border and wash, the
+   button now reading "Tap to send") — and, via #voice-status,
+   a state assistive tech hears announced. */
+.mic-btn.recording {
+  border-color: var(--ember);
+  background: rgba(157, 34, 36, 0.08);
+  box-shadow: 0 0 0 3px rgba(157, 34, 36, 0.16);
+}
+
+.voice-status {
+  min-height: 1.5em;
+  font-size: 1rem;
+  color: var(--ink-soft);
+  margin: 0.6rem 0 0;
+}
+
 .chat-actions { text-align: center; margin-top: 1.4rem; }
 
 #chat-screen .quiet {

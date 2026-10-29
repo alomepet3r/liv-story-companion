@@ -296,11 +296,12 @@
     return media;
   }
 
-  function stageMedia(kind, blob, filename, listenBlob) {
+  function stageMedia(kind, blob, filename, listenBlob, onStaged) {
     showMediaError("");
     if (blob.size > MEDIA_CAPS[kind]) {
       showMediaError("That " + MEDIA_NOUN[kind] + " is too large — " +
         "photos can be up to 10 MB, recordings and videos up to 50 MB.");
+      if (onStaged) { onStaged(null); }
       return;
     }
     var fd = new FormData();
@@ -322,20 +323,24 @@
       })
       .then(function (out) {
         if (out.status === 200 && out.data.media_id) {
-          pendingMedia.push({
+          var item = {
             id: out.data.media_id, kind: kind,
             transcript: out.data.transcript || null,
             transcript_status: out.data.transcript_status || null
-          });
+          };
+          if (onStaged) { onStaged(item); return; }
+          pendingMedia.push(item);
           renderPending();
           input.focus();
         } else {
           showMediaError(out.data.error ||
             "That did not arrive. Please try again.");
+          if (onStaged) { onStaged(null); }
         }
       })
       .catch(function () {
         showMediaError("That did not arrive. Please try again.");
+        if (onStaged) { onStaged(null); }
       });
   }
 
@@ -408,13 +413,13 @@
       .catch(function () { return null; });
   }
 
-  function stageWithListening(kind, blob, filename) {
+  function stageWithListening(kind, blob, filename, onStaged) {
     if (kind === "photo") {
-      stageMedia(kind, blob, filename);
+      stageMedia(kind, blob, filename, null, onStaged);
       return;
     }
     makeListeningTrack(blob).then(function (listenBlob) {
-      stageMedia(kind, blob, filename, listenBlob);
+      stageMedia(kind, blob, filename, listenBlob, onStaged);
     });
   }
 
@@ -872,6 +877,34 @@
           stopTracks(kind);
           if (R.timer) { clearInterval(R.timer); R.timer = null; }
           R.button.textContent = "Start recording";
+          if (kind === "audio") {
+            // Voice sends STANDALONE on stop (Day 4 — the
+            // founder's roadblock defect): record → stop → sent.
+            // There is no "Use this recording" step for voice,
+            // and no tray: the recording becomes its own message
+            // the moment it is made, and the heard-you state is
+            // announced in the same beat.
+            var audioBlob = R.blob;
+            R.blob = null;
+            R.actions.hidden = true;
+            R.preview.hidden = true;
+            if (R.discardNext) {
+              R.discardNext = false;
+              R.status.textContent = R.idleText;
+              setVoiceStatus("Recording discarded — nothing was sent.");
+              micUiReset();
+              return;
+            }
+            R.status.textContent = "Liv is listening to your words…";
+            setVoiceStatus("Heard you — Liv is listening to your words.");
+            stageWithListening("audio", audioBlob,
+              "recorded-audio." + extFor(type), function (item) {
+                R.status.textContent = R.idleText;
+                if (item) { send("", true, [item]); }
+                micUiReset();
+              });
+            return;
+          }
           R.preview.src = URL.createObjectURL(R.blob);
           R.preview.hidden = false;
           if (kind === "video") {
@@ -892,16 +925,28 @@
           R.preview.play();
         }
         R.actions.hidden = true;
+        if (kind === "audio") {
+          // While a voice recording runs, Discard stays reachable
+          // (the recording state's own control — stop means send,
+          // so throwing it away must be possible before stopping).
+          document.getElementById("audio-use").hidden = true;
+          R.actions.hidden = false;
+        }
         R.rec.start(250);
         R.started = Date.now();
         R.button.textContent = "Stop recording";
         R.status.textContent = "Recording… 0:00";
+        if (kind === "audio" && R.viaMic) { micRecordingUi(); }
         R.timer = setInterval(function () {
           R.status.textContent = "Recording… " +
             fmtTime(Date.now() - R.started);
         }, 500);
       })
       .catch(function () {
+        if (kind === "audio") {
+          recorders.audio.viaMic = false;
+          micUiReset();
+        }
         showMediaError("I could not reach the " +
           (kind === "audio" ? "microphone" : "camera") +
           ". You can allow it in your browser, or choose a file " +
@@ -915,6 +960,7 @@
       if (R.rec && R.rec.state === "recording") {
         R.rec.stop();
       } else {
+        R.viaMic = false;
         R.preview.hidden = true;
         R.actions.hidden = true;
         startRecorder(kind);
@@ -935,6 +981,13 @@
       });
     document.getElementById(kind + "-discard").addEventListener("click",
       function () {
+        if (R.rec && R.rec.state === "recording") {
+          // Discarding mid-recording: stop, and let the stop
+          // handler throw the take away instead of sending it.
+          R.discardNext = true;
+          R.rec.stop();
+          return;
+        }
         R.blob = null;
         R.preview.hidden = true;
         R.actions.hidden = true;
@@ -943,6 +996,116 @@
   }
   wireRecorder("audio");
   wireRecorder("video");
+
+  // ---- Talk to Liv: the dedicated mic button (Day 4) -------------
+  // The founder's directive (Oct 28): a first-class mic button
+  // beside the composer, icon PLUS words, so speaking is visibly
+  // an equal of typing — especially for storytellers not
+  // comfortable with a keyboard. It drives the same audio
+  // recorder as the panel, with the Day 4 voice flow: tap to
+  // record, tap again to stop — and stopping SENDS, standalone.
+  // Recording state is visible (button label + pressed state) AND
+  // announced in the #voice-status live region, which is what
+  // closes accessibility item O2 (recording transitions were
+  // never announced). Discard lives on the recording state.
+  var micBtn = document.getElementById("mic-btn");
+  var micLabel = document.getElementById("mic-label");
+  var micDiscard = document.getElementById("mic-discard");
+  var voiceStatus = document.getElementById("voice-status");
+
+  function setVoiceStatus(text) {
+    if (voiceStatus) { voiceStatus.textContent = text; }
+  }
+
+  function micRecordingUi() {
+    micBtn.setAttribute("aria-pressed", "true");
+    micBtn.classList.add("recording");
+    micLabel.textContent = "Tap to send";
+    micDiscard.hidden = false;
+    setVoiceStatus("Recording — speak whenever you’re ready. " +
+      "Tap “Talk to Liv” again to send it, or Discard to throw " +
+      "it away.");
+  }
+
+  function micUiReset() {
+    recorders.audio.viaMic = false;
+    micBtn.setAttribute("aria-pressed", "false");
+    micBtn.classList.remove("recording");
+    micLabel.textContent = "Talk to Liv";
+    micDiscard.hidden = true;
+  }
+
+  micBtn.addEventListener("click", function () {
+    var R = recorders.audio;
+    if (R.rec && R.rec.state === "recording") {
+      if (R.viaMic) { R.rec.stop(); }
+      return;
+    }
+    R.viaMic = true;
+    guardFirstUse(function () {
+      closePanels();
+      recorders.audio.viaMic = true;
+      startRecorder("audio");
+    }, micBtn, null);
+  });
+
+  micDiscard.addEventListener("click", function () {
+    var R = recorders.audio;
+    if (R.rec && R.rec.state === "recording") {
+      R.discardNext = true;
+      R.rec.stop();
+    }
+  });
+
+  // ---- End session & delete everything (Day 4 truth pass) ------
+  // The storyteller's own delete control: the server wipes the
+  // session's whole in-memory state (conversation, media,
+  // archive, chapter) and drops any keepsake links it minted;
+  // the page then returns to the consent screen under a fresh
+  // session id, with the ending stated plainly.
+  document.getElementById("end-session-btn").addEventListener(
+    "click", function () {
+      if (!consented) { return; }
+      fetch("/api/session/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId,
+          consent: consented,
+          age_confirmed: ageConfirmed
+        })
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (!data.ended) {
+            showMediaError(data.error ||
+              "That did not work just now. Please try again.");
+            return;
+          }
+          consented = false;
+          ageConfirmed = false;
+          consentCheck.checked = false;
+          ageCheck.checked = false;
+          refreshBegin();
+          sessionId = "s-" + Date.now().toString(36) + "-" +
+            Math.random().toString(36).slice(2, 8);
+          messages.innerHTML = "";
+          pendingMedia = [];
+          renderPending();
+          closePanels();
+          setListening(false);
+          setVoiceStatus("");
+          chatScreen.hidden = true;
+          chapterScreen.hidden = true;
+          consentScreen.hidden = false;
+          document.getElementById("session-ended-msg").hidden = false;
+          window.scrollTo(0, 0);
+        })
+        .catch(function () {
+          showMediaError("That did not work just now. " +
+            "Please try again.");
+        });
+    });
 
   // ---- Chapter (talk -> chapter -> keepsake) --------------------
   // Plan before write: Liv proposes an outline (title, dedication,
