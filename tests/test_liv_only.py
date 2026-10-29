@@ -19,6 +19,16 @@ Three rulings pinned here:
 - MIC BUTTON (UI/UX ruling, same day): an inline SVG microphone
   (never the emoji glyph), an always-visible "Talk to Liv"
   label, and a distinct recording state in CSS.
+- CONVERSATION LAYOUT (founder ruling, same day): the header is
+  one compact brand lockup — the flame-in-ring mark beside the
+  word Fireside, the project's filed public name — with
+  "Talking to Liv" (his phrasing: to, not with) as the quiet
+  sub-line beneath it. The transcript lives in a contained
+  panel (the box), composer below it. The visible ◆ LIV / YOU
+  speaker tags are gone; the speaker label stays in every turn,
+  visually hidden, for assistive technology. Standing UI
+  principle, in his words: minimalist but very functional,
+  conversational, intuitive, effective.
 """
 import unittest
 from pathlib import Path
@@ -197,6 +207,60 @@ class TestFrontendContract(unittest.TestCase):
         recording = recording.split("}", 1)[0]
         self.assertIn("background: var(--ink)", recording)
         self.assertIn(".mic-btn.recording::after", self.css)
+
+
+class TestConversationLayout(unittest.TestCase):
+    """Founder layout ruling (Oct 29, 2026) — see module docstring."""
+
+    def setUp(self):
+        self.html = (WEB / "index.html").read_text(encoding="utf-8")
+        self.js = (WEB / "app.js").read_text(encoding="utf-8")
+        self.css = (WEB / "styles.css").read_text(encoding="utf-8")
+
+    def test_page_title_begins_with_the_brand(self):
+        self.assertIn(
+            "<title>Fireside — Your stories, in your own voice"
+            "</title>", self.html)
+
+    def test_brand_lockup_mark_beside_fireside(self):
+        self.assertIn('class="brand-lockup"', self.html)
+        self.assertIn('<span class="brand-name">Fireside</span>',
+                      self.html)
+        # The old roundel-over-"Liv" stack is gone.
+        self.assertNotIn('class="wordmark', self.html)
+
+    def test_sub_line_is_the_founders_phrasing(self):
+        self.assertIn(
+            '<h1 id="chat-heading" class="chat-subtitle">'
+            "Talking to Liv</h1>", self.html)
+        self.assertNotIn("Talking with", self.html)
+
+    def test_conversation_lives_in_a_panel(self):
+        panel = self.html.index('class="conversation-panel"')
+        messages = self.html.index('id="messages"')
+        listening = self.html.index('id="listening"')
+        composer = self.html.index('class="composer"')
+        # Turns and the listening state are inside the box; the
+        # composer stays below it.
+        self.assertLess(panel, messages)
+        self.assertLess(messages, listening)
+        self.assertLess(listening, composer)
+        block = self.css.split(".conversation-panel {", 1)[1]
+        block = block.split("}", 1)[0]
+        self.assertIn("background: var(--paper-2)", block)
+        self.assertIn("border: 1px solid var(--line)", block)
+        self.assertIn("border-radius: 18px", block)
+
+    def test_speaker_tags_hidden_but_present_for_at(self):
+        # app.js still labels every turn; CSS hides the label
+        # visually (the standard visually-hidden recipe).
+        self.assertIn('label.className = "who"', self.js)
+        block = self.css.split(".msg .who {", 1)[1].split("}", 1)[0]
+        self.assertIn("position: absolute", block)
+        self.assertIn("clip-path: inset(50%)", block)
+        self.assertNotIn("text-transform: uppercase", block)
+        # The visible tag's ember diamond is gone.
+        self.assertNotIn(".who::before", self.css)
 
 
 if __name__ == "__main__":
