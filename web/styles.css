@@ -51,31 +51,39 @@ body {
   outline-offset: 2px;
 }
 
-/* Masthead — the mark, then her name. Present on both screens. */
+/* Masthead — one compact brand lockup: the flame-in-ring mark
+   beside the word Fireside (founder layout ruling, Oct 29, 2026).
+   Present on every screen; Liv is introduced in the consent
+   panel and the greeting, not stacked into the header. */
 
 .masthead {
   text-align: center;
-  padding: 2.4rem 1rem 0;
+  padding: 2.2rem 1rem 0;
   color: var(--ink);
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0;
 }
 
 .brand-mark {
   display: inline-block;
-  width: 3.4rem;
-  height: 3.4rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
 }
 
 .brand-mark svg { display: block; width: 100%; height: 100%; }
 
-.brand-mark-small { width: 2.3rem; height: 2.3rem; flex: none; }
-
-.wordmark {
+.brand-name {
   font-family: "Cormorant Garamond", Georgia, serif;
   font-size: 2rem;
   font-weight: 600;
   letter-spacing: 0.015em;
   line-height: 1.1;
-  margin: 0.45rem 0 0;
   color: var(--ink);
 }
 
@@ -334,29 +342,45 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 
 .not-now-row { text-align: center; margin: 1.1rem 0 0; }
 
-/* Conversation — a letter exchange. */
+/* Conversation — a letter exchange that lives in a box
+   (founder layout ruling, Oct 29, 2026): the Fireside lockup on
+   top, "Talking to Liv" as a quiet sub-line beneath it, then the
+   transcript inside a contained panel in the manner of a chat
+   message container. The composer stays below the box. */
 
 .chat-head {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.6rem 0 1.05rem;
-  border-bottom: 1px solid var(--line);
+  text-align: center;
+  padding: 0.35rem 0 1rem;
   color: var(--ink);
 }
 
-.chat-title {
-  font-size: 1.85rem;
-  text-align: left;
+.chat-subtitle {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.32rem;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-align: center;
   margin: 0;
+  color: var(--ink-soft);
+}
+
+.conversation-panel {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.5rem 1.5rem 1.35rem;
 }
 
 .messages {
   display: flex;
   flex-direction: column;
   gap: 1.7rem;
-  margin: 1.6rem 0 1.2rem;
+  margin: 0;
 }
+
+.conversation-panel .listening { margin-top: 1.15rem; }
 
 @keyframes rise {
   from { opacity: 0; transform: translateY(8px); }
@@ -365,16 +389,23 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 
 .msg { animation: rise 0.38s ease-out both; }
 
+/* Speaker names are carried for assistive technology only
+   (founder layout ruling, Oct 29, 2026): inside the box, Liv's
+   left-ruled letter blocks and the storyteller's right-side
+   cards say who is speaking, so the visible ◆ LIV / YOU tags
+   are gone. The label span stays in every turn, visually
+   hidden, and is read by screen readers. */
 .msg .who {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  margin-bottom: 0.45rem;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Liv's replies: open editorial blocks, ruled at the left — no
@@ -384,15 +415,6 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   padding: 0.15rem 0 0.15rem 1.15rem;
   font-size: 1.21rem;
   line-height: 1.75;
-}
-
-.msg.companion .who::before {
-  content: "";
-  width: 0.45rem;
-  height: 0.45rem;
-  background: var(--ember);
-  transform: rotate(45deg);
-  flex: none;
 }
 
 /* The closing message gets the dignity of a letter's end. */
@@ -417,8 +439,6 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
   font-size: 1.08rem;
   line-height: 1.65;
 }
-
-.msg.storyteller .who { margin-bottom: 0.3rem; }
 
 .shared-media {
   display: block;
@@ -462,12 +482,13 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 }
 
 /* Composer — media bar, panels, the reply form: one calm zone
-   ruled off from the letters above. */
+   below the conversation box. (It was ruled off with a hairline
+   before the transcript lived in a panel; the box's own border
+   does that work now.) */
 
 .composer {
-  border-top: 1px solid var(--line);
-  padding-top: 1.3rem;
-  margin-top: 0.4rem;
+  padding-top: 0.35rem;
+  margin-top: 1.15rem;
 }
 
 .media-bar {
@@ -836,15 +857,17 @@ button.secondary:hover { border-color: var(--ink); background: var(--paper-2); }
 /* Small screens — his phone is the test device. */
 
 @media (max-width: 560px) {
-  .masthead { padding-top: 1.7rem; }
-  .brand-mark { width: 2.9rem; height: 2.9rem; }
+  .masthead { padding-top: 1.5rem; }
+  .brand-mark { width: 2.35rem; height: 2.35rem; }
+  .brand-name { font-size: 1.75rem; }
   main { padding: 0.5rem 1rem 3rem; }
   h1 { font-size: 2.5rem; margin-top: 1.2rem; }
   .companion-intro, .plain-box { padding: 1.35rem 1.15rem; }
   .msg.storyteller { max-width: 94%; }
   .msg.companion { font-size: 1.15rem; padding-left: 0.95rem; }
   .media-btn { flex: 1 1 6.8rem; font-size: 0.98rem; }
-  .chat-title { font-size: 1.6rem; }
+  .chat-subtitle { font-size: 1.22rem; }
+  .conversation-panel { padding: 1.15rem 1rem 1.05rem; border-radius: 16px; }
 }
 
 /* Chapter screen (Day 4 slice, pulled forward) — plan, draft,
