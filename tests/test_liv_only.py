@@ -20,20 +20,29 @@ Three rulings pinned here:
   (never the emoji glyph), an always-visible "Talk to Liv"
   label, and a distinct recording state in CSS.
 - CONVERSATION LAYOUT (founder ruling, same day; refined by
-  his hand sketch, same day): the header is one compact brand
-  lockup — the flame-in-ring mark beside the word Fireside,
-  the project's filed public name — with "Talking to Liv"
-  (his phrasing: to, not with) as the quiet sub-line beneath
-  it. The transcript lives in a contained panel (the box),
-  composer below it. Speaker labels ride above each turn,
-  small and quiet — "◆ Liv" left, "● You" right — after the
-  sketch reversed the brief tag removal; Liv's blocks are
-  ruled ember at the left, the storyteller's cards ink at
-  the right. The composer follows the sketch: reply label,
-  field, then one action row (Talk to Liv · + Add · compact
-  Send at the right end) — no full-width send bar. Standing
-  UI principle, in his words: minimalist but very
-  functional, conversational, intuitive, effective.
+  his hand sketch, same day; refined again on his review of
+  the deployed build, same day): the header is one compact
+  brand lockup — the flame-in-ring mark beside the word
+  Fireside, the project's filed public name — with "Talking
+  to Liv" (his phrasing: to, not with) as the quiet sub-line
+  beneath it. The transcript lives in a contained panel (the
+  box), composer below it. Speaker labels ride above each
+  turn, small — LIV left, YOU right, in capitals set by CSS,
+  with NO marker glyphs (the sketch's diamonds/dots were
+  removed on review); the DOM text stays "Liv" / "You" for
+  assistive technology. Both speakers' turns live in the
+  SAME shaped box (same radius, border, padding), a step
+  or two darker than the panel: Liv's in ember-tint ruled
+  ember at the left, the storyteller's in paper-3 ruled
+  ink at the right — the rule and the tint are the only
+  differentiators. The reply section is a distinct dark
+  band (the form on ink, same rounded language; button
+  positions unchanged). The composer follows the sketch:
+  reply label, field, then one action row (Talk to Liv ·
+  + Add · compact Send at the right end) — no full-width
+  send bar. Standing UI principle, in his words:
+  minimalist but very functional, conversational,
+  intuitive, effective.
 """
 import unittest
 from pathlib import Path
@@ -256,42 +265,58 @@ class TestConversationLayout(unittest.TestCase):
         self.assertIn("border: 1px solid var(--line)", block)
         self.assertIn("border-radius: 18px", block)
 
-    def test_speaker_labels_small_visible_and_kept_for_at(self):
-        # The founder's sketch reversed the tag removal: labels
-        # ride above each turn, small and quiet — a whisper, not
-        # the old shout. app.js still builds the label span for
-        # every turn, so AT reads the speaker as before.
+    def test_speaker_labels_small_caps_and_marker_free(self):
+        # The founder's sketch restored the labels; his review
+        # of the deployed build then removed the marker glyphs
+        # (refinement, Oct 29, 2026): the name alone, in
+        # capitals set by CSS, at the same small size. The DOM
+        # text app.js writes stays "Liv" / "You", so AT reads
+        # the speaker as before.
         self.assertIn('label.className = "who"', self.js)
         block = self.css.split(".msg .who {", 1)[1].split("}", 1)[0]
         self.assertIn("display: block", block)
         self.assertIn("font-size: 0.82rem", block)
-        # The visually-hidden recipe is gone.
+        self.assertIn("text-transform: uppercase", block)
+        # The visually-hidden recipe stays gone.
         self.assertNotIn("clip-path: inset(50%)", block)
         self.assertNotIn("position: absolute", block)
-        # The sketch's markers: an ember diamond for Liv, a
-        # quiet dot for the storyteller, whose label aligns
-        # right over his cards.
-        liv = self.css.split(".msg.companion .who::before {", 1)[1]
-        liv = liv.split("}", 1)[0]
-        self.assertIn('"◆ "', liv)
-        self.assertIn("var(--ember)", liv)
+        # No markers anywhere: no ::before content on the
+        # labels, and neither glyph survives in the stylesheet.
+        self.assertNotIn(".who::before", self.css)
+        self.assertNotIn("◆", self.css)
+        self.assertNotIn("●", self.css)
+        # The storyteller's label still aligns right, over
+        # his boxes.
         you = self.css.split(".msg.storyteller .who {", 1)[1]
         you = you.split("}", 1)[0]
         self.assertIn("text-align: right", you)
-        dot = self.css.split(".msg.storyteller .who::before {", 1)[1]
-        dot = dot.split("}", 1)[0]
-        self.assertIn('"● "', dot)
 
-    def test_mirrored_edge_rules(self):
-        # Liv's blocks: a heavy ember rule at the left. The
-        # storyteller's cards: a heavy ink rule at the right,
-        # mirroring hers (the sketch's hatched edges).
+    def test_turn_boxes_unified_with_mirrored_rules(self):
+        # Refinement (Oct 29, 2026): both speakers' turns live
+        # in the SAME shaped box — same radius, border, and
+        # padding. The only differentiators are the heavy
+        # rule (Liv's ember at the LEFT, the storyteller's
+        # ink at the RIGHT — the sketch's hatched edges) and
+        # the tint: both a step or two darker than the panel
+        # (paper-2), one step apart — ember-tint for Liv,
+        # paper-3 for the storyteller. Ink text holds past
+        # 11:1 on both (12.9:1 and 12.0:1, measured).
         liv = self.css.split(".msg.companion {", 1)[1].split("}", 1)[0]
         self.assertIn("border-left: 3px solid var(--ember)", liv)
+        self.assertIn("background: var(--ember-tint)", liv)
+        self.assertIn("border-radius: var(--radius)", liv)
         you = self.css.split(".msg.storyteller {", 1)[1]
         you = you.split("}", 1)[0]
         self.assertIn("border-right: 3px solid var(--ink)", you)
         self.assertIn("background: var(--paper-3)", you)
+        self.assertIn("border-radius: var(--radius)", you)
+        # Same shape: the padding declaration is identical.
+        liv_pad = [ln.strip() for ln in liv.splitlines()
+                   if "padding:" in ln]
+        you_pad = [ln.strip() for ln in you.splitlines()
+                   if "padding:" in ln]
+        self.assertEqual(liv_pad, you_pad)
+        self.assertEqual(liv_pad, ["padding: 1rem 1.25rem;"])
 
     def test_composer_follows_the_sketch(self):
         # Below the box: the reply label and field, then ONE
@@ -315,6 +340,31 @@ class TestConversationLayout(unittest.TestCase):
         rule = self.css.split(".composer-actions .send-btn {", 1)[1]
         rule = rule.split("}", 1)[0]
         self.assertIn("margin-left: auto", rule)
+
+    def test_reply_section_is_a_dark_band(self):
+        # Refinement (Oct 29, 2026): the reply section is
+        # distinct — the form sits on ink, in the conversation
+        # box's rounded language, with the session actions and
+        # the "Take your time" line left below it on the
+        # canvas. Button positions inside are unchanged (the
+        # sketch test above still pins their order).
+        self.assertIn('<form id="chat-form" class="reply-band">',
+                      self.html)
+        band = self.css.split(".reply-band {", 1)[1].split("}", 1)[0]
+        self.assertIn("background: var(--ink)", band)
+        self.assertIn("border-radius: 18px", band)
+        # On the dark ground the words are paper (14.0:1)…
+        self.assertIn("#chat-form.reply-band label", self.css)
+        self.assertIn(".reply-band .voice-status", self.css)
+        # …and the ember pills carry a paper border, because
+        # ember against ink alone is 1.92:1 — under WCAG
+        # 1.4.11's 3:1 for a control's boundary.
+        mic = self.css.split(".reply-band .mic-btn {", 1)[1]
+        mic = mic.split("}", 1)[0]
+        self.assertIn("border-color: var(--paper)", mic)
+        send = self.css.split(".reply-band button.primary {", 1)[1]
+        send = send.split("}", 1)[0]
+        self.assertIn("border: 1.5px solid var(--paper)", send)
 
 
 if __name__ == "__main__":
