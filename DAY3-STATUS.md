@@ -239,3 +239,8 @@ network. Unblock (Petro, ~2 minutes): create the empty public repo
 README/.gitignore — the history brings its own), then push from an
 authenticated channel (`gh auth login` or his browser-side route).
 Local HEAD at preparation: `222d34c` on master.
+
+
+## Move #2 — RESOLVED (Oct 28, 2026, 11:29 PM CT)
+
+The public repository is live: https://github.com/alomepet3r/liv-story-companion (PUBLIC, default branch master). The founder created the empty repo; the prepared local history was pushed in full over HTTPS after a GitHub CLI device-flow authorization — 41 commits, remote HEAD matches local. The pre-window Day-0 commits (Oct 15–20, 2026: scaffold + Meta Model API wiring) are publicly visible, exactly as the README's prior-work disclosure states. Skunkworks Round 2 Critical #2 (no public repo) is CLOSED.
