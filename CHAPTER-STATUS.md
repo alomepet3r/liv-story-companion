@@ -142,3 +142,42 @@ Both Day 4 warts REPRODUCED on fresh material (second sitting, same failures —
 1. **Material labels still generic:** the outline's "What goes in" lists **10 identical rows, all "Something you told Liv"** (plus 1 shared item), all ticked — include/exclude remains meaningless for the storyteller.
 2. **Suggested title still a mid-sentence fragment:** "We are in Bamenda Cameroon, in the..." — truncated from the telling "We are in Bamenda Cameroon, in the late 1970s, I would have been...". Same defect as Sitting #1's "My dad had just passed and I...".
 Steps/checklist rendered correctly (Gathered 10 told + 1 shared; Outline proposed; checklist states accurate). Dedication field took "My Family". Evidence screenshot: Petro's liv2.PNG in the hackathon chat, Oct 28.
+
+
+## Wart fixes — Oct 29, 2026 (Day 4)
+
+All three warts fixed in one pass; suite **116/116** (102 at the
+post-bundle baseline + 14 new chapter tests). Not deployed —
+parent verifies and deploys.
+
+1. **Labels (wart 1).** `gather_sources` now labels each telling
+   by its own opening (first ~10 words, backed off to the last
+   clause boundary in reach; an ellipsis only where text was
+   actually left behind, at that clean cut), and each media item
+   by the most identifying detail it carries: caption's first
+   words → date → album → share time (app.py now stamps
+   `shared_at` on upload). A recording whose transcript is its
+   text is labelled by the transcript's opening. A uniqueness
+   pass numbers any repeated label ("… (2)") so no two materials
+   with different content share a label.
+2. **Titles (wart 2).** `suggest_title` no longer chops the
+   longest telling at seven words. It walks the tellings in
+   order and offers the first clean derivation: a complete short
+   sentence (≤8 words) standing whole, or a 4–9 word clause cut
+   at a comma/semicolon/colon/dash/conjunction that does not end
+   on a dangling word. The production failures now yield "My dad
+   had just passed" and "We are in Bamenda Cameroon". When no
+   telling offers a clean derivation, the suggestion is the
+   honest "Untitled — yours to name". No ellipsis ever appears
+   in a suggested title.
+3. **Housekeeping turns (wart 3).** A shape-based filter in
+   `gather_sources` (the chapter layer only — conversation
+   behaviour untouched) excludes pure plumbing from the sources:
+   name declarations ("Call me Petro.", "My name is…", bare
+   opening names, name-question declines), bare greetings,
+   closing phrases ("Finish for today"), and meta questions to
+   Liv. A declaration or greeting that merely *leads* a telling
+   is stripped, and the telling is kept. Detection carries the
+   companion's own glue-word guard, so substantive short
+   tellings survive intact: "It did not stay with me." and
+   "I'm from Bamenda." are sources, never housekeeping.
