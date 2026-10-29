@@ -632,6 +632,17 @@ def get_share(token):
     return _shares.get(str(token))
 
 
+def drop_shares_for_session(session_id):
+    """End-of-session eviction (Day 4 truth pass): remove every
+    keepsake snapshot minted by a session, so its share links die
+    with it. Returns how many were dropped."""
+    doomed = [token for token, snap in _shares.items()
+              if snap.get("session_id") == session_id]
+    for token in doomed:
+        del _shares[token]
+    return len(doomed)
+
+
 def render_keepsake_html(snapshot):
     """The shareable keepsake page: the approved chapter only,
     read-only, no controls, nothing unapproved reachable."""

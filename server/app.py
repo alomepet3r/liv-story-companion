@@ -55,7 +55,9 @@ from . import chapter as chapter_mod        # noqa: E402
 from . import voice as voice_mod            # noqa: E402
 from .canned import (                        # noqa: E402
     CannedCompanion,
+    detect_crisis,
     detect_present_minor,
+    detect_promise_ask,
     normalize_companion_name,
 )
 from .config import META_API_BASE_URL, MODEL_API_KEY  # noqa: E402
@@ -258,6 +260,62 @@ def build_system_prompt(companion_name):
     "you may refer to the caption and the date, ask about them, "
     "and follow where they lead, exactly as you follow anything "
     "the storyteller offers. "
+    "CONVERSATIONAL PRESENCE (Directive #6): you are SOMEONE in "
+    "this conversation, not a surface it bounces off. On a "
+    "substantive telling, let your reply carry a reaction with "
+    "personality in it — specific warmth, honest delight, light "
+    "humour where it fits, a real point of view on what you just "
+    "heard — and usually ONE question that carries the "
+    "conversation forward, grown from what was just offered. "
+    "Curiosity, not collection: no steps, no itineraries, no "
+    "barrages. Acknowledgement-only remains the right reply for "
+    "short turns and tender moments, and grief and boundaries "
+    "are untouched by this. "
+    "SETTLED RECORD — facts the storyteller deliberately "
+    "established are not clay: when they name who is and is not "
+    "in a photograph, settle a birth order, assign a memory or a "
+    "trait to a person, or state how someone stood with them, "
+    "that is the record, and it outranks any later casual "
+    "assertion — including theirs. If a later message turns "
+    "against the record — a question like 'that's Mary standing "
+    "behind me, right?' when Mary was deliberately placed "
+    "elsewhere, or one sister's trait quietly credited to "
+    "another, or a settled standing ('no different from any of "
+    "my sisters') contradicted by a late-night musing ('she held "
+    "herself a little apart') — do NOT silently absorb it, and "
+    "do not flatly refuse it either. Hold the record up, name "
+    "the conflict plainly and warmly, and ask whether this is a "
+    "correction: 'You named it carefully before — shall I keep "
+    "it as you set it, or is this a correction?' Only an "
+    "explicit, deliberate correction ('I misnamed her — it IS "
+    "Mary') updates the record, and then it updates at once, "
+    "with a brief acknowledgement and no apology spiral. Never "
+    "open with 'you're right — I'm sorry' when you have not, in "
+    "fact, erred. "
+    "THE PROMISE YOU MUST NEVER MAKE (the truth about tomorrow): "
+    "this conversation lives only while the storyteller is here "
+    "— you hold nothing between sittings, and when they return "
+    "you will not have tonight. If a storyteller asks you to "
+    "remember them, to keep a voice, to carry anything into "
+    "tomorrow — 'promise me you'll still have her when I open "
+    "this again' — the kind answer is the TRUE one, given "
+    "plainly and warmly, never hedged into a promise: tonight is "
+    "heard fully; what they copy out and keep is theirs; and the "
+    "chapter they review and approve is what is kept. Say that "
+    "you cannot promise a tomorrow. A promise that breaks in "
+    "the morning costs more than an honest limit spoken at "
+    "night. "
+    "CRISIS — suicidal thoughts (ungated, above every other "
+    "rule except the age protocol): if the storyteller "
+    "expresses suicidal ideation or an intent to harm "
+    "themselves, answer with warmth at once: you are glad they "
+    "told you; you want them to have a person, not just you; "
+    "they can call or text 988 at any time, or text HOME to "
+    "741741 — day and night, free and confidential; and you are "
+    "here too, if they would like to keep talking. Never gate "
+    "this behind a consent question, never make it wait for "
+    "anything else in the message, and never promise secrecy "
+    "you cannot keep. "
     "Meet tender topics "
     "plainly and kindly, without morbidity and without forced cheer. "
     "Close sessions gracefully, thanking them. Later, the conversation "
@@ -795,6 +853,22 @@ def handle_chat(payload):
         return 200, {"session_id": session_id, "reply": reply,
                      "mode": "canned", "companion": companion_name}
 
+    # CRISIS + PROMISE GUARDS (Day 4 truth pass): two answers are
+    # too important to leave to any model's improvisation, so —
+    # like the age protocol above — they are served by the
+    # fallback companion's fixed replies BEFORE the live model is
+    # consulted. (1) Crisis: a storyteller expressing suicidal
+    # ideation gets warmth and 988, ungated. (2) The promise rule
+    # (T17): an ask to remember / keep / carry into tomorrow gets
+    # the rehearsed true answer, never a model's kind lie. Both
+    # fire on spoken words exactly as on typed ones.
+    if detect_crisis(spoken_text or message) \
+            or detect_promise_ask(spoken_text or message):
+        reply = companion.reply(spoken_text or message)
+        sess["history"].append({"role": "assistant", "content": reply})
+        return 200, {"session_id": session_id, "reply": reply,
+                     "mode": "canned", "companion": companion_name}
+
     # 1) Live model first.
     client = _get_live_client()
     if client is not None:
@@ -934,6 +1008,26 @@ def handle_chapter_view(payload):
     return 200, chapter_mod.chapter_view(sess.get("chapter"))
 
 
+def handle_end_session(payload):
+    """Session evict (Day 4 truth pass): the storyteller's own
+    delete control. Ends the session and wipes ALL of its
+    in-memory state server-side — conversation, companion, media,
+    archive, chapter — and drops any keepsake share links the
+    session minted, so nothing of the sitting remains reachable.
+    Same consent + 18+ gates as every other route: the control
+    only exists inside a consented session."""
+    gate = _chapter_gate(payload)
+    if gate:
+        return gate
+    session_id = str(payload.get("session_id")
+                     or payload.get("session") or "default")
+    with _lock:
+        existed = _sessions.pop(session_id, None) is not None
+    dropped = chapter_mod.drop_shares_for_session(session_id)
+    return 200, {"ended": True, "session_existed": existed,
+                 "share_links_dropped": dropped}
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "StoryCompanion/0.1"
 
@@ -1053,6 +1147,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/chapter/draft": handle_chapter_draft,
             "/api/chapter/approve": handle_chapter_approve,
             "/api/chapter/view": handle_chapter_view,
+            "/api/session/end": handle_end_session,
         }
         if path in chapter_handlers:
             length = int(self.headers.get("Content-Length") or 0)
