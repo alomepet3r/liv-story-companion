@@ -312,5 +312,173 @@ class TestLiveDrafting(ChapterCase):
         self.assertEqual(view["chapter"]["draft"]["mode"], "canned")
 
 
+class TestWartFixes(unittest.TestCase):
+    """Day 4 wart fixes: recognisable material labels, clean
+    suggested titles, and housekeeping turns kept out of the
+    chapter's sources. Synthetic sessions only."""
+
+    def sources(self, turns, media=None):
+        sess = {"history": [{"role": "user", "content": t}
+                            for t in turns],
+                "media": media or {}, "chapter": None}
+        return chapter.gather_sources(sess)
+
+    # --- Wart 3: housekeeping turns are not story material ---
+
+    def test_name_answers_are_not_sources(self):
+        for answer in ("Call me Petro.", "Petro.", "My name is Ana.",
+                       "I'm Margaret.", "Just call me Tita.",
+                       "No name, thanks.", "I'd rather not say."):
+            srcs = self.sources(
+                [answer, "My father took me to Bamenda in 1984."])
+            self.assertEqual(len(srcs), 1, answer)
+            self.assertIn("Bamenda", srcs[0]["text"])
+
+    def test_name_declaration_before_a_telling_keeps_the_telling(self):
+        srcs = self.sources(
+            ["Call me Petro. My dad had just passed that spring."])
+        self.assertEqual(len(srcs), 1)
+        self.assertTrue(srcs[0]["text"].startswith("My dad"))
+        self.assertNotIn("Call me", srcs[0]["text"])
+
+    def test_greeting_before_a_telling_keeps_the_telling(self):
+        srcs = self.sources(
+            ["Hello. Yesterday in Douala the rain came early."])
+        self.assertEqual(len(srcs), 1)
+        self.assertTrue(srcs[0]["text"].startswith("Yesterday"))
+
+    def test_short_substantive_tellings_survive(self):
+        for telling in ("It did not stay with me.",
+                        "I'm from Bamenda.",
+                        "Boxing saved me."):
+            srcs = self.sources(["Call me Ana.", telling])
+            self.assertEqual(len(srcs), 1, telling)
+            self.assertEqual(srcs[0]["text"], telling)
+
+    def test_meta_and_closing_turns_are_not_sources(self):
+        srcs = self.sources([
+            "Call me Ana.",
+            "My father took me to Bamenda in 1984.",
+            "What do you think about our conversation so far?",
+            "Finish for today",
+        ])
+        self.assertEqual(len(srcs), 1)
+        self.assertIn("Bamenda", srcs[0]["text"])
+
+    # --- Wart 1: labels identify the material ---
+
+    def test_telling_labels_use_their_opening_words(self):
+        srcs = self.sources([
+            "Call me Ana.",
+            "My father took me to Bamenda in 1984, to ride the "
+            "first elevator the town had ever seen.",
+            "It did not stay with me.",
+        ])
+        labels = [s["label"] for s in srcs]
+        self.assertNotIn("Something you told Liv", labels)
+        self.assertIn("Bamenda", labels[0])
+        self.assertIn("It did not stay with me.", labels[1])
+
+    def test_no_two_materials_share_a_label(self):
+        opening = ("The house on the hill above the town had a "
+                   "wide veranda where we all gathered.")
+        srcs = self.sources([
+            "Call me Ana.",
+            "The house on the hill above the town had a red roof "
+            "and a wide veranda where we all gathered.",
+            "The house on the hill above the town had a blue door "
+            "my grandfather painted one dry season.",
+            opening,
+        ])
+        labels = [s["label"] for s in srcs]
+        self.assertEqual(len(labels), len(set(labels)))
+
+    def test_media_labels_use_the_detail_the_item_carries(self):
+        media = {
+            "m1": {"kind": "photo", "source": "archive",
+                   "caption": "Christmas at home in Bamenda with "
+                              "everyone gathered around the tree",
+                   "date_str": "December 1978", "album": "Family"},
+            "m2": {"kind": "photo", "source": "archive",
+                   "caption": "", "date_str": "1979", "album": ""},
+            "m3": {"kind": "photo", "source": "archive",
+                   "caption": "", "date_str": "",
+                   "album": "Bamenda Days"},
+            "m4": {"kind": "photo", "shared_at": "2:41 PM"},
+            "m5": {"kind": "audio",
+                   "transcript": "The shape did not stay with me "
+                                 "after I left Bamenda.",
+                   "shared_at": "2:52 PM"},
+        }
+        srcs = self.sources(
+            ["My father took me to Bamenda in 1984."], media)
+        by_id = {s["media_id"]: s for s in srcs if s["media_id"]}
+        self.assertIn("Christmas at home", by_id["m1"]["label"])
+        self.assertIn("dated 1979", by_id["m2"]["label"])
+        self.assertIn("Bamenda Days", by_id["m3"]["label"])
+        self.assertIn("2:41 PM", by_id["m4"]["label"])
+        self.assertIn("Words you spoke in a recording",
+                      by_id["m5"]["label"])
+        self.assertIn("The shape did not stay",
+                      by_id["m5"]["label"])
+
+    # --- Wart 2: suggested titles are never fragments ---
+
+    def title(self, tellings):
+        return chapter.suggest_title(self.sources(
+            ["Call me Ana."] + tellings))
+
+    def test_title_from_a_clause_boundary(self):
+        self.assertEqual(
+            self.title(["My dad had just passed and I was lost, "
+                        "and my sister heard of a boxing club."]),
+            "My dad had just passed")
+        self.assertEqual(
+            self.title(["We are in Bamenda Cameroon, in the late "
+                        "1970s, I would have been one year old."]),
+            "We are in Bamenda Cameroon")
+        self.assertEqual(
+            self.title(["My father took me to Bamenda in 1984, "
+                        "to ride the first elevator in town."]),
+            "My father took me to Bamenda in 1984")
+
+    def test_short_complete_sentence_stands_whole(self):
+        self.assertEqual(self.title(["It did not stay with me."]),
+                         "It did not stay with me")
+
+    def test_no_clean_derivation_falls_back_honestly(self):
+        title = self.title([
+            "Alpha bravo charlie delta echo foxtrot golf hotel "
+            "india juliet kilo lima mike november oscar papa."])
+        self.assertEqual(title, "Untitled \u2014 yours to name")
+
+    def test_titles_never_carry_a_truncation_ellipsis(self):
+        for tellings in (
+                ["My dad had just passed and I was lost, and my "
+                 "sister Pamela heard of a new boxing club."],
+                ["We are in Bamenda Cameroon, in the late 1970s, "
+                 "close to 1976, a studio portrait."]):
+            self.assertNotIn("\u2026", self.title(tellings))
+
+
+class TestWartFixesEndToEnd(ChapterCase):
+    def test_outline_excludes_the_name_answer(self):
+        self.tell_story()   # opens with "Call me Margaret."
+        view = self.outline()
+        materials = view["chapter"]["materials_all"]
+        self.assertEqual(len(materials), 3)
+        self.assertTrue(all("Margaret." not in m["label"] or
+                            "father" in m["label"]
+                            for m in materials))
+        texts = [m["label"] for m in materials]
+        self.assertTrue(any("Bamenda" in t for t in texts))
+
+    def test_outline_title_is_a_clean_clause(self):
+        self.tell_story()
+        view = self.outline()
+        self.assertEqual(view["chapter"]["outline"]["title"],
+                         "My father took me to Bamenda in 1984")
+
+
 if __name__ == "__main__":
     unittest.main()
