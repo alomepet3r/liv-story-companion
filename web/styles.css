@@ -3,54 +3,87 @@
    direction-b.html, with the Delivery Lead reconciliation
    addendum as binding build conditions). The app is ONE
    calm sheet centred on a quiet desk: one paper tone, one
-   card white, square turn boxes with 3px rules (ember for
-   Liv, blue for the storyteller), the reply band exactly
-   as wide as the sheet. Atkinson Hyperlegible body;
-   Cormorant Garamond demoted to cameos (the sovereignty
-   line, the closing line, "Take your time").
-   Measured pairings (recomputed at the B build) —
-     ink on sheet 14.0:1 · ink on card 15.0:1 · ink-2 on
-     sheet 7.2:1 · ember on sheet 7.3:1 (Liv's label, AAA) ·
-     user-blue on sheet 6.4:1 · sheet on ink 14.0:1 ·
-     white on ink 15.0:1 (Send's words) · white on ember
-     7.8:1 · ghost-line on ink 8.5:1 · control on desk
-     4.5:1 (the sheet's edge) · ember on ink 1.92:1 — which
-     is why the mic pill carries a sheet ring on the band. */
+   card white, square turn boxes with 3px rules, the reply
+   band exactly as wide as the sheet. Atkinson Hyperlegible
+   body; Montserrat throughout, in varying weights and
+   styles (founder ruling, Oct 29, 2026): ExtraBold italic
+   wordmark, Bold headings, SemiBold sub-lines, Regular
+   body, Medium italic cameos (the sovereignty line, the
+   closing line, "Take your time"). Atkinson Hyperlegible
+   rides second in the stack as the fallback face.
+   PALETTE — "Earth & Oak" in its QUIET NEUTRALS use
+   (founder ruling, Oct 29, 2026, from his own Earth & Oak
+   mood board; ten uses drawn in palette-ten-uses.html,
+   use #9 chosen): Desert Sand, Eucalyptus Sage, Raw
+   Linen, Terracotta Earth, Volcanic Stone — worked
+   almost entirely in the stone neutrals, with exactly
+   ONE warm event on the screen: the flame glyph and
+   the Talk to Liv pill (Terracotta). Both voices wear
+   stone: Liv in Volcanic, the storyteller in warm gray.
+   The declared Sage lives in the derived surfaces of
+   the wider brand; on this sheet its role is rest.
+   Measured pairings (computed Oct 29, 2026) —
+     ink on sheet 9.6:1 · ink on card 10.6:1 · ink-2 on
+     sheet 5.1:1 · Liv (volcanic) on card 10.6:1 · You
+     (warm gray) on card 5.3:1 · sheet on band 9.6:1 ·
+     white on ink 11.2:1 (primary buttons) · white on
+     action 6.1:1 (the mic) · flame on sheet 4.2:1
+     (a large glyph, decorative) · ghost-line on band
+     5.7:1 · control on desk 3.8:1 (the sheet's edge,
+     shadow-assisted) · action on ink 1.7:1 — which is
+     why the mic pill carries a sheet ring on the band. */
 
 :root {
   /* The desk the sheet lies on (desktop only; on a phone
-     the sheet fills the screen and the desk never shows). */
-  --desk: #E8E2D6;
-  /* The one paper tone — page, sheet, and the band's words. */
-  --sheet: #FBF7EF;
-  /* The only second surface: turn boxes, the reply field. */
-  --card: #FFFFFF;
-  --ink: #2B2622;
+     the sheet fills the screen and the desk never shows).
+     Desert Sand — Earth & Oak, declared. */
+  --desk: #D5C2B1;
+  /* The one paper tone — page, sheet, and the band's words.
+     Linen Light, derived from Raw Linen. */
+  --sheet: #F1EDE6;
+  /* The only second surface: turn boxes, the reply field.
+     Warm White, derived from Raw Linen. */
+  --card: #FBF9F5;
+  /* Volcanic Stone — Earth & Oak, declared. */
+  --ink: #3C3B3A;
   /* Secondary text as a SOLID (Direction B): the old rgba
-     quiet-ink composited differently on every ground. */
-  --ink-2: #59524C;
-  /* The single red (reconciliation condition 1: ember-deep
-     is deleted — labels, rules, and fills are this ember). */
-  --ember: #9D2224;
-  /* An ember derivative, declared for one job: the warm
-     tint behind checked choices and open pickers. */
-  --ember-tint: #F8ECE7;
-  /* The storyteller's differentiator colour — his rule and
-     his label (founder-declared in his own vetted mockup,
-     Oct 29, 2026). */
-  --user-blue: #1458B4;
+     quiet-ink composited differently on every ground.
+     A warm gray derived from Volcanic Stone. */
+  --ink-2: #68635B;
+  /* The system accent in Quiet Neutrals: Volcanic Stone
+     itself — links, focus, checks, dividers, chapter marks
+     all speak in stone, never in colour. */
+  --stone: #3C3B3A;
+  /* Liv's identity colour: Volcanic Stone (her label and
+     her 3px rule). A role token, declared separately so
+     her voice can be re-dressed without touching ink. */
+  --liv: #3C3B3A;
+  /* The tint behind checked choices and open pickers:
+     Raw Linen — Earth & Oak, declared. */
+  --tint: #E6E1DA;
+  /* The storyteller's differentiator — his rule and his
+     label: a warm gray derived from Volcanic Stone
+     (founder ruling, Quiet Neutrals, Oct 29, 2026; the
+     blue of his earlier mockup is retired). */
+  --you: #6E675C;
+  /* The ONE warm fill on the screen: Terracotta Deep,
+     derived from Terracotta Earth — the Talk to Liv pill. */
+  --action: #93502F;
+  /* Terracotta Earth — Earth & Oak, declared: the flame
+     glyph and the recording dot. */
+  --flame: #A75D3F;
   /* Control boundaries on light grounds; the sheet's edge
-     on the desk (4.5:1 — the sheet is findable as an
-     object, not by shadow alone). */
-  --control: #6B655E;
+     on the desk (3.8:1 plus the sheet's shadow — the sheet
+     is findable as an object). */
+  --control: #655C4E;
   /* The session buttons' border on the band, tokenised
-     (reconciliation condition 3): paper at 75% over ink,
-     as a solid — measures 8.5:1 against the band. */
-  --ghost-line: #C7C3BC;
-  --line: rgba(43, 38, 34, 0.16);
-  --line-strong: rgba(43, 38, 34, 0.38);
-  --shadow: 0 1px 2px rgba(43, 38, 34, 0.05),
-            0 10px 30px rgba(43, 38, 34, 0.05);
+     (reconciliation condition 3): Raw Linen at 75% over
+     Volcanic Stone, as a solid — 5.7:1 against the band. */
+  --ghost-line: #BCB8B2;
+  --line: rgba(60, 59, 58, 0.16);
+  --line-strong: rgba(60, 59, 58, 0.38);
+  --shadow: 0 1px 2px rgba(60, 59, 58, 0.05),
+            0 10px 30px rgba(60, 59, 58, 0.05);
   --radius: 14px;
   /* The sheet's side padding — the reply band reaches the
      sheet's edges by exactly this much (see .reply-band). */
@@ -59,13 +92,13 @@
 
 * { box-sizing: border-box; }
 
-::selection { background: rgba(157, 34, 36, 0.16); }
+::selection { background: rgba(60, 59, 58, 0.16); }
 
 body {
   margin: 0;
   background: var(--desk);
   color: var(--ink);
-  font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: 19px;
   line-height: 1.65;
   overflow-x: clip;
@@ -81,8 +114,8 @@ body {
   max-width: 760px;
   margin: 2.5rem auto 4rem;
   border: 1px solid var(--control);
-  box-shadow: 0 1px 2px rgba(43, 38, 34, 0.06),
-              0 24px 60px rgba(43, 38, 34, 0.10);
+  box-shadow: 0 1px 2px rgba(60, 59, 58, 0.06),
+              0 24px 60px rgba(60, 59, 58, 0.10);
 }
 
 @media (max-width: 840px) {
@@ -94,13 +127,13 @@ body {
 }
 
 :focus-visible {
-  outline: 3px solid var(--ember);
+  outline: 3px solid var(--stone);
   outline-offset: 2px;
 }
 
 /* Masthead — the wordmark as the founder drew it (his vetted
    mockup, Oct 29, 2026): "FireSide" in bold italic near-black,
-   with the ember flame glyph riding after the word. Present on
+   with the terracotta flame glyph riding after the word. Present on
    every screen; Liv is introduced in the consent panel and the
    greeting, not stacked into the header. */
 
@@ -119,7 +152,7 @@ body {
 
 .brand-name {
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 800;
   font-style: italic;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -129,7 +162,7 @@ body {
 .brand-flame {
   display: inline-flex;
   flex: none;
-  color: var(--ember);
+  color: var(--flame);
 }
 
 .brand-flame svg { display: block; height: 2.125rem; width: auto; }
@@ -149,10 +182,10 @@ main > section { padding-bottom: 4rem; }
 main > #chat-screen { padding-bottom: 0; }
 
 h1 {
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: clamp(2.55rem, 7vw, 3.5rem);
   line-height: 1.08;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.005em;
   text-align: center;
   margin: 1.6rem 0 1.1rem;
@@ -161,9 +194,9 @@ h1 {
 h1 em { font-style: italic; font-weight: 500; }
 
 h2 {
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: 1.65rem;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.2;
   margin: 0 0 0.5rem;
 }
@@ -194,7 +227,7 @@ h2 {
 .divider-diamond {
   width: 0.5rem;
   height: 0.5rem;
-  background: var(--ember);
+  background: var(--stone);
   transform: rotate(45deg);
   flex: none;
 }
@@ -205,7 +238,7 @@ h2 {
   line-height: 1.6;
 }
 
-a { color: var(--ember); text-underline-offset: 3px; }
+a { color: var(--stone); text-underline-offset: 3px; }
 
 /* Consent — meeting Liv: one quiet panel that introduces the
    companion. There is no name to choose (Liv-only, founder
@@ -269,7 +302,7 @@ a { color: var(--ember); text-underline-offset: 3px; }
 }
 
 .plain-box h2 {
-  font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -285,9 +318,9 @@ a { color: var(--ember); text-underline-offset: 3px; }
   padding-top: 1.3rem;
   border-top: 1px solid var(--line);
   text-align: center;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-style: italic;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 1.55rem;
   line-height: 1.3;
   color: var(--ink);
@@ -310,7 +343,7 @@ a { color: var(--ember); text-underline-offset: 3px; }
 .spoken-script p { line-height: 1.7; }
 
 /* Consent — attestations: large calm cards; checked state is a
-   warm tint and an ember rule. Begin stays disabled until both
+   linen tint and a stone rule. Begin stays disabled until both
    boxes are checked (consent + 18+). */
 
 .consent-checks { margin: 2.3rem 0 1.4rem; }
@@ -331,8 +364,8 @@ a { color: var(--ember); text-underline-offset: 3px; }
 }
 
 .consent-check:has(input:checked) {
-  border-color: var(--ember);
-  background: var(--ember-tint);
+  border-color: var(--stone);
+  background: var(--tint);
 }
 
 .consent-check input {
@@ -340,10 +373,11 @@ a { color: var(--ember); text-underline-offset: 3px; }
   height: 1.55rem;
   flex: none;
   margin-top: 0.12rem;
-  accent-color: var(--ember);
+  accent-color: var(--stone);
 }
 
-/* Buttons — ember is the single action colour. */
+/* Buttons — stone is the button colour; the one warm
+   action fill is reserved for the Talk to Liv pill. */
 
 button { transition: background 0.18s ease, border-color 0.18s ease,
                    box-shadow 0.18s ease, color 0.18s ease; }
@@ -351,11 +385,11 @@ button { transition: background 0.18s ease, border-color 0.18s ease,
 button.primary {
   display: block;
   width: 100%;
-  background: var(--ember);
+  background: var(--stone);
   color: #FFFFFF;
   border: none;
   border-radius: var(--radius);
-  box-shadow: 0 2px 12px rgba(157, 34, 36, 0.28);
+  box-shadow: 0 2px 12px rgba(60, 59, 58, 0.28);
   font: inherit;
   font-size: 1.28rem;
   font-weight: 700;
@@ -364,16 +398,16 @@ button.primary {
   cursor: pointer;
 }
 
-/* With ember-deep deleted (one red only), hover speaks
+/* With a single accent only, hover speaks
    through the shadow, not a second shade. */
 button.primary:hover:not(:disabled) {
-  background: var(--ember);
-  box-shadow: 0 4px 18px rgba(157, 34, 36, 0.38);
+  background: var(--stone);
+  box-shadow: 0 4px 18px rgba(60, 59, 58, 0.38);
 }
 
 button.primary:disabled {
-  background: #DCD2BF;
-  color: rgba(43, 38, 34, 0.55);
+  background: #D5C2B1;
+  color: rgba(60, 59, 58, 0.55);
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -416,7 +450,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
    left-aligned over the turns (24px per the Sheet type
    scale; ink on sheet measures 14.0:1). */
 .chat-subtitle {
-  font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: 1.5rem;
   font-style: normal;
   font-weight: 700;
@@ -454,13 +488,14 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 .msg { animation: rise 0.38s ease-out both; }
 
 /* Speaker names ride above each turn, small and quiet:
-   LIV over her boxes, left, in the single ember; YOU over
+   LIV over her boxes, left, in volcanic stone; YOU over
    the storyteller's, right, in his blue — no marker glyphs,
    just the name itself, set in capitals by CSS so the text
    assistive technology reads stays "Liv" / "You". The
    label span stays in every turn, so AT reads the speaker
-   as before. The labels sit on the sheet: ember measures
-   7.3:1 there (AAA), user-blue 6.4:1. */
+   as before. The labels sit on the sheet: Liv's volcanic
+   measures 9.6:1 there (AAA), the storyteller's warm
+   gray 5.1:1. */
 .msg .who {
   display: block;
   font-size: 0.8125rem;
@@ -470,9 +505,9 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   margin-bottom: 0.45rem;
 }
 
-.msg.companion .who { color: var(--ember); }
+.msg.companion .who { color: var(--liv); }
 
-.msg.storyteller .who { text-align: right; color: var(--user-blue); }
+.msg.storyteller .who { text-align: right; color: var(--you); }
 
 /* Both speakers' turns live in the same shaped box
    (Direction B): square white card boxes on the sheet,
@@ -480,13 +515,14 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
    deliberate (reconciliation D16: Liv's turns and the
    storyteller's are set at the same 19px/1.65). The
    differentiators are the 3px rules — a margin mark, not
-   a flag: ember at Liv's LEFT, the storyteller's blue at
+   a flag: volcanic at Liv's LEFT, the storyteller's warm
+   gray at
    his RIGHT — and the label colours above them. Ink text
    on the card measures 15.0:1. */
 .msg.companion {
   background: var(--card);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--ember);
+  border-left: 3px solid var(--liv);
   border-radius: 0;
   padding: 1.125rem 1.375rem;
   font-size: 1.19rem;
@@ -494,10 +530,10 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 }
 
 /* The closing message gets the dignity of a letter's end. */
-.msg.companion.closing { border-left-color: var(--ember); }
+.msg.companion.closing { border-left-color: var(--liv); }
 
 .msg.companion.closing > span:last-child {
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-style: italic;
   font-weight: 500;
   font-size: 1.42rem;
@@ -507,13 +543,13 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 /* The storyteller's words: the same square white box as
    Liv's, at the same size, right-weighted — ruled at the
    RIGHT by a 3px rule in his blue, the mirror of her
-   ember rule at the left. */
+   volcanic rule at the left. */
 .msg.storyteller {
   align-self: flex-end;
   max-width: 88%;
   background: var(--card);
   border: 1px solid var(--line);
-  border-right: 3px solid var(--user-blue);
+  border-right: 3px solid var(--you);
   border-radius: 0;
   padding: 1.125rem 1.375rem;
   font-size: 1.19rem;
@@ -534,7 +570,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   margin: 0.4rem 0 0.7rem;
 }
 
-/* Listening state — a soft ember pulse; no timers, no bars. */
+/* Listening state — a soft stone pulse; no timers, no bars. */
 
 .listening {
   display: flex;
@@ -552,7 +588,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
-  background: var(--ember);
+  background: var(--stone);
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
 
@@ -563,9 +599,9 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 
 /* Composer — media bar, panels, the reply form: one calm
    zone below the turns, ending in the reply band, the
-   sheet's footer. (The 4px ember seam that used to joint
+   sheet's footer. (The 4px seam that used to joint
    the panel to the band is deleted — reconciliation
-   condition 3: it was a redundant ember event.) */
+   condition 3: it was a redundant colour event.) */
 
 .composer {
   padding-top: 0;
@@ -608,10 +644,10 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 .attach-btn:hover { border-color: var(--ink); }
 
 .attach-btn[aria-expanded="true"] {
-  border-color: var(--ember);
-  background: var(--ember-tint);
-  color: var(--ember);
-  box-shadow: 0 0 0 1px var(--ember);
+  border-color: var(--stone);
+  background: var(--tint);
+  color: var(--stone);
+  box-shadow: 0 0 0 1px var(--stone);
 }
 
 .attach-plus { font-size: 1.5rem; line-height: 1; font-weight: 400; }
@@ -620,7 +656,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
    pill of its own (founder's hand sketch, Oct 29, 2026): no
    fill, no border at rest — just the words, keeping step with
    the Talk to Liv pill beside it. The open state still reads
-   clearly (ember words on the ember tint). */
+   clearly (stone words on the linen tint). */
 .attach-btn.attach-quiet {
   background: transparent;
   border-color: transparent;
@@ -632,8 +668,8 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 
 .attach-btn.attach-quiet:hover {
   border-color: transparent;
-  background: var(--ember-tint);
-  color: var(--ember);
+  background: var(--tint);
+  color: var(--stone);
 }
 
 .attach-picker {
@@ -673,10 +709,10 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 .media-btn:hover { border-color: var(--ink); }
 
 .media-btn[aria-expanded="true"] {
-  border-color: var(--ember);
-  background: var(--ember-tint);
-  color: var(--ember);
-  box-shadow: 0 0 0 1px var(--ember);
+  border-color: var(--stone);
+  background: var(--tint);
+  color: var(--stone);
+  box-shadow: 0 0 0 1px var(--stone);
 }
 
 .media-notice {
@@ -763,7 +799,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 .pending-remove { margin-left: auto; min-height: 2.75rem; }
 
 .media-error {
-  color: var(--ember);
+  color: var(--stone);
   font-weight: 700;
   margin: 0 0 1rem;
 }
@@ -802,15 +838,15 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 }
 
 .archive-item:has(input:checked) {
-  border-color: var(--ember);
-  background: var(--ember-tint);
+  border-color: var(--stone);
+  background: var(--tint);
 }
 
 .archive-item input {
   width: 1.55rem;
   height: 1.55rem;
   flex: none;
-  accent-color: var(--ember);
+  accent-color: var(--stone);
 }
 
 .archive-item-text { display: block; min-width: 0; }
@@ -872,17 +908,17 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 #chat-input::placeholder { color: var(--ink-2); opacity: 1; }
 
 #chat-input:focus {
-  border-color: var(--ember);
-  box-shadow: 0 0 0 3px rgba(157, 34, 36, 0.16);
+  border-color: var(--stone);
+  box-shadow: 0 0 0 3px rgba(60, 59, 58, 0.16);
 }
 
 /* The composer's action row (Day 4): Send, and beside it the
    dedicated mic button — a first-class, large-tap-target equal
    of typing, labelled with icon AND words ("Talk to Liv").
    Restyle (founder UI/UX ruling, Oct 29, 2026 — low-vision
-   legibility): the button is a solid ember pill, the palette's
+   legibility): the button is a solid terracotta pill, the palette's
    single action colour, carrying a WHITE icon and a WHITE label
-   (white on ember #9D2224 measures 7.8:1; the pill's boundary
+   (white on action #93502F measures 6.1:1; the pill's boundary
    against the cream paper measures ~7.3:1, far past WCAG
    1.4.11's 3:1 for non-text contrast). The icon is an inline
    SVG, not an emoji glyph — emoji renders faint and uneven
@@ -905,12 +941,12 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   border-radius: 999px;
 }
 
-/* On the band, Send is NOT an ember fill (reconciliation
+/* On the band, Send is NOT the warm fill (reconciliation
    condition 2): it takes an ink fill with a sheet border,
-   so the Talk to Liv mic pill is the sole ember fill in
+   so the Talk to Liv mic pill is the sole warm fill in
    the row. Its words are white on ink (15.0:1) and its
    sheet border carries the boundary against the band
-   (14.0:1) — where the old ember fill managed only 1.92:1
+   (9.6:1) — where the warm action fill manages only 1.7:1
    and had to borrow the ring to be findable at all. */
 .reply-band .composer-actions .send-btn {
   background: var(--ink);
@@ -920,7 +956,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 }
 
 .reply-band .composer-actions .send-btn:hover {
-  background: rgba(251, 247, 239, 0.12);
+  background: rgba(241, 237, 230, 0.12);
 }
 
 .mic-btn {
@@ -932,8 +968,8 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   font-weight: 700;
   letter-spacing: 0.01em;
   color: #FFFFFF;
-  background: var(--ember);
-  border: 1.5px solid var(--ember);
+  background: var(--action);
+  border: 1.5px solid var(--action);
   border-radius: 999px;    /* a true pill */
   padding: 0.8rem 1.6rem;
   min-height: 3.25rem;     /* 52px — above the 48px floor */
@@ -942,23 +978,23 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 }
 
 .mic-btn:hover {
-  background: var(--ember);
-  border-color: var(--ember);
-  box-shadow: 0 2px 10px rgba(157, 34, 36, 0.30);
+  background: var(--action);
+  border-color: var(--action);
+  box-shadow: 0 2px 10px rgba(147, 80, 47, 0.30);
 }
 
 .mic-btn .mic-icon { display: inline-flex; flex: none; }
 .mic-btn .mic-icon svg { display: block; }
 
 /* Recording is a state you can SEE without reading colour: the
-   fill flips from ember to ink charcoal, the label itself now
-   reads "Tap to send", and a pulsing ember dot rides the pill —
+   fill flips from terracotta to ink charcoal, the label itself now
+   reads "Tap to send", and a pulsing terracotta dot rides the pill —
    and, via #voice-status, the state is also announced to
    assistive tech. */
 .mic-btn.recording {
   background: var(--ink);
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(43, 38, 34, 0.18);
+  box-shadow: 0 0 0 3px rgba(60, 59, 58, 0.18);
 }
 
 .mic-btn.recording:hover { background: var(--ink); }
@@ -969,7 +1005,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   width: 0.65rem;
   height: 0.65rem;
   border-radius: 50%;
-  background: var(--ember);
+  background: var(--flame);
   box-shadow: 0 0 0 2px #FFFFFF;
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
@@ -995,7 +1031,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
    ground: the label and the status line are sheet-white
    (14.0:1); the field stays white with ink text (15.0:1 —
    the strongest pairing on the page, where his words are
-   composed); the mic pill — the row's sole ember fill —
+   composed); the mic pill — the row's sole warm fill —
    carries a sheet border, because ember against ink
    alone measures 1.92:1 and a control's boundary must
    clear 3:1 (WCAG 1.4.11); Send takes an ink fill with
@@ -1028,7 +1064,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 
 .reply-band #chat-input:focus {
   border-color: var(--sheet);
-  box-shadow: 0 0 0 3px rgba(251, 247, 239, 0.35);
+  box-shadow: 0 0 0 3px rgba(241, 237, 230, 0.35);
 }
 
 .reply-band .voice-status { color: var(--sheet); }
@@ -1039,7 +1075,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 
 .reply-band .mic-btn.recording {
   border-color: var(--sheet);
-  box-shadow: 0 0 0 3px rgba(251, 247, 239, 0.25);
+  box-shadow: 0 0 0 3px rgba(241, 237, 230, 0.25);
 }
 
 .reply-band button.primary { border: 1.5px solid var(--sheet); }
@@ -1052,19 +1088,19 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 
 .reply-band button.secondary:hover {
   border-color: var(--sheet);
-  background: rgba(251, 247, 239, 0.12);
+  background: rgba(241, 237, 230, 0.12);
 }
 
 .reply-band .attach-btn.attach-quiet { color: var(--sheet); }
 
 .reply-band .attach-btn.attach-quiet:hover {
-  background: rgba(251, 247, 239, 0.14);
+  background: rgba(241, 237, 230, 0.14);
   color: var(--sheet);
 }
 
 /* The picker's open state keeps its own light ground
    (ember words on the ember tint) even on the band. */
-.reply-band .attach-btn[aria-expanded="true"] { color: var(--ember); }
+.reply-band .attach-btn[aria-expanded="true"] { color: var(--stone); }
 
 .chat-actions { text-align: center; margin-top: 1.4rem; }
 
@@ -1085,21 +1121,20 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 
 #chat-screen .quiet {
   text-align: center;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-style: italic;
   font-size: 1.14rem;
   color: var(--ink-2);
 }
 
-/* The "Take your time" line inside the band: Direction B
-   restores the serif cameo — Cormorant italic is demoted
-   to this single line on the conversation screen, where
-   its letter-voice is the point (the sign-off). */
+/* The "Take your time" line inside the band: the cameo —
+   Montserrat Medium italic on the conversation screen,
+   where its letter-voice is the point (the sign-off). */
 #chat-screen #chat-form .quiet {
   color: var(--sheet);
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-style: italic;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 1.25rem;
   margin: 1.4rem 0 0;
 }
@@ -1130,16 +1165,16 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
    approval, keepsake, in the same editorial tokens. */
 
 .chapter-h {
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: 1.65rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 2rem 0 0.6rem;
 }
 
 .chapter-h3 {
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: 1.3rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 1.4rem 0 0.4rem;
 }
 
@@ -1178,9 +1213,9 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   display: inline-block;
   font-weight: 700;
   font-size: 1rem;
-  color: var(--ember);
-  background: var(--ember-tint);
-  border: 1.5px solid var(--ember);
+  color: var(--stone);
+  background: var(--tint);
+  border: 1.5px solid var(--stone);
   border-radius: 999px;
   padding: 0.3rem 0.95rem;
 }
@@ -1192,8 +1227,8 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 }
 
 .chapter-flags {
-  background: var(--ember-tint);
-  border: 1.5px solid var(--ember);
+  background: var(--tint);
+  border: 1.5px solid var(--stone);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
   margin: 1rem 0;
@@ -1211,9 +1246,9 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 }
 
 .chapter-draft-title {
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Montserrat", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   font-size: 1.9rem;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.25;
   margin: 0 0 0.3rem;
 }
