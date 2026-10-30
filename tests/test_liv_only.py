@@ -19,37 +19,44 @@ Three rulings pinned here:
 - MIC BUTTON (UI/UX ruling, same day): an inline SVG microphone
   (never the emoji glyph), an always-visible "Talk to Liv"
   label, and a distinct recording state in CSS.
-- CONVERSATION LAYOUT (founder ruling, same day; refined by
-  his hand sketch, then his review of the deployed build;
-  finally rebuilt to HIS OWN vetted mockup, same day): the
-  header is the wordmark as he drew it — "FireSide" in bold
-  italic near-black with an ember flame glyph after the
-  word — over the sub-line "Talking To Liv" (title case as
-  drawn; his phrasing: to, not with), Atkinson bold, quiet
-  gray, left-aligned. The transcript lives in a contained
-  panel (the box); an ember seam (4px) runs under it; then
-  the reply band. Speaker labels ride above each turn,
-  small — LIV left in ember-deep, YOU right in the
-  storyteller's blue (--user-blue #1458B4, declared by his
-  design), in capitals set by CSS with NO marker glyphs;
-  the DOM text stays "Liv" / "You" for assistive
-  technology. Both speakers' turns live in the SAME shaped
-  box on ONE shared tint (--box); the differentiators are
-  the 14px slabs — ember at Liv's LEFT, user-blue at the
-  storyteller's RIGHT — and the label colours. AMENDMENT
-  (founder, same day): dialogue boxes are RECTANGULAR
-  (border-radius 0, slabs flush); the panel, the field,
-  and the buttons keep their curves. The reply section is
-  a full-bleed dark band (the form on ink, broken out to
-  the viewport's width, content aligned to the column):
-  label "Reply", a white field with the mockup's 24px
-  radius, one action row (Talk to Liv · + Add · Send as a
-  full pill at the right end), and the session actions
-  inside the band as ghost outline buttons with "Take
-  your time" beneath them — nothing of the session area
-  remains on the canvas. Standing UI principle, in his
-  words: minimalist but very functional, conversational,
-  intuitive, effective.
+- CONVERSATION LAYOUT (founder rulings, Oct 29, 2026, in
+  three acts: his layout ruling, his hand sketch, his own
+  vetted mockup — then CASANOVA Direction B "Sheet",
+  chosen by the founder over Direction A the same night):
+  the app is ONE calm sheet centred on a quiet desk. The
+  header is the wordmark as he drew it — "FireSide" in
+  bold italic near-black with an ember flame glyph after
+  the word — over the sub-line "Talking To Liv" (title
+  case as drawn; his phrasing: to, not with), Atkinson
+  bold, ink, left-aligned. ONE paper tone (--sheet) and
+  ONE card white: the cream stack (--paper-2/--paper-3/
+  --box) is collapsed, --gold/--sage are deleted, and
+  there is ONE red — --ember-deep is deleted (build
+  condition 1), so Liv's label and rules are pure ember.
+  Speaker labels ride above each turn, small — LIV left
+  in ember, YOU right in the storyteller's blue
+  (--user-blue #1458B4, declared by his design), in
+  capitals set by CSS with NO marker glyphs; the DOM
+  text stays "Liv" / "You" for assistive technology.
+  Both speakers' turns live in the SAME square white box
+  at the SAME size (parity is deliberate), differentiated
+  by 3px rules — ember at Liv's LEFT, user-blue at the
+  storyteller's RIGHT — and the label colours. Dialogue
+  boxes are RECTANGULAR (border-radius 0); the sheet,
+  the field, and the buttons keep their curves. The 4px
+  ember seam is DELETED (condition 3). The reply section
+  is a dark band exactly as wide as the SHEET, never
+  100vw: label "Reply", a white field at 20px radius,
+  one action row (Talk to Liv — the row's sole ember
+  fill · + Add · Send as a full pill at the right end
+  with a NON-ember ink fill, condition 2), the session
+  actions inside the band as ghost outline buttons at
+  52px with borders in the tokenised --ghost-line
+  (#C7C3BC), and "Take your time" beneath them in its
+  Cormorant cameo — nothing of the session area remains
+  on the sheet below the band. Standing UI principle, in
+  his words: minimalist but very functional,
+  conversational, intuitive, effective.
 """
 import unittest
 from pathlib import Path
@@ -258,6 +265,8 @@ class TestConversationLayout(unittest.TestCase):
         name = self.css.split(".brand-name {", 1)[1].split("}", 1)[0]
         self.assertIn("font-style: italic", name)
         self.assertIn("font-weight: 700", name)
+        # Direction B type scale: the wordmark at 32px.
+        self.assertIn("font-size: 2rem", name)
         flame = self.css.split(".brand-flame {", 1)[1]
         flame = flame.split("}", 1)[0]
         self.assertIn("color: var(--ember)", flame)
@@ -274,22 +283,55 @@ class TestConversationLayout(unittest.TestCase):
         self.assertIn("font-weight: 700", sub)
         self.assertIn("text-align: left", sub)
         self.assertNotIn("italic", sub)
+        # Direction B: 24px, in ink (14.0:1 on the sheet) —
+        # no longer the quiet gray of the vetted mockup.
+        self.assertIn("font-size: 1.5rem", sub)
+        self.assertIn("color: var(--ink)", sub)
 
-    def test_conversation_lives_in_a_panel(self):
+    def test_conversation_lives_on_the_sheet(self):
+        # Direction B: masthead and main both live inside the
+        # one sheet; the desk shows around it on wide screens.
+        sheet = self.html.index('class="sheet"')
+        masthead = self.html.index('class="masthead"')
+        main = self.html.index("<main>")
+        self.assertLess(sheet, masthead)
+        self.assertLess(masthead, main)
+        # The declared tokens of the Sheet world.
+        for token in ("--desk: #E8E2D6", "--sheet: #FBF7EF",
+                      "--control: #6B655E", "--ink-2: #59524C",
+                      "--ghost-line: #C7C3BC"):
+            self.assertIn(token, self.css)
+        # The cream stack and the second red are gone, and
+        # the quiet ink is a solid token now, not an rgba.
+        for gone in ("--paper:", "--paper-2:", "--paper-3:",
+                     "--box:", "--gold:", "--sage:",
+                     "--ember-deep:", "var(--ember-deep)",
+                     "var(--ink-soft)"):
+            self.assertNotIn(gone, self.css)
+        body = self.css.split("body {", 1)[1].split("}", 1)[0]
+        self.assertIn("background: var(--desk)", body)
+        sheet_css = self.css.split(".sheet {", 1)[1]
+        sheet_css = sheet_css.split("}", 1)[0]
+        self.assertIn("background: var(--sheet)", sheet_css)
+        self.assertIn("max-width: 760px", sheet_css)
+        self.assertIn("border: 1px solid var(--control)",
+                      sheet_css)
+        self.assertIn("box-shadow:", sheet_css)
+        # The turns still group inside the panel wrapper, and
+        # the composer still follows — but the wrapper itself
+        # carries no surface of its own any more.
         panel = self.html.index('class="conversation-panel"')
         messages = self.html.index('id="messages"')
         listening = self.html.index('id="listening"')
         composer = self.html.index('class="composer"')
-        # Turns and the listening state are inside the box; the
-        # composer stays below it.
         self.assertLess(panel, messages)
         self.assertLess(messages, listening)
         self.assertLess(listening, composer)
         block = self.css.split(".conversation-panel {", 1)[1]
         block = block.split("}", 1)[0]
-        self.assertIn("background: var(--paper-2)", block)
-        self.assertIn("border: 1px solid var(--line)", block)
-        self.assertIn("border-radius: 18px", block)
+        self.assertIn("background: transparent", block)
+        self.assertIn("border: none", block)
+        self.assertIn("box-shadow: none", block)
 
     def test_speaker_labels_small_caps_and_marker_free(self):
         # The founder's sketch restored the labels; his review
@@ -301,7 +343,10 @@ class TestConversationLayout(unittest.TestCase):
         self.assertIn('label.className = "who"', self.js)
         block = self.css.split(".msg .who {", 1)[1].split("}", 1)[0]
         self.assertIn("display: block", block)
-        self.assertIn("font-size: 0.82rem", block)
+        # Direction B type scale: 13px, bold, tracked out.
+        self.assertIn("font-size: 0.8125rem", block)
+        self.assertIn("font-weight: 700", block)
+        self.assertIn("letter-spacing: 0.08em", block)
         self.assertIn("text-transform: uppercase", block)
         # The visually-hidden recipe stays gone.
         self.assertNotIn("clip-path: inset(50%)", block)
@@ -317,28 +362,28 @@ class TestConversationLayout(unittest.TestCase):
         you = you.split("}", 1)[0]
         self.assertIn("text-align: right", you)
 
-    def test_turn_boxes_unified_with_mirrored_slabs(self):
-        # Vetted mockup (Oct 29, 2026): both speakers' turns
-        # live in the SAME shaped box on ONE shared tint
-        # (--box) — the ember-tint / paper-3 split is gone.
-        # The differentiators are the 14px slabs (ember at
-        # Liv's LEFT, the storyteller's blue at his RIGHT)
-        # and the label colours. AMENDMENT (founder, same
-        # day): dialogue boxes are RECTANGULAR — radius 0,
-        # slabs flush at the square edges; the panel, the
-        # field, and the buttons keep their curves. Ink text
-        # on the box measures 12.4:1.
-        self.assertIn("--box: #EFE9DC", self.css)
+    def test_turn_boxes_unified_with_mirrored_rules(self):
+        # Direction B (Oct 29, 2026): both speakers' turns
+        # live in the SAME square white box (--card) on the
+        # sheet — the shared cream tint is gone with the
+        # cream stack. The differentiators are the 3px rules
+        # (a margin mark, not a flag: ember at Liv's LEFT,
+        # the storyteller's blue at his RIGHT) and the label
+        # colours. Dialogue boxes stay RECTANGULAR (founder
+        # amendment: radius 0, rules flush); the sheet, the
+        # field, and the buttons keep their curves. Parity
+        # is deliberate (reconciliation D16): both turns set
+        # at the same 19px / 1.65. Ink on the card is 15.0:1.
         self.assertIn("--user-blue: #1458B4", self.css)
         liv = self.css.split(".msg.companion {", 1)[1].split("}", 1)[0]
-        self.assertIn("border-left: 14px solid var(--ember)", liv)
-        self.assertIn("background: var(--box)", liv)
+        self.assertIn("border-left: 3px solid var(--ember)", liv)
+        self.assertIn("background: var(--card)", liv)
         self.assertIn("border-radius: 0", liv)
         you = self.css.split(".msg.storyteller {", 1)[1]
         you = you.split("}", 1)[0]
-        self.assertIn("border-right: 14px solid var(--user-blue)",
+        self.assertIn("border-right: 3px solid var(--user-blue)",
                       you)
-        self.assertIn("background: var(--box)", you)
+        self.assertIn("background: var(--card)", you)
         self.assertIn("border-radius: 0", you)
         # Same shape: the padding declaration is identical.
         liv_pad = [ln.strip() for ln in liv.splitlines()
@@ -346,13 +391,20 @@ class TestConversationLayout(unittest.TestCase):
         you_pad = [ln.strip() for ln in you.splitlines()
                    if "padding:" in ln]
         self.assertEqual(liv_pad, you_pad)
-        self.assertEqual(liv_pad, ["padding: 1rem 1.25rem;"])
+        self.assertEqual(liv_pad,
+                         ["padding: 1.125rem 1.375rem;"])
+        # Deliberate size parity: identical font-size and
+        # line-height on both speakers' turns.
+        for block in (liv, you):
+            self.assertIn("font-size: 1.19rem", block)
+            self.assertIn("line-height: 1.65", block)
         # The label colours ride with the speakers: LIV in
-        # ember-deep (8.4:1 on the box), YOU in his blue
-        # (5.6:1 on the box).
+        # the single ember (7.3:1 on the sheet, AAA — the
+        # ember-deep second red is deleted), YOU in his
+        # blue (6.4:1 on the sheet).
         liv_who = self.css.split(".msg.companion .who {", 1)[1]
         liv_who = liv_who.split("}", 1)[0]
-        self.assertIn("color: var(--ember-deep)", liv_who)
+        self.assertIn("color: var(--ember)", liv_who)
         you_who = self.css.split(".msg.storyteller .who {", 1)[1]
         you_who = you_who.split("}", 1)[0]
         self.assertIn("color: var(--user-blue)", you_who)
@@ -381,32 +433,32 @@ class TestConversationLayout(unittest.TestCase):
         rule = rule.split("}", 1)[0]
         self.assertIn("margin-left: auto", rule)
 
-    def test_reply_section_is_a_full_bleed_dark_band(self):
-        # Vetted mockup (Oct 29, 2026): the reply band breaks
-        # out to the full viewport width — the inset rounded
-        # panel is superseded. The ember seam stands between
-        # the conversation panel and the band. The session
-        # actions and the "Take your time" line live INSIDE
-        # the band; nothing of the session area remains on
-        # the canvas below it. Button positions inside are
-        # unchanged (the sketch test above still pins their
-        # order).
+    def test_reply_section_is_a_sheet_width_dark_band(self):
+        # Direction B (Oct 29, 2026): the reply band stays
+        # dark and distinct (ruling 4 kept in kind) but its
+        # width is the SHEET's width, never the viewport's —
+        # the form reaches the sheet's edges through
+        # negative margins of the sheet's own side padding.
+        # The ember seam is deleted (condition 3). The
+        # session actions and the "Take your time" line live
+        # INSIDE the band; nothing of the session area
+        # remains on the sheet below it. Button positions
+        # inside are unchanged (the sketch test above still
+        # pins their order).
         self.assertIn('<form id="chat-form" class="reply-band">',
                       self.html)
         self.assertIn('<label for="chat-input">Reply</label>',
                       self.html)
         band = self.css.split(".reply-band {", 1)[1].split("}", 1)[0]
         self.assertIn("background: var(--ink)", band)
-        self.assertIn("width: 100vw", band)
-        self.assertIn("margin-left: calc(50% - 50vw)", band)
-        # The seam: 4px of ember, spanning the column, in the
-        # DOM immediately before the band.
-        self.assertIn('class="seam"', self.html)
-        self.assertLess(self.html.index('class="seam"'),
-                        self.html.index('<form id="chat-form"'))
-        seam = self.css.split(".seam {", 1)[1].split("}", 1)[0]
-        self.assertIn("height: 4px", seam)
-        self.assertIn("background: var(--ember)", seam)
+        self.assertIn("margin: 0 calc(-1 * var(--pad-side))",
+                      band)
+        self.assertIn("padding: 1.875rem var(--pad-side)",
+                      band)
+        self.assertNotIn("100vw", band)
+        # The seam is gone — element and rule both.
+        self.assertNotIn('class="seam"', self.html)
+        self.assertNotIn(".seam {", self.css)
         # The session area is inside the form (the band):
         form_open = self.html.index('<form id="chat-form"')
         form_close = self.html.index("</form>")
@@ -416,30 +468,55 @@ class TestConversationLayout(unittest.TestCase):
             where = self.html.index(frag)
             self.assertLess(form_open, where, frag)
             self.assertLess(where, form_close, frag)
-        # On the dark ground the words are paper (14.0:1)…
+        # On the dark ground the words are sheet (14.0:1)…
         self.assertIn("#chat-form.reply-band label", self.css)
         self.assertIn(".reply-band .voice-status", self.css)
-        # …the field is white with a paper border and the
-        # mockup's 24px radius…
+        # …the field is white with a sheet border and the
+        # Sheet drawing's 20px radius, its text set at the
+        # heritage floor line-height (condition 5)…
         field = self.css.split(".reply-band #chat-input {", 1)[1]
         field = field.split("}", 1)[0]
-        self.assertIn("border: 2px solid var(--paper)", field)
-        self.assertIn("border-radius: 24px", field)
-        # …and the ember pills carry a paper border, because
-        # ember against ink alone is 1.92:1 — under WCAG
-        # 1.4.11's 3:1 for a control's boundary.
+        self.assertIn("border: 2px solid var(--sheet)", field)
+        self.assertIn("border-radius: 20px", field)
+        area = self.css.split("#chat-input {", 1)[1]
+        area = area.split("}", 1)[0]
+        self.assertIn("line-height: 1.65", area)
+        # …the mic pill — the row's sole ember fill — keeps
+        # its sheet border, because ember against ink alone
+        # is 1.92:1, under WCAG 1.4.11's 3:1 for a control's
+        # boundary…
         mic = self.css.split(".reply-band .mic-btn {", 1)[1]
         mic = mic.split("}", 1)[0]
-        self.assertIn("border-color: var(--paper)", mic)
-        send = self.css.split(".reply-band button.primary {", 1)[1]
+        self.assertIn("border-color: var(--sheet)", mic)
+        # …and Send is NOT an ember fill (condition 2): an
+        # ink fill with a sheet border, still a full pill
+        # at the row's right end.
+        send = self.css.split(
+            ".reply-band .composer-actions .send-btn {", 1)[1]
         send = send.split("}", 1)[0]
-        self.assertIn("border: 1.5px solid var(--paper)", send)
-        # Send is a full pill now, matching Talk to Liv's
-        # shape, still at the row's right end.
+        self.assertIn("background: var(--ink)", send)
+        self.assertNotIn("var(--ember)", send)
+        self.assertIn("border: 1.5px solid var(--sheet)", send)
         row = self.css.split(".composer-actions .send-btn {", 1)[1]
         row = row.split("}", 1)[0]
         self.assertIn("margin-left: auto", row)
         self.assertIn("border-radius: 999px", row)
+        # The session buttons: ghost borders in the
+        # tokenised --ghost-line (condition 3 — the drawing's
+        # literal #C7C3BC, now a named token), at the full
+        # 52px touch height (condition 4).
+        ghost = self.css.split(".reply-band button.secondary {",
+                               1)[1].split("}", 1)[0]
+        self.assertIn("border-color: var(--ghost-line)", ghost)
+        secondary = self.css.split("button.secondary {", 1)[1]
+        secondary = secondary.split("}", 1)[0]
+        self.assertIn("min-height: 3.25rem", secondary)
+        # "Take your time" closes the band in its Cormorant
+        # cameo (Direction B's one serif appearance here).
+        calm = self.css.split("#chat-screen #chat-form .quiet {",
+                              1)[1].split("}", 1)[0]
+        self.assertIn("Cormorant Garamond", calm)
+        self.assertIn("color: var(--sheet)", calm)
 
 
 if __name__ == "__main__":
