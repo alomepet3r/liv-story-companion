@@ -10,6 +10,14 @@
 </head>
 <body>
 
+<!-- The sheet (CASANOVA Direction B "Sheet", founder ruling
+     Oct 29, 2026): the whole app is ONE calm sheet centred on
+     a quiet desk — masthead, screens, and the reply band all
+     live on the same single paper tone, and the band is
+     exactly as wide as the sheet, never the viewport. On a
+     phone the sheet fills the screen edge to edge. -->
+<div class="sheet">
+
 <!-- Brand lockup (founder's vetted mockup, Oct 29, 2026): the
      wordmark as he drew it — "FireSide" in bold italic near-
      black, with an ember flame glyph after the word. One
@@ -135,10 +143,12 @@
     <div class="chat-head">
       <h1 id="chat-heading" class="chat-subtitle">Talking To Liv</h1>
     </div>
-    <!-- The conversation lives in a box (founder layout ruling,
-         Oct 29, 2026): a contained panel in the manner of a chat
-         message container. The turns and Liv's listening state are
-         inside it; the composer stays below it. -->
+    <!-- The conversation lives on the sheet (CASANOVA
+         Direction B, Oct 29, 2026): the turns and Liv's
+         listening state sit directly on the sheet's one paper
+         tone — the wrapper remains as the grouping the layout
+         and tests hang on, but it carries no surface of its
+         own. The composer stays below it. -->
     <div class="conversation-panel">
       <div id="messages" class="messages" aria-live="polite"></div>
       <div id="listening" class="listening" role="status" hidden>
@@ -279,11 +289,6 @@
     </div>
     <p id="media-error" class="media-error" role="alert" hidden></p>
 
-    <!-- The ember seam (founder's vetted mockup): a 4px ember
-         rule spanning the content column, the joint between
-         the conversation box and the reply band below it. -->
-    <div class="seam" aria-hidden="true"></div>
-
     <form id="chat-form" class="reply-band">
       <label for="chat-input">Reply</label>
       <textarea id="chat-input" rows="3"
@@ -304,11 +309,12 @@
         <button class="primary small send-btn" type="submit">Send</button>
       </div>
       <p id="voice-status" class="voice-status" role="status"></p>
-      <!-- The session actions live inside the band now
-           (founder's vetted mockup): outline ghost buttons on
-           the ink ground, with the "Take your time" line
-           beneath them — nothing of the session area remains
-           on the canvas below the band. The buttons keep
+      <!-- The session actions live inside the band
+           (founder's vetted mockup; kept by CASANOVA
+           Direction B): outline ghost buttons on the ink
+           ground, with the "Take your time" line beneath
+           them — nothing of the session area remains on
+           the sheet below the band. The buttons keep
            their exact functional labels and ids. -->
       <p class="chat-actions">
         <button id="finish-btn" class="secondary" type="button">Finish for today</button>
@@ -403,6 +409,8 @@
     </p>
   </section>
 </main>
+
+</div><!-- /.sheet -->
 
 <script src="app.js"></script>
 </body>
