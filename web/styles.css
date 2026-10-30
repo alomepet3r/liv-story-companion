@@ -1017,6 +1017,44 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   margin: 0.6rem 0 0;
 }
 
+/* The voice deck (Rehearsal Finding #1 rebuild, Oct 30,
+   2026): the recording bar and the review bar, inside the
+   band under the action row. Both are flex rows, so the
+   [hidden] attribute needs its own rule — a class-level
+   display would otherwise beat it and the bars could never
+   hide. The buttons are the band's own .secondary ghosts
+   (52px by the base rule) and the review's .primary Send;
+   the timer and duration are sheet words in tabular
+   figures, so the counting never jitters the row. The
+   recording dot pulses while capturing and rests, dimmed,
+   while paused — and the state is ALSO in the button
+   labels and the #voice-status announcements, never in
+   colour alone. */
+.mic-recbar, .mic-review {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+}
+.mic-recbar[hidden], .mic-review[hidden] { display: none; }
+.rec-dot {
+  flex: none;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--flame);
+  box-shadow: 0 0 0 2px #FFFFFF;
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+.mic-recbar.paused .rec-dot { animation: none; opacity: 0.45; }
+.mic-timer, .mic-duration {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--sheet);
+  min-width: 3.2rem;
+}
+
 /* The reply section is a dark band — and it is exactly as
    wide as the sheet (CASANOVA Direction B: ruling 4 kept
    in kind, challenged on width — the distinctness was the
@@ -1281,4 +1319,5 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   .listening-dot { animation: none; }
   button, .consent-check { transition: none; }
   .mic-btn.recording::after { animation: none; }
+  .rec-dot { animation: none; }
 }

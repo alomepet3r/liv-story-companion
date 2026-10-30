@@ -45,6 +45,15 @@
       Afterwards, the conversation is arranged into a chapter — and you
       review and approve it before anything is shared.</p>
 
+    <!-- End-session confirmation (Rehearsal Finding #4,
+         Oct 30, 2026): when a sitting is ended and deleted,
+         this line is unhidden at the TOP of the consent
+         screen — where the storyteller lands — and, as a
+         polite status region, announced. It used to sit at
+         the bottom of this long screen, below the fold:
+         the wipe worked, but said nothing that was heard. -->
+    <p id="session-ended-msg" class="quiet" role="status" hidden>Session ended — everything from that sitting has been deleted: the conversation, anything you shared, and any chapter from it.</p>
+
     <div class="divider" aria-hidden="true"><span class="divider-diamond"></span></div>
 
     <div class="companion-intro">
@@ -132,7 +141,6 @@
 
     <button id="begin-btn" class="primary" type="button" disabled>I understand — let’s begin</button>
     <p class="not-now-row"><a href="#" id="not-now">Not now</a> <span id="not-now-msg" class="quiet" role="status" hidden>That is quite all right. This page will be here whenever you are ready.</span></p>
-    <p id="session-ended-msg" class="quiet" role="status" hidden>That session has ended, and everything from it — the conversation, anything you shared, and any chapter — has been deleted from this demo.</p>
   </section>
 
   <!-- Screen 2 — Conversation. Hidden until consent is given. -->
@@ -233,7 +241,6 @@
         <button id="audio-upload" class="secondary" type="button">Choose a recording</button>
       </p>
       <p class="media-panel-actions" id="audio-rec-actions" hidden>
-        <button id="audio-use" class="secondary" type="button">Use this recording</button>
         <button id="audio-discard" class="secondary" type="button">Discard it</button>
       </p>
       <input id="audio-file-input" type="file" accept="audio/*" hidden>
@@ -307,6 +314,33 @@
           <span class="attach-plus" aria-hidden="true">+</span> Add
         </button>
         <button class="primary small send-btn" type="submit">Send</button>
+      </div>
+      <!-- The voice deck (Rehearsal Finding #1 rebuild,
+           Oct 30, 2026): one tap in, one decision out. While
+           a Talk to Liv recording runs, the recording bar is
+           in plain sight — a live timer, Pause (only where
+           the browser truly supports it), and Stop. Stop
+           lands on exactly one review bar: hear the take
+           (Play/Pause), see its length, then Re-record or
+           Send. Nothing sends blind any more. States are
+           announced in #voice-status below; no state rides
+           on colour alone. -->
+      <div id="mic-recbar" class="mic-recbar" hidden role="group"
+        aria-label="Recording controls">
+        <span class="rec-dot" aria-hidden="true"></span>
+        <span id="mic-timer" class="mic-timer" aria-hidden="true">0:00</span>
+        <button id="mic-pause" class="secondary" type="button"
+          aria-pressed="false">Pause</button>
+        <button id="mic-stop" class="secondary" type="button">Stop</button>
+      </div>
+      <div id="mic-review" class="mic-review" hidden role="group"
+        aria-label="Review your recording">
+        <button id="mic-play" class="secondary" type="button"
+          aria-pressed="false">Play</button>
+        <span id="mic-duration" class="mic-duration">0:00</span>
+        <button id="mic-rerecord" class="secondary" type="button">Re-record</button>
+        <button id="mic-send" class="primary small" type="button">Send</button>
+        <audio id="mic-playback" preload="metadata" aria-hidden="true"></audio>
       </div>
       <p id="voice-status" class="voice-status" role="status"></p>
       <!-- The session actions live inside the band
