@@ -25,38 +25,50 @@ Three rulings pinned here:
   chosen by the founder over Direction A the same night):
   the app is ONE calm sheet centred on a quiet desk. The
   header is the wordmark as he drew it — "FireSide" in
-  bold italic near-black with an ember flame glyph after
-  the word — over the sub-line "Talking To Liv" (title
-  case as drawn; his phrasing: to, not with), Atkinson
-  bold, ink, left-aligned. ONE paper tone (--sheet) and
-  ONE card white: the cream stack (--paper-2/--paper-3/
-  --box) is collapsed, --gold/--sage are deleted, and
-  there is ONE red — --ember-deep is deleted (build
-  condition 1), so Liv's label and rules are pure ember.
-  Speaker labels ride above each turn, small — LIV left
-  in ember, YOU right in the storyteller's blue
-  (--user-blue #1458B4, declared by his design), in
+  ExtraBold italic near-black with a terracotta flame
+  glyph after the word — over the sub-line "Talking To
+  Liv" (title case as drawn; his phrasing: to, not
+  with), Montserrat bold, ink, left-aligned. TYPE
+  (founder ruling, Oct 29, 2026): Montserrat throughout,
+  in varying weights and styles — 800 italic wordmark,
+  700 headings, 700 labels, 400 body, 500 italic cameos;
+  Atkinson Hyperlegible rides second in the stack as
+  the fallback face. PALETTE (founder ruling, same
+  night): his own "Earth & Oak" palette — Desert Sand
+  #D5C2B1, Eucalyptus Sage #839788, Raw Linen #E6E1DA,
+  Terracotta Earth #A75D3F, Volcanic Stone #3C3B3A — in
+  its QUIET NEUTRALS use (use #9 of ten drawn): the
+  stone neutrals carry the sheet, and exactly ONE warm
+  event remains — the flame (var(--flame), declared
+  Terracotta) and the Talk to Liv pill (var(--action),
+  Terracotta Deep). ONE paper tone (--sheet, Linen
+  Light) and ONE card tone (--card, Warm White): the
+  cream stack is collapsed and the old ember/blue
+  tokens are deleted. Speaker labels ride above each
+  turn, small — LIV left in Volcanic Stone (var(--liv)),
+  YOU right in a warm gray (var(--you) #6E675C), in
   capitals set by CSS with NO marker glyphs; the DOM
   text stays "Liv" / "You" for assistive technology.
-  Both speakers' turns live in the SAME square white box
-  at the SAME size (parity is deliberate), differentiated
-  by 3px rules — ember at Liv's LEFT, user-blue at the
-  storyteller's RIGHT — and the label colours. Dialogue
-  boxes are RECTANGULAR (border-radius 0); the sheet,
-  the field, and the buttons keep their curves. The 4px
-  ember seam is DELETED (condition 3). The reply section
-  is a dark band exactly as wide as the SHEET, never
-  100vw: label "Reply", a white field at 20px radius,
-  one action row (Talk to Liv — the row's sole ember
-  fill · + Add · Send as a full pill at the right end
-  with a NON-ember ink fill, condition 2), the session
-  actions inside the band as ghost outline buttons at
-  52px with borders in the tokenised --ghost-line
-  (#C7C3BC), and "Take your time" beneath them in its
-  Cormorant cameo — nothing of the session area remains
-  on the sheet below the band. Standing UI principle, in
-  his words: minimalist but very functional,
-  conversational, intuitive, effective.
+  Both speakers' turns live in the SAME square box at
+  the SAME size (parity is deliberate), differentiated
+  by 3px rules — volcanic at Liv's LEFT, warm gray at
+  the storyteller's RIGHT — and the label colours.
+  Dialogue boxes are RECTANGULAR (border-radius 0);
+  the sheet, the field, and the buttons keep their
+  curves. The 4px seam is DELETED (condition 3). The
+  reply section is a dark band exactly as wide as the
+  SHEET, never 100vw: label "Reply", a white field at
+  20px radius, one action row (Talk to Liv — the row's
+  sole WARM fill · + Add · Send as a full pill at the
+  right end with a NON-warm ink fill, condition 2),
+  the session actions inside the band as ghost outline
+  buttons at 52px with borders in the tokenised
+  --ghost-line (#BCB8B2), and "Take your time" beneath
+  them in its Montserrat Medium italic cameo — nothing
+  of the session area remains on the sheet below the
+  band. Standing UI principle, in his words:
+  minimalist but very functional, conversational,
+  intuitive, effective.
 """
 import unittest
 from pathlib import Path
@@ -227,7 +239,7 @@ class TestFrontendContract(unittest.TestCase):
 
     def test_mic_button_styles_two_colour_and_recording_state(self):
         resting = self.css.split(".mic-btn {", 1)[1].split("}", 1)[0]
-        self.assertIn("background: var(--ember)", resting)
+        self.assertIn("background: var(--action)", resting)
         self.assertIn("color: #FFFFFF", resting)
         self.assertIn("border-radius: 999px", resting)
         self.assertIn("min-height: 3.25rem", resting)
@@ -251,10 +263,10 @@ class TestConversationLayout(unittest.TestCase):
             "</title>", self.html)
 
     def test_brand_lockup_wordmark_and_flame(self):
-        # The vetted mockup's wordmark: bold italic "FireSide"
-        # (capital F, capital S) with the ember flame glyph
-        # AFTER the word — the flame-in-ring medallion and the
-        # Cormorant name are gone.
+        # The vetted mockup's wordmark: ExtraBold italic
+        # "FireSide" (capital F, capital S) in Montserrat,
+        # with the terracotta flame glyph AFTER the word —
+        # the flame-in-ring medallion is gone.
         self.assertIn('class="brand-lockup"', self.html)
         self.assertIn('<span class="brand-name">FireSide</span>',
                       self.html)
@@ -264,17 +276,17 @@ class TestConversationLayout(unittest.TestCase):
         self.assertNotIn('class="brand-mark"', self.html)
         name = self.css.split(".brand-name {", 1)[1].split("}", 1)[0]
         self.assertIn("font-style: italic", name)
-        self.assertIn("font-weight: 700", name)
+        self.assertIn("font-weight: 800", name)
         # Direction B type scale: the wordmark at 32px.
         self.assertIn("font-size: 2rem", name)
         flame = self.css.split(".brand-flame {", 1)[1]
         flame = flame.split("}", 1)[0]
-        self.assertIn("color: var(--ember)", flame)
+        self.assertIn("color: var(--flame)", flame)
 
     def test_sub_line_is_the_founders_phrasing(self):
         # His phrasing ("to", not "with"), presented title
-        # case as drawn in the vetted mockup — Atkinson bold,
-        # left-aligned, no longer Cormorant italic.
+        # case as drawn in the vetted mockup — Montserrat
+        # bold, left-aligned, never italic.
         self.assertIn(
             '<h1 id="chat-heading" class="chat-subtitle">'
             "Talking To Liv</h1>", self.html)
@@ -283,7 +295,7 @@ class TestConversationLayout(unittest.TestCase):
         self.assertIn("font-weight: 700", sub)
         self.assertIn("text-align: left", sub)
         self.assertNotIn("italic", sub)
-        # Direction B: 24px, in ink (14.0:1 on the sheet) —
+        # Direction B: 24px, in ink (9.6:1 on the sheet) —
         # no longer the quiet gray of the vetted mockup.
         self.assertIn("font-size: 1.5rem", sub)
         self.assertIn("color: var(--ink)", sub)
@@ -297,15 +309,24 @@ class TestConversationLayout(unittest.TestCase):
         self.assertLess(sheet, masthead)
         self.assertLess(masthead, main)
         # The declared tokens of the Sheet world.
-        for token in ("--desk: #E8E2D6", "--sheet: #FBF7EF",
-                      "--control: #6B655E", "--ink-2: #59524C",
-                      "--ghost-line: #C7C3BC"):
+        for token in ("--desk: #D5C2B1", "--sheet: #F1EDE6",
+                      "--card: #FBF9F5", "--ink: #3C3B3A",
+                      "--liv: #3C3B3A", "--you: #6E675C",
+                      "--action: #93502F", "--flame: #A75D3F",
+                      "--tint: #E6E1DA", "--control: #655C4E",
+                      "--ink-2: #68635B",
+                      "--ghost-line: #BCB8B2"):
             self.assertIn(token, self.css)
-        # The cream stack and the second red are gone, and
-        # the quiet ink is a solid token now, not an rgba.
+        # The cream stack and the old colour tokens are
+        # gone, and the quiet ink is a solid token now,
+        # not an rgba.
         for gone in ("--paper:", "--paper-2:", "--paper-3:",
                      "--box:", "--gold:", "--sage:",
+                     "--ember:", "var(--ember)",
                      "--ember-deep:", "var(--ember-deep)",
+                     "--ember-tint:", "--user-blue:",
+                     "var(--user-blue)", "#1458B4", "#9D2224",
+                     "Cormorant",
                      "var(--ink-soft)"):
             self.assertNotIn(gone, self.css)
         body = self.css.split("body {", 1)[1].split("}", 1)[0]
@@ -363,25 +384,26 @@ class TestConversationLayout(unittest.TestCase):
         self.assertIn("text-align: right", you)
 
     def test_turn_boxes_unified_with_mirrored_rules(self):
-        # Direction B (Oct 29, 2026): both speakers' turns
-        # live in the SAME square white box (--card) on the
-        # sheet — the shared cream tint is gone with the
-        # cream stack. The differentiators are the 3px rules
-        # (a margin mark, not a flag: ember at Liv's LEFT,
-        # the storyteller's blue at his RIGHT) and the label
-        # colours. Dialogue boxes stay RECTANGULAR (founder
-        # amendment: radius 0, rules flush); the sheet, the
-        # field, and the buttons keep their curves. Parity
-        # is deliberate (reconciliation D16): both turns set
-        # at the same 19px / 1.65. Ink on the card is 15.0:1.
-        self.assertIn("--user-blue: #1458B4", self.css)
+        # Direction B (Oct 29, 2026) in Quiet Neutrals:
+        # both speakers' turns live in the SAME square box
+        # (--card, Warm White) on the sheet. The
+        # differentiators are the 3px rules (a margin mark,
+        # not a flag: volcanic at Liv's LEFT, the
+        # storyteller's warm gray at his RIGHT) and the
+        # label colours. Dialogue boxes stay RECTANGULAR
+        # (founder amendment: radius 0, rules flush); the
+        # sheet, the field, and the buttons keep their
+        # curves. Parity is deliberate (reconciliation
+        # D16): both turns set at the same 19px / 1.65.
+        # Ink on the card is 10.6:1.
+        self.assertIn("--you: #6E675C", self.css)
         liv = self.css.split(".msg.companion {", 1)[1].split("}", 1)[0]
-        self.assertIn("border-left: 3px solid var(--ember)", liv)
+        self.assertIn("border-left: 3px solid var(--liv)", liv)
         self.assertIn("background: var(--card)", liv)
         self.assertIn("border-radius: 0", liv)
         you = self.css.split(".msg.storyteller {", 1)[1]
         you = you.split("}", 1)[0]
-        self.assertIn("border-right: 3px solid var(--user-blue)",
+        self.assertIn("border-right: 3px solid var(--you)",
                       you)
         self.assertIn("background: var(--card)", you)
         self.assertIn("border-radius: 0", you)
@@ -399,15 +421,14 @@ class TestConversationLayout(unittest.TestCase):
             self.assertIn("font-size: 1.19rem", block)
             self.assertIn("line-height: 1.65", block)
         # The label colours ride with the speakers: LIV in
-        # the single ember (7.3:1 on the sheet, AAA — the
-        # ember-deep second red is deleted), YOU in his
-        # blue (6.4:1 on the sheet).
+        # Volcanic Stone (9.6:1 on the sheet, AAA), YOU in
+        # his warm gray (5.1:1 on the sheet).
         liv_who = self.css.split(".msg.companion .who {", 1)[1]
         liv_who = liv_who.split("}", 1)[0]
-        self.assertIn("color: var(--ember)", liv_who)
+        self.assertIn("color: var(--liv)", liv_who)
         you_who = self.css.split(".msg.storyteller .who {", 1)[1]
         you_who = you_who.split("}", 1)[0]
-        self.assertIn("color: var(--user-blue)", you_who)
+        self.assertIn("color: var(--you)", you_who)
         self.assertIn("text-align: right", you_who)
 
     def test_composer_follows_the_sketch(self):
@@ -439,7 +460,7 @@ class TestConversationLayout(unittest.TestCase):
         # width is the SHEET's width, never the viewport's —
         # the form reaches the sheet's edges through
         # negative margins of the sheet's own side padding.
-        # The ember seam is deleted (condition 3). The
+        # The seam is deleted (condition 3). The
         # session actions and the "Take your time" line live
         # INSIDE the band; nothing of the session area
         # remains on the sheet below it. Button positions
@@ -468,7 +489,7 @@ class TestConversationLayout(unittest.TestCase):
             where = self.html.index(frag)
             self.assertLess(form_open, where, frag)
             self.assertLess(where, form_close, frag)
-        # On the dark ground the words are sheet (14.0:1)…
+        # On the dark ground the words are sheet (9.6:1)…
         self.assertIn("#chat-form.reply-band label", self.css)
         self.assertIn(".reply-band .voice-status", self.css)
         # …the field is white with a sheet border and the
@@ -481,41 +502,43 @@ class TestConversationLayout(unittest.TestCase):
         area = self.css.split("#chat-input {", 1)[1]
         area = area.split("}", 1)[0]
         self.assertIn("line-height: 1.65", area)
-        # …the mic pill — the row's sole ember fill — keeps
-        # its sheet border, because ember against ink alone
-        # is 1.92:1, under WCAG 1.4.11's 3:1 for a control's
-        # boundary…
+        # …the mic pill — the row's sole warm fill — keeps
+        # its sheet border, because the terracotta action
+        # against ink alone is 1.7:1, under WCAG 1.4.11's
+        # 3:1 for a control's boundary…
         mic = self.css.split(".reply-band .mic-btn {", 1)[1]
         mic = mic.split("}", 1)[0]
         self.assertIn("border-color: var(--sheet)", mic)
-        # …and Send is NOT an ember fill (condition 2): an
+        # …and Send is NOT the warm fill (condition 2): an
         # ink fill with a sheet border, still a full pill
         # at the row's right end.
         send = self.css.split(
             ".reply-band .composer-actions .send-btn {", 1)[1]
         send = send.split("}", 1)[0]
         self.assertIn("background: var(--ink)", send)
-        self.assertNotIn("var(--ember)", send)
+        self.assertNotIn("var(--action)", send)
         self.assertIn("border: 1.5px solid var(--sheet)", send)
         row = self.css.split(".composer-actions .send-btn {", 1)[1]
         row = row.split("}", 1)[0]
         self.assertIn("margin-left: auto", row)
         self.assertIn("border-radius: 999px", row)
         # The session buttons: ghost borders in the
-        # tokenised --ghost-line (condition 3 — the drawing's
-        # literal #C7C3BC, now a named token), at the full
-        # 52px touch height (condition 4).
+        # tokenised --ghost-line (condition 3 — Raw Linen
+        # at 75% over Volcanic Stone, as a solid), at the
+        # full 52px touch height (condition 4).
         ghost = self.css.split(".reply-band button.secondary {",
                                1)[1].split("}", 1)[0]
         self.assertIn("border-color: var(--ghost-line)", ghost)
         secondary = self.css.split("button.secondary {", 1)[1]
         secondary = secondary.split("}", 1)[0]
         self.assertIn("min-height: 3.25rem", secondary)
-        # "Take your time" closes the band in its Cormorant
-        # cameo (Direction B's one serif appearance here).
+        # "Take your time" closes the band in its cameo —
+        # Montserrat Medium italic (founder type ruling).
         calm = self.css.split("#chat-screen #chat-form .quiet {",
                               1)[1].split("}", 1)[0]
-        self.assertIn("Cormorant Garamond", calm)
+        self.assertIn("Montserrat", calm)
+        self.assertIn("font-style: italic", calm)
+        self.assertIn("font-weight: 500", calm)
         self.assertIn("color: var(--sheet)", calm)
 
 
