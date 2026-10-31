@@ -120,9 +120,10 @@ class TestVoiceDeckJs(_WebCase):
         # line in the same beat and runs the unchanged
         # listening-track + /api/media pipeline as a
         # standalone message.
-        self.assertIn("function sendVoiceTake(blob, type)",
-                      self.js)
-        self.assertIn("sendVoiceTake(audioBlob, type)", self.js)
+        self.assertIn("function sendVoiceTake(blob, type, "
+                      "cutShort)", self.js)
+        self.assertIn("sendVoiceTake(audioBlob, type, "
+                      "cutShort)", self.js)
         self.assertIn('stageWithListening("audio", blob,',
                       self.js)
         self.assertIn("Heard you — Liv is listening to your "
@@ -139,7 +140,8 @@ class TestVoiceDeckJs(_WebCase):
         self.assertIn("if (!wasMic) { closePanels(); }",
                       self.js)
         closed = self.js.index("if (!wasMic) { closePanels(); }")
-        sent = self.js.index("sendVoiceTake(audioBlob, type)")
+        sent = self.js.index("sendVoiceTake(audioBlob, type, "
+                             "cutShort)")
         self.assertLess(closed, sent)
 
     def test_pill_parks_while_recording(self):
@@ -221,6 +223,145 @@ class TestVoiceDeckCss(_WebCase):
     def test_timer_uses_tabular_figures(self):
         self.assertIn("font-variant-numeric: tabular-nums",
                       self.css)
+
+
+class TestWakeLockSessionScope(_WebCase):
+    """Fix 1 (Oct 30, evening): the founder's screen slept
+    on Safari mid-telling and the recording was cut. His
+    refinement: the interaction with Liv is continuous,
+    so the wake lock is SESSION-scoped — acquired at the
+    Begin transition past consent, at home on every
+    post-consent screen, released only by the end-session
+    wipe, pagehide, or WAKE_IDLE_MS (30 min) untouched.
+    Recording paths merely ensure it is held."""
+
+    def test_lock_is_feature_detected_and_requested(self):
+        self.assertIn('"wakeLock" in navigator', self.js)
+        self.assertIn('navigator.wakeLock.request("screen")',
+                      self.js)
+        # Enhancement only: acquisition refuses cleanly
+        # when unsupported or outside a sitting, and the
+        # request's rejection is swallowed.
+        acquire = self.js.split("function acquireWakeLock",
+                                1)[1]
+        acquire = acquire.split("function releaseWakeLock",
+                                1)[0]
+        self.assertIn("if (!wakeLockSupported() || "
+                      "!inSitting()) { return; }", acquire)
+        self.assertIn(".catch(function () {", acquire)
+
+    def test_lock_acquired_at_begin_not_on_consent(self):
+        # The Begin transition acquires; the guard means
+        # the consent screen itself can never hold it.
+        begin = self.js.split(
+            'beginBtn.addEventListener("click"', 1)[1]
+        begin = begin.split('send("", false)', 1)[0]
+        self.assertIn("acquireWakeLock();", begin)
+        self.assertIn("return consented;", self.js)
+
+    def test_lock_released_on_end_session_and_pagehide(self):
+        end = self.js.split(
+            'getElementById("end-session-btn")', 1)[1]
+        end = end.split("chapterCall", 1)[0]
+        self.assertIn("releaseWakeLock();", end)
+        self.assertIn('addEventListener("pagehide"', self.js)
+        hide = self.js.split('addEventListener("pagehide"',
+                             1)[1]
+        hide = hide.split("visibilitychange", 1)[0]
+        self.assertIn("releaseWakeLock();", hide)
+
+    def test_idle_release_on_the_named_constant(self):
+        self.assertIn("var WAKE_IDLE_MS = 30 * 60 * 1000;",
+                      self.js)
+        arm = self.js.split("function armWakeIdle", 1)[1]
+        arm = arm.split("function dropWakeSentinel", 1)[0]
+        self.assertIn("setTimeout(function ()", arm)
+        self.assertIn("}, WAKE_IDLE_MS);", arm)
+        self.assertIn("releaseWakeLock();", arm)
+
+    def test_interaction_rearms_and_reacquires(self):
+        self.assertIn('document.addEventListener('
+                      '"pointerdown", noteWakeInteraction);',
+                      self.js)
+        self.assertIn('document.addEventListener('
+                      '"keydown", noteWakeInteraction);',
+                      self.js)
+        # A message sent counts as interaction.
+        send = self.js.split("function send(message", 1)[1]
+        send = send.split("beginBtn", 1)[0]
+        self.assertIn("noteWakeInteraction();", send)
+        # Returning to the tab counts as interaction too.
+        vis = self.js.split(
+            'addEventListener("visibilitychange"', 1)[1]
+        self.assertIn("noteWakeInteraction();", vis)
+
+    def test_recording_start_ensures_the_lock(self):
+        start = self.js.split("function startRecorder",
+                              1)[1]
+        start = start.split("function wireRecorder", 1)[0]
+        self.assertIn("noteWakeInteraction();", start)
+        self.assertIn("maybeWakeHint();", start)
+
+
+class TestInterruptionTruthfulness(_WebCase):
+    """Fix 2 (Oct 30, evening): stop causes are told
+    apart — a deliberate Stop (stopInitiated), a Discard
+    or kill (discardNext), and an UNEXPECTED stop (the
+    recorder died under a slept screen). A cut take still
+    sends — the partial telling is preserved, per the
+    founder's doctrine — but its announcement tells the
+    truth about the cut."""
+
+    def test_stop_causes_are_marked(self):
+        # Both deliberate Stop controls mark the cause.
+        self.assertGreaterEqual(
+            self.js.count("R.stopInitiated = true;"), 2)
+        # The page hiding mid-telling marks interrupted.
+        vis = self.js.split(
+            'addEventListener("visibilitychange"', 1)[1]
+        self.assertIn("R.interrupted = true;", vis)
+        # A fresh take starts with no cause marked.
+        start = self.js.split("function startRecorder",
+                              1)[1]
+        start = start.split("function wireRecorder", 1)[0]
+        self.assertIn("R.interrupted = false;", start)
+        self.assertIn("R.stopInitiated = false;", start)
+
+    def test_cut_takes_send_with_truthful_copy(self):
+        self.assertIn("var cutShort = R.interrupted || "
+                      "!R.stopInitiated;", self.js)
+        self.assertIn("setVoiceStatus(cutShort", self.js)
+        self.assertIn("The screen slept and cut that "
+                      "short — what you ", self.js)
+        self.assertIn("said up to then went to Liv.",
+                      self.js)
+
+    def test_normal_stop_keeps_the_normal_line(self):
+        # The heard-you line survives as the non-cut
+        # branch; a deliberate, uninterrupted stop never
+        # sees the cut copy.
+        self.assertIn(': "Heard you — Liv is listening '
+                      'to your words.");', self.js)
+
+    def test_dead_recorder_resyncs_on_return(self):
+        # Recorder dead while the mic chrome still shows
+        # recording: resync to the truth and say so.
+        self.assertIn("if (R.viaMic && !micRecbar.hidden)",
+                      self.js)
+        self.assertIn("The screen slept, and the "
+                      "recording stopped.", self.js)
+
+    def test_hint_once_only_and_only_when_unsupported(self):
+        hint = self.js.split("function maybeWakeHint",
+                             1)[1]
+        hint = hint.split("pointerdown", 1)[0]
+        self.assertIn("if (wakeLockSupported() || "
+                      "wakeHintShown) { return; }", hint)
+        self.assertIn("wakeHintShown = true;", hint)
+        self.assertIn("Keeping the screen awake helps "
+                      "here — ", self.js)
+        self.assertIn("if the screen sleeps, the "
+                      "recording stops.", self.js)
 
 
 if __name__ == "__main__":
