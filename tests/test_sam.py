@@ -157,6 +157,12 @@ class FakeChatClient:
             return content or ""
         return ""
 
+    def last_system_text(self):
+        for message in self.calls[-1]:
+            if message.get("role") == "system":
+                return message.get("content") or ""
+        return ""
+
 
 class FakeSamClient:
     """Stands in for SamClient; returns canned boxes or raises."""
@@ -345,6 +351,152 @@ class TestSceneLedger(SceneLedgerCase):
         text = "".join(p.get("text", "") for p in shaped[0]["content"]
                        if isinstance(p, dict))
         self.assertNotIn("Scene ledger", text)
+
+
+class TestSceneFactsTravel(SceneLedgerCase):
+    """Follow-up gap (production, Oct 30): the ledger lived
+    only in the photo turn's per-turn copy, so "How many of us
+    are in that photo?" on the next turn — image gone, facts
+    gone — got a confabulated "sixteen". Measured facts now
+    persist on the media item and are re-injected into later
+    turns' system copy; and the live prompt carries a
+    never-guess rule for photos with no verified count."""
+
+    def seed_archived_photo(self, mid, caption, count, share=None):
+        sess = app._session(self.session)
+        sess["media"][mid] = {
+            "kind": "photo", "content_type": "image/png",
+            "data": PNG, "name": mid + ".png", "source": "archive",
+            "caption": caption, "date_str": "12 May 2019",
+            "album": "Family Days",
+            "scene_facts": {"person_count": count,
+                            "frame_share": share},
+        }
+
+    def test_facts_stored_on_the_media_item(self):
+        self.go_live()
+        media_id = self.upload_photo()
+        self.photo_turn(media_id)
+        item = app._session(self.session)["media"][media_id]
+        self.assertEqual(item["scene_facts"], {
+            "person_count": 1,
+            "frame_share": "filling nearly the whole frame"})
+
+    def test_no_facts_stored_when_sam_fails(self):
+        self.sam = FakeSamClient(fail=RuntimeError("sam is down"))
+        self.go_live()
+        media_id = self.upload_photo()
+        self.photo_turn(media_id)
+        item = app._session(self.session)["media"][media_id]
+        self.assertNotIn("scene_facts", item)
+
+    def test_followup_turn_carries_the_earlier_facts(self):
+        self.sam = FakeSamClient(boxes=nine_boxes())
+        self.go_live()
+        self.photo_turn(self.upload_photo())
+        status, body = app.handle_chat(dict(
+            self.payload,
+            message="How many of us are in that photo?"))
+        self.assertEqual(status, 200, body)
+        self.assertEqual(body["mode"], "live")
+        # SAM is not called again — the facts travel, the
+        # measurement is not repeated.
+        self.assertEqual(len(self.sam.calls), 1)
+        system = self.chat.last_system_text()
+        self.assertIn("Verified facts about photos shared earlier",
+                      system)
+        self.assertIn("A photo you shared", system)
+        self.assertIn("contains exactly 9 people", system)
+        self.assertIn("say 9 — never a different number", system)
+        self.assertIn("say nothing about who anyone is", system)
+        # The re-injected block is per-turn copy, like the
+        # ledger — it never enters session history, and the
+        # follow-up turn itself carries no scene ledger.
+        self.assertNotIn("Scene ledger", self.chat.last_user_text())
+        history = app._session(self.session)["history"]
+        for entry in history:
+            self.assertNotIn("Verified facts", entry["content"])
+
+    def test_photo_turn_dedupes_its_own_photo(self):
+        self.go_live()
+        # First photo: nine people — facts land on the item.
+        self.sam = FakeSamClient(boxes=nine_boxes())
+        app._sam_client = self.sam
+        self.photo_turn(self.upload_photo())
+        # Second photo: one person — its fresh ledger rides the
+        # turn; the earlier-facts block must carry ONLY the
+        # first photo, never restate the fresh one.
+        self.sam = FakeSamClient()
+        app._sam_client = self.sam
+        self.photo_turn(self.upload_photo())
+        user = self.chat.last_user_text()
+        self.assertIn("[Scene ledger", user)
+        self.assertIn("exactly 1 person is in this photo", user)
+        system = self.chat.last_system_text()
+        self.assertIn("contains exactly 9 people", system)
+        self.assertNotIn("contains exactly 1 person", system)
+
+    def test_facts_block_caps_at_three_most_recent(self):
+        self.go_live()
+        for i, (caption, count) in enumerate([
+                ("First gathering", 2), ("Second gathering", 3),
+                ("Third gathering", 4), ("Fourth gathering", 5)]):
+            self.seed_archived_photo(f"m-cap-{i}", caption, count)
+        status, body = app.handle_chat(dict(
+            self.payload, message="Tell me about those photos."))
+        self.assertEqual(status, 200, body)
+        system = self.chat.last_system_text()
+        # Only the last three, most recent first.
+        i5 = system.index("exactly 5 people")
+        i4 = system.index("exactly 4 people")
+        i3 = system.index("exactly 3 people")
+        self.assertLess(i5, i4)
+        self.assertLess(i4, i3)
+        self.assertNotIn("exactly 2 people", system)
+        self.assertNotIn("First gathering", system)
+        self.assertIn("Fourth gathering", system)
+
+    def test_archive_photo_facts_are_stored_and_carried(self):
+        self.go_live()
+        sess = app._session(self.session)
+        sess["media"]["m-arch"] = {
+            "kind": "photo", "content_type": "image/png",
+            "data": PNG, "name": "house.png", "source": "archive",
+            "caption": "The red house on the hill.",
+            "date_str": "12 May 2019", "album": "Family Days",
+        }
+        self.photo_turn("m-arch")
+        item = sess["media"]["m-arch"]
+        self.assertEqual(item["scene_facts"]["person_count"], 1)
+        status, body = app.handle_chat(dict(
+            self.payload,
+            message="How many people were in that one?"))
+        self.assertEqual(status, 200, body)
+        system = self.chat.last_system_text()
+        # Bound to the photo by the label the conversation
+        # knows it by — caption first.
+        self.assertIn("The red house on the hill.", system)
+        self.assertIn("contains exactly 1 person", system)
+
+    def test_never_guess_rule_present_with_no_facts_anywhere(self):
+        self.go_live()
+        status, body = app.handle_chat(dict(
+            self.payload,
+            message="How many people are in a photo, usually?"))
+        self.assertEqual(status, 200, body)
+        system = self.chat.last_system_text()
+        # The rule rides the live prompt even when no photo has
+        # ever been shared: never invent, a hedge is still
+        # invention, decline the guess and invite their count.
+        self.assertIn("COUNTING PEOPLE IN PHOTOS", system)
+        self.assertIn("never invent a number", system)
+        self.assertIn("still an invented number", system)
+        self.assertIn("can't stand behind", system)
+        self.assertIn("invite theirs", system)
+        # And with no facts anywhere, there is no facts block.
+        self.assertNotIn("Verified facts about photos shared earlier",
+                         system)
+        self.assertEqual(self.sam.calls, [])
 
 
 if __name__ == "__main__":
