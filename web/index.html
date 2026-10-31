@@ -10,35 +10,36 @@
 </head>
 <body>
 
-<!-- The sheet (CASANOVA Direction B "Sheet", founder ruling
-     Oct 29, 2026): the whole app is ONE calm sheet centred on
-     a quiet desk — masthead, screens, and the reply band all
-     live on the same single paper tone, and the band is
-     exactly as wide as the sheet, never the viewport. On a
-     phone the sheet fills the screen edge to edge. -->
-<div class="sheet">
+<!-- The Marriage (founder ruling, Oct 31, 2026; spec:
+     design-vet/marriage/marriage.html): the Monolith's
+     machine taught the Sheet's manners. Each screen is an
+     ink chassis standing on the desk — header pinned, the
+     conversation the only scroll, foot pinned — and inside
+     the chassis the Sheet keeps her manners: the wordmark
+     large with its sub-line, calm card-box turns at a
+     centred measure, a quiet fresh opening. Quiet Neutrals
+     tokens only. -->
+<div class="app">
+<main class="app-main">
 
-<!-- Brand lockup (founder's vetted mockup, Oct 29, 2026): the
-     wordmark as he drew it — "FireSide" in bold italic near-
-     black, with an ember flame glyph after the word. One
-     compact beat at the top of every screen. Liv is the
-     companion, introduced in the Meet Liv panel and the
-     greeting, not the wordmark. -->
-<header class="masthead">
-  <p class="brand-lockup">
-    <span class="brand-name">FireSide</span>
-    <span class="brand-flame" aria-hidden="true">
-      <svg viewBox="0 0 24 32" focusable="false"><path d="M12 0c1 6-4 8-4 13a4.5 4.5 0 0 0 9 0c0-2-1-3.5-2-5 3 1.5 5 4.5 5 8a8 8 0 1 1-16 0C4 8 10 6 12 0z" fill="currentColor"/></svg>
-    </span>
-  </p>
-</header>
-
-<main>
   <!-- Screen 1 — Consent. Nothing else is reachable until the
        storyteller agrees; the server enforces the same gate. The
        companion, Liv, is introduced here — there is no name to
-       choose (Liv-only, founder ruling Oct 29, 2026). -->
-  <section id="consent-screen" aria-labelledby="consent-heading">
+       choose (Liv-only, founder ruling Oct 29, 2026). The board
+       draws this door briefly; the app keeps the FULL live
+       consent copy inside it — the chassis is the new clothes,
+       not a shorter word. -->
+  <section id="consent-screen" class="chassis chassis-narrow" aria-labelledby="consent-heading">
+    <header class="masthead consent-head">
+      <p class="brand-lockup">
+        <span class="brand-name">FireSide</span>
+        <span class="brand-flame" aria-hidden="true">
+          <svg viewBox="0 0 24 32" focusable="false"><path d="M12 0c1 6-4 8-4 13a4.5 4.5 0 0 0 9 0c0-2-1-3.5-2-5 3 1.5 5 4.5 5 8a8 8 0 1 1-16 0C4 8 10 6 12 0z" fill="currentColor"/></svg>
+        </span>
+      </p>
+    </header>
+    <div class="consent-scroll">
+    <div class="consent-col">
     <h1 id="consent-heading">Your stories, in <em>your own voice</em></h1>
     <p class="lede">Sit down with <span class="js-companion-name">Liv</span>,
       a patient companion. Talk about your life, at your pace.
@@ -141,22 +142,63 @@
 
     <button id="begin-btn" class="primary" type="button" disabled>I understand — let’s begin</button>
     <p class="not-now-row"><a href="#" id="not-now">Not now</a> <span id="not-now-msg" class="quiet" role="status" hidden>That is quite all right. This page will be here whenever you are ready.</span></p>
+    </div>
+    </div>
+    <!-- The machine's foot on the door: the meter, asleep.
+         Segments only — at rest the machine claims nothing;
+         no "listening" is written anywhere until a microphone
+         is truly open (founder's honesty flag, Oct 31, 2026). -->
+    <div class="consent-foot" aria-hidden="true">
+      <div class="meter-rest"><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span></div>
+    </div>
   </section>
 
   <!-- Screen 2 — Conversation. Hidden until consent is given. -->
-  <section id="chat-screen" hidden aria-labelledby="chat-heading">
-    <!-- Sub-line under the wordmark (founder's phrasing,
-         Oct 29, 2026: "Talking to Liv" — to, not with —
-         presented title case, as drawn in his vetted mockup). -->
-    <div class="chat-head">
-      <h1 id="chat-heading" class="chat-subtitle">Talking To Liv</h1>
+  <section id="chat-screen" class="chassis" hidden aria-labelledby="chat-heading">
+    <!-- Her title treatment in his header: the wordmark large,
+         the flame riding with it, and the sub-line beneath —
+         the room's title, not a corner readout. The sub-line
+         keeps the founder's phrasing and casing (his vetted
+         mockup, Oct 29, 2026: "Talking To Liv"). -->
+    <div class="titlebar">
+      <div class="title-id">
+        <div class="title-word">
+          <svg class="title-flame" viewBox="0 0 10 14" aria-hidden="true" focusable="false"><path d="M5 0C6 3 9 4.5 9 8.5a4 4 0 1 1-8 0C1 5.5 4 4 5 0z" fill="currentColor"/></svg>
+          <span class="wordmark">FireSide</span>
+        </div>
+        <h1 id="chat-heading" class="chat-subtitle">Talking To Liv</h1>
+      </div>
+      <!-- Narrow widths: the guard rail folds away, and the
+           same three actions live behind this one control —
+           never more than one tap from the talking screen. -->
+      <button id="sitting-btn" class="sitting-btn" type="button"
+        aria-expanded="false" aria-controls="sitting-sheet">This sitting</button>
     </div>
-    <!-- The conversation lives on the sheet (CASANOVA
-         Direction B, Oct 29, 2026): the turns and Liv's
-         listening state sit directly on the sheet's one paper
-         tone — the wrapper remains as the grouping the layout
-         and tests hang on, but it carries no surface of its
-         own. The composer stays below it. -->
+
+    <!-- The sitting sheet (narrow widths): the rail's contents
+         in the board's language — the two plain actions, then
+         the hold guard at its foot. -->
+    <div id="sitting-sheet" class="sitting-sheet" hidden>
+      <h2 class="sitting-h">This sitting</h2>
+      <button id="finish-btn-sheet" class="railkey" type="button">Finish for today</button>
+      <button id="chapter-btn-sheet" class="railkey" type="button">Arrange this into a chapter</button>
+      <div class="hold">
+        <div class="rule" aria-hidden="true"></div>
+        <button id="end-session-btn-sheet" class="hold-btn" type="button" aria-describedby="hold-hint-sheet">
+          <span class="hold-lab">Hold to delete everything</span>
+          <span class="hold-sub" id="hold-hint-sheet">End session &amp; delete everything. Press and hold for two seconds — it is a hold, never a tap.</span>
+          <span class="track" aria-hidden="true"><i></i></span>
+          <span class="hold-state" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="chat-body">
+    <div class="chat-main">
+    <!-- The conversation is the ONLY scroll in the chassis:
+         the turns sit on the sheet's face at her centred
+         measure, in her card boxes. A fresh sitting shows
+         Liv's greeting alone here (board 3). -->
     <div class="conversation-panel">
       <div id="messages" class="messages" aria-live="polite"></div>
       <div id="listening" class="listening" role="status" hidden>
@@ -166,6 +208,7 @@
     </div>
 
     <div class="composer">
+    <div class="composer-extras">
     <!-- Sharing (Day 2 capture; Day 3 conversation-first
          composer): the conversation is the interface. One "+"
          attach button opens a small picker — photo/camera, voice,
@@ -210,9 +253,8 @@
     </div>
 
     <!-- The picker keeps its home above the reply field (where
-         it has always opened); its button moved down into the
-         form's action row in the sketch pass (founder's hand
-         sketch, Oct 29, 2026) and still controls it by id. -->
+         it has always opened); its button lives in the form's
+         write line and still controls it by id. -->
     <div class="attach-row">
       <div id="attach-picker" class="attach-picker" hidden role="group"
         aria-label="Add to your conversation">
@@ -295,31 +337,44 @@
       <div id="pending-items"></div>
     </div>
     <p id="media-error" class="media-error" role="alert" hidden></p>
+    </div><!-- /.composer-extras -->
 
+    <!-- The switchboard: his foot, her reply row's manners.
+         At rest (phone): the meter asleep (segments only —
+         nothing claims to be listening), one plain write line
+         (+ Add, field, Send), then the one big warm key. On
+         the desktop console the write line and the Talk key
+         share one row, the key at 300px (board 2). While a
+         recording runs, the whole foot becomes the recording
+         band (board 5) — see .is-recording in styles.css. -->
     <form id="chat-form" class="reply-band">
       <label for="chat-input">Reply</label>
-      <textarea id="chat-input" rows="3"
-        placeholder="Type here, in your own time…"></textarea>
-      <div class="composer-actions">
+      <div class="meter-rest" aria-hidden="true"><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span></div>
+      <div class="writeline">
+        <button id="btn-attach" class="attach-btn key-add" type="button"
+          aria-expanded="false" aria-controls="attach-picker"
+          aria-label="Add a photo, a recording, a video, or a document to the conversation">
+          <span class="attach-plus" aria-hidden="true">+</span> Add
+        </button>
+        <textarea id="chat-input" rows="2"
+          placeholder="Write to Liv…"></textarea>
+        <button class="primary small send-btn" type="submit">Send</button>
+      </div>
+      <div class="keyrow">
         <button id="mic-btn" class="mic-btn" type="button"
           aria-pressed="false">
           <span class="mic-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="9" y="2.5" width="6" height="11" rx="3" fill="currentColor" stroke="none"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5"/></svg></span>
           <span id="mic-label">Talk to Liv</span>
         </button>
-        <button id="btn-attach" class="attach-btn attach-quiet" type="button"
-          aria-expanded="false" aria-controls="attach-picker"
-          aria-label="Add a photo, a recording, a video, or a document to the conversation">
-          <span class="attach-plus" aria-hidden="true">+</span> Add
-        </button>
-        <button class="primary small send-btn" type="submit">Send</button>
       </div>
       <!-- The voice deck (Rehearsal Finding #1 rebuild,
            Oct 30, 2026; founder's revision the same evening,
            on his phone-test ruling): ONE voice surface at a
            time. While a Talk to Liv recording runs, the mic
-           pill parks itself (disabled, labelled "Recording…")
-           and this recording bar is the only voice control —
-           a live timer, Pause (only where the browser truly
+           key parks itself (disabled, labelled "Recording…")
+           and this recording band is the only voice control —
+           a live timer, the meter lit by the REAL microphone
+           level, Pause (only where the browser truly
            supports it), Discard, and Stop. STOP SENDS the
            take at once: the review bar the morning build
            added was retired by the founder within the day —
@@ -331,27 +386,39 @@
         aria-label="Recording controls">
         <span class="rec-dot" aria-hidden="true"></span>
         <span id="mic-timer" class="mic-timer" aria-hidden="true">0:00</span>
+        <span id="mic-level" class="recsegs" aria-hidden="true"><span class="rseg"></span><span class="rseg"></span><span class="rseg"></span><span class="rseg"></span><span class="rseg"></span><span class="rseg"></span><span class="rseg"></span><span class="rseg"></span></span>
         <button id="mic-pause" class="secondary" type="button"
           aria-pressed="false">Pause</button>
         <button id="mic-discard" class="secondary" type="button">Discard</button>
         <button id="mic-stop" class="secondary" type="button">Stop</button>
       </div>
       <p id="voice-status" class="voice-status" role="status"></p>
-      <!-- The session actions live inside the band
-           (founder's vetted mockup; kept by CASANOVA
-           Direction B): outline ghost buttons on the ink
-           ground, with the "Take your time" line beneath
-           them — nothing of the session area remains on
-           the sheet below the band. The buttons keep
-           their exact functional labels and ids. -->
-      <p class="chat-actions">
-        <button id="finish-btn" class="secondary" type="button">Finish for today</button>
-        <button id="chapter-btn" class="secondary" type="button">Arrange this into a chapter</button>
-        <button id="end-session-btn" class="secondary" type="button">End session &amp; delete everything</button>
-      </p>
       <p class="quiet">Take your time. There is no hurry here.</p>
     </form>
     </div>
+    </div><!-- /.chat-main -->
+
+    <!-- The guard rail (desktop console): the sitting's
+         consequential actions live here, in plain words —
+         never inside the talk, never one slip away. Deleting
+         is the one irreversible thing in Liv, so it is a
+         hold, never a tap (board 8). -->
+    <aside class="rail" aria-label="This sitting">
+      <h3>This sitting</h3>
+      <button id="finish-btn" class="railkey" type="button">Finish for today</button>
+      <button id="chapter-btn" class="railkey" type="button">Arrange this into a chapter</button>
+      <p class="rail-note">The sitting’s consequential actions live here, in plain words — never inside the talk, never one slip away.</p>
+      <div class="hold">
+        <div class="rule" aria-hidden="true"></div>
+        <button id="end-session-btn" class="hold-btn" type="button" aria-describedby="hold-hint-rail">
+          <span class="hold-lab">Hold to delete everything</span>
+          <span class="hold-sub" id="hold-hint-rail">End session &amp; delete everything. Press and hold for two seconds — it is a hold, never a tap.</span>
+          <span class="track" aria-hidden="true"><i></i></span>
+          <span class="hold-state" aria-hidden="true"></span>
+        </button>
+      </div>
+    </aside>
+    </div><!-- /.chat-body -->
   </section>
 
   <!-- Screen 3 — Chapter. The storyteller asked for a chapter:
@@ -360,8 +427,21 @@
        a re-plan; only then is a draft written. The draft is an
        UNVERIFIED draft until the storyteller approves it — and
        the share link exists only after that approval. Each step
-       shown here is a step the server actually took. -->
-  <section id="chapter-screen" hidden aria-labelledby="chapter-heading">
+       shown here is a step the server actually took. The chapter
+       lives in the same chassis, with its own scroll, and the
+       ribbon graft for its spine (board 6). -->
+  <section id="chapter-screen" class="chassis chassis-narrow" hidden aria-labelledby="chapter-heading">
+    <div class="titlebar compact">
+      <div class="title-id">
+        <div class="title-word">
+          <svg class="title-flame" viewBox="0 0 10 14" aria-hidden="true" focusable="false"><path d="M5 0C6 3 9 4.5 9 8.5a4 4 0 1 1-8 0C1 5.5 4 4 5 0z" fill="currentColor"/></svg>
+          <span class="wordmark">FireSide</span>
+        </div>
+        <p class="title-sub">Arranging tonight into a chapter</p>
+      </div>
+    </div>
+    <div class="chapter-scroll">
+    <div class="chapter-col">
     <h1 id="chapter-heading" tabindex="-1">Your chapter</h1>
     <p class="lede">Liv will arrange what you shared into a chapter.
       You see the plan first, you can change it, and nothing is
@@ -445,10 +525,11 @@
     <p class="chat-actions">
       <button id="chapter-back" class="secondary" type="button">Back to our conversation</button>
     </p>
+    </div>
+    </div>
   </section>
 </main>
-
-</div><!-- /.sheet -->
+</div><!-- /.app -->
 
 <script src="app.js"></script>
 </body>
