@@ -62,6 +62,7 @@ from .canned import (                        # noqa: E402
 )
 from .config import META_API_BASE_URL, MODEL_API_KEY  # noqa: E402
 from .meta_client import MetaClient          # noqa: E402
+from .sam_client import SamClient            # noqa: E402
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
@@ -353,6 +354,24 @@ def _get_live_client():
         except Exception:
             _live_client = None
     return _live_client
+
+
+_sam_client = None
+
+
+def _get_sam_client():
+    """The SAM scene client, built lazily like the live client.
+
+    Returns None when no key is configured — photo turns then
+    simply run without a scene ledger, exactly as before.
+    """
+    global _sam_client
+    if _sam_client is None and MODEL_API_KEY:
+        try:
+            _sam_client = SamClient(MODEL_API_KEY, META_API_BASE_URL)
+        except Exception:
+            _sam_client = None
+    return _sam_client
 
 
 def _session(session_id):
@@ -724,7 +743,95 @@ def _archive_context(media_items):
     return " ".join(lines)
 
 
-def _media_turn_messages(api_messages, media_items, message):
+# --- Scene ledger (Day 5 SAM slice) -----------------------------------
+# When a photo rides a turn, ONE SAM 3.1 call (concept "person")
+# runs BEFORE the Spark vision turn, and its boxes become a
+# one-line ledger of MEASURED facts in the model's copy of the
+# turn: how many people are verifiably in the photo, and how much
+# of the frame they fill. Spark still does all the seeing and
+# saying; the ledger is the ground under one specific claim — the
+# count — worded as settled fact Liv must not contradict.
+#
+# Doctrine, by construction (D28 — recognition by naming,
+# retained): the ledger carries counts and frame share ONLY. No
+# identities, no guesses, nothing about who anyone is; no box or
+# mask is ever shown anywhere. An empty SAM answer is silence,
+# not a claim of absence: a ledger exists only when at least one
+# person was verifiably found.
+#
+# FAILURE = SILENCE: no client, any error, a timeout, or an
+# empty result all degrade to exactly today's behaviour — the
+# photo turn proceeds with no ledger and no user-facing seam.
+# The canned path has no live model and never sees a ledger.
+
+def _frame_share_phrase(boxes):
+    """How much of the frame the boxes together fill, in words.
+
+    Returns "" when the share cannot be stated cleanly — the
+    boxes disagree about the image's dimensions, or the total
+    is too small to characterize honestly.
+    """
+    dims = {(b["w"], b["h"]) for b in boxes}
+    if len(dims) != 1:
+        return ""
+    (w, h), = dims
+    if w <= 0 or h <= 0:
+        return ""
+    area = sum(max(0, b["x2"] - b["x1"]) * max(0, b["y2"] - b["y1"])
+               for b in boxes)
+    share = min(1.0, area / float(w * h))
+    if share >= 0.85:
+        return "filling nearly the whole frame"
+    if share >= 0.45:
+        return "filling most of the frame"
+    if share >= 0.18:
+        return "filling a good part of the frame"
+    if share >= 0.05:
+        return "in a small part of the frame"
+    return ""
+
+
+def _scene_ledger(media_items):
+    """The verified scene ledger for this turn's first photo.
+
+    Returns the ledger line for the live prompt, or None — no
+    photo on the turn, no SAM client, any SAM failure, or an
+    empty (zero-person) result: silence in every such case.
+    """
+    photos = [m for m in media_items if m["kind"] == "photo"]
+    if not photos:
+        return None
+    client = _get_sam_client()
+    if client is None:
+        return None
+    item = photos[0]
+    try:
+        boxes = client.segment(
+            item["data"], "person",
+            item.get("content_type") or "image/jpeg")
+    except Exception:
+        return None
+    if not boxes:
+        return None
+    count = len(boxes)
+    place = ("this photo" if len(photos) == 1
+             else "the first photo in this turn")
+    noun = "person" if count == 1 else "people"
+    line = (f"[Scene ledger — measured facts about {place} from a "
+            f"scene tool, not a guess: exactly {count} {noun} "
+            f"{'is' if count == 1 else 'are'} in {place}")
+    share = _frame_share_phrase(boxes)
+    if share:
+        line += (", " + ("together " if count > 1 else "") + share)
+    line += (f". The count is verified: if you say how many people "
+             f"are in {place}, say {count} — never a different "
+             f"number. These facts say nothing about who "
+             f"{'the person' if count == 1 else 'anyone'} is.]")
+    return line
+
+
+def _media_turn_messages(api_messages, media_items, message,
+                         scene_ledger=None):
     """Shape the live model's view of a turn that carries media.
 
     Photos (vision verified) ride as image content parts on the
@@ -753,6 +860,8 @@ def _media_turn_messages(api_messages, media_items, message):
         context = _archive_context(media_items)
         if context:
             text = text + " [" + context + "]"
+        if scene_ledger:
+            text = text + " " + scene_ledger
         parts = [{"type": "text", "text": text + notes}]
         for item in photos[:2]:
             uri = ("data:" + item["content_type"] + ";base64,"
@@ -885,8 +994,14 @@ def handle_chat(payload):
             messages = ([{"role": "system", "content": system_prompt}]
                         + sess["history"][-20:])
             if media_items:
+                # The scene ledger is computed only for the live
+                # vision path it will ride on — the canned path
+                # has no live model and never sees one.
+                ledger = (_scene_ledger(media_items)
+                          if VISION_SUPPORTED else None)
                 messages = _media_turn_messages(messages, media_items,
-                                                message)
+                                                message,
+                                                scene_ledger=ledger)
             text, _usage = client.chat(messages)
             text = (text or "").strip()
             if text:
