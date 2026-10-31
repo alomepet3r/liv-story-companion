@@ -240,3 +240,61 @@ again replaces it, and the keepsake copy says so plainly.
   render, replacement on re-ask (version 2), furniture-only
   prompt under the discipline, and both failure paths leaving
   the chapter intact. No live calls in the suite.
+
+## Scene ledger (SAM) — Oct 30, 2026 (Day 5)
+
+The fourth Meta model enters the product, in the shrunk form
+the Oct 30 spike earned (verdict: BUILDABLE-SHRUNK; threads
+and masking stay on the Round 2 kill list). When a photo rides
+a conversation turn, ONE SAM 3.1 call (concept `person`) runs
+BEFORE the Spark vision turn, and its boxes become a one-line
+ledger of measured facts in the live prompt.
+
+- **Client.** `server/sam_client.py` — SAM lives on the
+  Responses surface (`POST /responses`), not chat. The
+  concept must be a BARE noun phrase (a sentence returns 200
+  with empty output — the spike's silent no-op trap); boxes
+  are regex-extracted from the output_text token stream in
+  raw source pixels, mask payloads discarded unread.
+  Allowlist discipline identical to the other three models:
+  only `sam-3.1` may ever carry a storyteller's photo, refused
+  in code before any call. Timeout `SAM_TIMEOUT = 10` s (the
+  spike measured 1.4–2.3 s per call). Usage logging is
+  metadata only (model, concept, box count, latency).
+- **The ledger line.** Exactly:
+  `[Scene ledger — measured facts about this photo from a
+  scene tool, not a guess: exactly N person/people is/are in
+  this photo[, together] filling …the frame. The count is
+  verified: if you say how many people are in this photo, say
+  N — never a different number. These facts say nothing about
+  who the person/anyone is.]` — count always; frame share
+  (boxes' combined area over the frame, capped) only when it
+  states cleanly (one shared image size across boxes, ≥5%).
+  With several photos on a turn the ledger names "the first
+  photo in this turn" — SAM runs once, on that photo.
+- **D28 by construction.** Counts and frame share only — no
+  identities, no guesses; no box or mask is shown anywhere.
+  An empty SAM answer is silence, not a claim of absence: a
+  ledger exists only when at least one person was verifiably
+  found.
+- **Failure = silence.** No key, any SAM error, a timeout, or
+  an empty result all degrade to exactly the pre-SAM
+  behaviour — the photo turn proceeds, no ledger, no
+  user-facing seam. The ledger lives only in the model's
+  per-turn copy; it never enters session history.
+- **Canned path.** No change: it has no live model, SAM is
+  never called on it, and it never sees a ledger (tested).
+- **Archive photos.** No gap: archive-shared photos land in
+  the same session media store and ride the same vision turn,
+  so they carry the ledger too, alongside their caption/date
+  context (tested).
+- **Tests.** Suite 204 (was 183): `tests/test_sam.py` —
+  box-stream parsing (masks ignored, empty = []), the
+  Responses payload shape + bare-noun concept + timeout
+  plumbing, allowlist refusal before any call, timeout
+  propagation; ledger present in the live prompt (1 person /
+  9 people, share phrases), absent on failure, on timeout, on
+  empty result, without a SAM client, on non-photo turns, and
+  on the canned path; no identity language in the ledger
+  (whole-word check); ledger never enters history; archive
+  inheritance. No live calls in the suite.
