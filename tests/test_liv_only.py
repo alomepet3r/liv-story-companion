@@ -69,6 +69,36 @@ Three rulings pinned here:
   band. Standing UI principle, in his words:
   minimalist but very functional, conversational,
   intuitive, effective.
+- THE MARRIAGE (founder ruling, Oct 31, 2026; spec:
+  design-vet/marriage/marriage.html) supersedes the
+  Direction B shell where they differ: each screen is
+  an ink CHASSIS at 100dvh (header pinned, one scroll
+  region, foot pinned; the desk shows around the
+  console on wide screens; consent and chapter capped
+  at a 760px letter measure). The Sheet's manners
+  survive inside it — the wordmark large, the same
+  turn boxes and labels, the token set unchanged. The
+  sub-line moved INTO the ink titlebar (20px; tint on
+  ink 8.6:1; phrasing and casing unchanged). The reply
+  band became the SWITCHBOARD: the meter asleep
+  (segments only — nothing claims LISTENING at rest),
+  one write line (+ Add key · card field at radius
+  2px · Send as a control-brown key, never the warm
+  fill), then the Talk key — a square machine key now
+  (radius 2px, 56px), no longer a pill. The session
+  actions LEFT the band: Finish, Arrange and the
+  hold-to-delete guard live on the desktop guard
+  RAIL (from 1024px) and, below that width, behind
+  the header's "This sitting" control in a sheet of
+  the same words. Deleting is a HOLD (~2s, flame
+  track, live-region announcements), never a tap;
+  completing it runs the unchanged end-session flow.
+  The recording band's meter lights from the REAL
+  microphone level (an AnalyserNode on the recorder's
+  own stream). The chapter gained the ribbon graft:
+  checklist and outline rows, and the draft's section
+  headings, hang on a flame spine with a node
+  generated per row.
 """
 import unittest
 from pathlib import Path
@@ -241,8 +271,12 @@ class TestFrontendContract(unittest.TestCase):
         resting = self.css.split(".mic-btn {", 1)[1].split("}", 1)[0]
         self.assertIn("background: var(--action)", resting)
         self.assertIn("color: #FFFFFF", resting)
-        self.assertIn("border-radius: 999px", resting)
-        self.assertIn("min-height: 3.25rem", resting)
+        # The Marriage (Oct 31, 2026): the pill became a
+        # machine key — square corners, the board's 56px
+        # key height. The warm fill and the white label
+        # (6.1:1) are unchanged.
+        self.assertIn("border-radius: 2px", resting)
+        self.assertIn("min-height: 3.5rem", resting)
         recording = self.css.split(".mic-btn.recording {", 1)[1]
         recording = recording.split("}", 1)[0]
         self.assertIn("background: var(--ink)", recording)
@@ -250,7 +284,8 @@ class TestFrontendContract(unittest.TestCase):
 
 
 class TestConversationLayout(unittest.TestCase):
-    """Founder layout ruling (Oct 29, 2026) — see module docstring."""
+    """Founder layout rulings (Oct 29, 2026; the Marriage,
+    Oct 31, 2026) — see module docstring."""
 
     def setUp(self):
         self.html = (WEB / "index.html").read_text(encoding="utf-8")
@@ -295,20 +330,34 @@ class TestConversationLayout(unittest.TestCase):
         self.assertIn("font-weight: 700", sub)
         self.assertIn("text-align: left", sub)
         self.assertNotIn("italic", sub)
-        # Direction B: 24px, in ink (9.6:1 on the sheet) —
-        # no longer the quiet gray of the vetted mockup.
-        self.assertIn("font-size: 1.5rem", sub)
-        self.assertIn("color: var(--ink)", sub)
+        # The Marriage (Oct 31, 2026): the sub-line moved
+        # into the ink titlebar, under the wordmark — the
+        # board's 20px, in tint on the ink (8.6:1). The
+        # phrasing and title casing above are untouched.
+        self.assertIn("font-size: 1.25rem", sub)
+        self.assertIn("color: var(--tint)", sub)
 
-    def test_conversation_lives_on_the_sheet(self):
-        # Direction B: masthead and main both live inside the
-        # one sheet; the desk shows around it on wide screens.
-        sheet = self.html.index('class="sheet"')
-        masthead = self.html.index('class="masthead"')
-        main = self.html.index("<main>")
-        self.assertLess(sheet, masthead)
-        self.assertLess(masthead, main)
-        # The declared tokens of the Sheet world.
+    def test_conversation_lives_in_the_chassis(self):
+        # The Marriage (Oct 31, 2026): the Sheet's single
+        # centred page is superseded by the chassis — each
+        # screen an ink machine at 100dvh, header pinned,
+        # one scroll region, foot pinned; her manners and
+        # the whole token set live on inside it.
+        consent = self.html.index('id="consent-screen"')
+        chat = self.html.index('id="chat-screen"')
+        chapter = self.html.index('id="chapter-screen"')
+        self.assertLess(consent, chat)
+        self.assertLess(chat, chapter)
+        self.assertIn(
+            'id="consent-screen" class="chassis chassis-narrow"',
+            self.html)
+        self.assertIn('id="chat-screen" class="chassis"',
+                      self.html)
+        self.assertIn(
+            'id="chapter-screen" class="chassis chassis-narrow"',
+            self.html)
+        # The declared tokens of the Sheet world — unchanged
+        # by the Marriage (Quiet Neutrals only).
         for token in ("--desk: #D5C2B1", "--sheet: #F1EDE6",
                       "--card: #FBF9F5", "--ink: #3C3B3A",
                       "--liv: #3C3B3A", "--you: #6E675C",
@@ -331,16 +380,23 @@ class TestConversationLayout(unittest.TestCase):
             self.assertNotIn(gone, self.css)
         body = self.css.split("body {", 1)[1].split("}", 1)[0]
         self.assertIn("background: var(--desk)", body)
-        sheet_css = self.css.split(".sheet {", 1)[1]
-        sheet_css = sheet_css.split("}", 1)[0]
-        self.assertIn("background: var(--sheet)", sheet_css)
-        self.assertIn("max-width: 760px", sheet_css)
-        self.assertIn("border: 1px solid var(--control)",
-                      sheet_css)
-        self.assertIn("box-shadow:", sheet_css)
-        # The turns still group inside the panel wrapper, and
-        # the composer still follows — but the wrapper itself
-        # carries no surface of its own any more.
+        chassis = self.css.split(".chassis {", 1)[1]
+        chassis = chassis.split("}", 1)[0]
+        self.assertIn("background: var(--ink)", chassis)
+        self.assertIn("display: flex", chassis)
+        # A hidden screen stays hidden under the flex
+        # shell (an author display would defeat it).
+        hidden = self.css.split(".chassis[hidden] {", 1)[1]
+        hidden = hidden.split("}", 1)[0]
+        self.assertIn("display: none", hidden)
+        # The shell is viewport-tall; the page itself does
+        # not carry the scroll.
+        app = self.css.split(".app {", 1)[1].split("}", 1)[0]
+        self.assertIn("height: 100dvh", app)
+        # The turns still group inside the panel wrapper,
+        # and the composer still follows — the panel is now
+        # the sheet FACE inside the chassis and the app's
+        # one scroll region on this screen.
         panel = self.html.index('class="conversation-panel"')
         messages = self.html.index('id="messages"')
         listening = self.html.index('id="listening"')
@@ -350,9 +406,8 @@ class TestConversationLayout(unittest.TestCase):
         self.assertLess(listening, composer)
         block = self.css.split(".conversation-panel {", 1)[1]
         block = block.split("}", 1)[0]
-        self.assertIn("background: transparent", block)
-        self.assertIn("border: none", block)
-        self.assertIn("box-shadow: none", block)
+        self.assertIn("background: var(--sheet)", block)
+        self.assertIn("overflow-y: auto", block)
 
     def test_speaker_labels_small_caps_and_marker_free(self):
         # The founder's sketch restored the labels; his review
@@ -431,115 +486,163 @@ class TestConversationLayout(unittest.TestCase):
         self.assertIn("color: var(--you)", you_who)
         self.assertIn("text-align: right", you_who)
 
-    def test_composer_follows_the_sketch(self):
-        # Below the box: the reply label and field, then ONE
-        # action row — Talk to Liv, + Add (quiet, moved down
-        # from its old row above the field), Send compact at
-        # the row's right end. No full-width send bar.
+    def test_composer_follows_the_marriage_board(self):
+        # The Marriage foot (Oct 31, 2026): one plain write
+        # line — + Add (a machine key now, in the line, not
+        # above it), the field, Send — then the Talk key on
+        # its own row (phone) or at 300px in the same row
+        # (desktop console, board 2).
         field = self.html.index('id="chat-input"')
         mic = self.html.index('id="mic-btn"')
         attach = self.html.index('id="btn-attach"')
         send = self.html.index('class="primary small send-btn"')
-        self.assertLess(field, mic)
-        self.assertLess(mic, attach)
-        self.assertLess(attach, send)
-        self.assertIn('class="attach-btn attach-quiet"', self.html)
-        # The button left the old standalone attach row; the
-        # picker it controls stayed in place above the form.
+        self.assertLess(attach, field)
+        self.assertLess(field, send)
+        self.assertLess(send, mic)
+        self.assertIn('class="attach-btn key-add"', self.html)
+        # The button lives in the write line; the picker it
+        # controls stayed in place above the form.
         row = self.html.split('class="attach-row"', 1)[1]
         row = row.split("</div>", 1)[0]
         self.assertNotIn('id="btn-attach"', row)
         self.assertIn('id="attach-picker"', row)
-        rule = self.css.split(".composer-actions .send-btn {", 1)[1]
-        rule = rule.split("}", 1)[0]
-        self.assertIn("margin-left: auto", rule)
+        # The console row: the Talk key at the board's
+        # 300px, the write line taking the rest.
+        self.assertIn(".writeline {", self.css)
+        self.assertIn("flex: 0 0 300px", self.css)
 
-    def test_reply_section_is_a_sheet_width_dark_band(self):
-        # Direction B (Oct 29, 2026): the reply band stays
-        # dark and distinct (ruling 4 kept in kind) but its
-        # width is the SHEET's width, never the viewport's —
-        # the form reaches the sheet's edges through
-        # negative margins of the sheet's own side padding.
-        # The seam is deleted (condition 3). The
-        # session actions and the "Take your time" line live
-        # INSIDE the band; nothing of the session area
-        # remains on the sheet below it. Button positions
-        # inside are unchanged (the sketch test above still
-        # pins their order).
+    def test_reply_section_is_the_switchboard(self):
+        # The Marriage (Oct 31, 2026): the reply form is the
+        # chassis's switchboard foot — ink, the board's own
+        # padding, pinned under the conversation. The Sheet
+        # band's negative-margin reach is gone with the
+        # sheet. The session actions LEFT the foot: they
+        # live on the guard rail (and its narrow twin, the
+        # sitting sheet); "Take your time" stays.
         self.assertIn('<form id="chat-form" class="reply-band">',
                       self.html)
         self.assertIn('<label for="chat-input">Reply</label>',
                       self.html)
         band = self.css.split(".reply-band {", 1)[1].split("}", 1)[0]
         self.assertIn("background: var(--ink)", band)
-        self.assertIn("margin: 0 calc(-1 * var(--pad-side))",
-                      band)
-        self.assertIn("padding: 1.875rem var(--pad-side)",
-                      band)
+        self.assertIn("padding: 0.875rem 1rem 1rem", band)
+        self.assertNotIn("calc(-1", band)
         self.assertNotIn("100vw", band)
-        # The seam is gone — element and rule both.
+        # The seam stays gone — element and rule both.
         self.assertNotIn('class="seam"', self.html)
         self.assertNotIn(".seam {", self.css)
-        # The session area is inside the form (the band):
         form_open = self.html.index('<form id="chat-form"')
         form_close = self.html.index("</form>")
+        # The session actions are NOT in the foot any more…
         for frag in ('id="finish-btn"', 'id="chapter-btn"',
-                     'id="end-session-btn"',
-                     "Take your time. There is no hurry here."):
-            where = self.html.index(frag)
-            self.assertLess(form_open, where, frag)
-            self.assertLess(where, form_close, frag)
-        # On the dark ground the words are sheet (9.6:1)…
-        self.assertIn("#chat-form.reply-band label", self.css)
+                     'id="end-session-btn"'):
+            self.assertNotIn(frag,
+                             self.html[form_open:form_close])
+        # …they live on the rail, in the board's words…
+        rail = self.html.index('<aside class="rail"')
+        for frag in ('id="finish-btn"', 'id="chapter-btn"',
+                     'id="end-session-btn"'):
+            self.assertLess(rail, self.html.index(frag), frag)
+        self.assertIn("Hold to delete everything", self.html)
+        # …and behind the header's one control on narrow
+        # widths, as the sheet of the same words.
+        for frag in ('id="sitting-btn"', 'id="sitting-sheet"',
+                     'id="finish-btn-sheet"',
+                     'id="chapter-btn-sheet"',
+                     'id="end-session-btn-sheet"'):
+            self.assertIn(frag, self.html)
+        # "Take your time" still closes the foot.
+        calm_where = self.html.index(
+            "Take your time. There is no hurry here.")
+        self.assertLess(form_open, calm_where)
+        self.assertLess(calm_where, form_close)
+        # On the dark ground the status words are sheet
+        # (9.6:1)…
         self.assertIn(".reply-band .voice-status", self.css)
-        # …the field is white with a sheet border and the
-        # Sheet drawing's 20px radius, its text set at the
-        # heritage floor line-height (condition 5)…
-        field = self.css.split(".reply-band #chat-input {", 1)[1]
+        # …the field is the card at the machine's radius,
+        # its text at the heritage floor line-height…
+        field = self.css.split("#chat-input {", 1)[1]
         field = field.split("}", 1)[0]
-        self.assertIn("border: 2px solid var(--sheet)", field)
-        self.assertIn("border-radius: 20px", field)
-        area = self.css.split("#chat-input {", 1)[1]
-        area = area.split("}", 1)[0]
-        self.assertIn("line-height: 1.65", area)
-        # …the mic pill — the row's sole warm fill — keeps
-        # its sheet border, because the terracotta action
-        # against ink alone is 1.7:1, under WCAG 1.4.11's
-        # 3:1 for a control's boundary…
-        mic = self.css.split(".reply-band .mic-btn {", 1)[1]
-        mic = mic.split("}", 1)[0]
-        self.assertIn("border-color: var(--sheet)", mic)
-        # …and Send is NOT the warm fill (condition 2): an
-        # ink fill with a sheet border, still a full pill
-        # at the row's right end.
-        send = self.css.split(
-            ".reply-band .composer-actions .send-btn {", 1)[1]
+        self.assertIn("background: var(--card)", field)
+        self.assertIn("border-radius: 2px", field)
+        self.assertIn("line-height: 1.65", field)
+        # …and Send is NOT the warm fill: a control-brown
+        # key (card words on control, 6.3:1) — the Talk
+        # key is the foot's sole warm fill.
+        send = self.css.split(".reply-band .send-btn {", 1)[1]
         send = send.split("}", 1)[0]
-        self.assertIn("background: var(--ink)", send)
+        self.assertIn("background: var(--control)", send)
         self.assertNotIn("var(--action)", send)
-        self.assertIn("border: 1.5px solid var(--sheet)", send)
-        row = self.css.split(".composer-actions .send-btn {", 1)[1]
-        row = row.split("}", 1)[0]
-        self.assertIn("margin-left: auto", row)
-        self.assertIn("border-radius: 999px", row)
-        # The session buttons: ghost borders in the
-        # tokenised --ghost-line (condition 3 — Raw Linen
-        # at 75% over Volcanic Stone, as a solid), at the
-        # full 52px touch height (condition 4).
-        ghost = self.css.split(".reply-band button.secondary {",
-                               1)[1].split("}", 1)[0]
-        self.assertIn("border-color: var(--ghost-line)", ghost)
-        secondary = self.css.split("button.secondary {", 1)[1]
-        secondary = secondary.split("}", 1)[0]
-        self.assertIn("min-height: 3.25rem", secondary)
-        # "Take your time" closes the band in its cameo —
+        # "Take your time" closes the foot in its cameo —
         # Montserrat Medium italic (founder type ruling).
-        calm = self.css.split("#chat-screen #chat-form .quiet {",
-                              1)[1].split("}", 1)[0]
+        calm = self.css.split(".reply-band .quiet {", 1)[1]
+        calm = calm.split("}", 1)[0]
         self.assertIn("Montserrat", calm)
         self.assertIn("font-style: italic", calm)
         self.assertIn("font-weight: 500", calm)
         self.assertIn("color: var(--sheet)", calm)
+
+    def test_hold_guard_replaces_the_end_button(self):
+        # Deleting is a hold, never a tap (board 8): the
+        # guard's own words ride in the page, the mechanics
+        # are a ~2s press (pointer and keyboard) with the
+        # flame track filling, and completion runs the SAME
+        # end-session flow the plain button used to fire.
+        self.assertIn("Hold to delete everything", self.html)
+        self.assertIn("it is a hold, never a tap", self.html)
+        self.assertIn('class="track"', self.html)
+        self.assertIn("function wireHold", self.js)
+        self.assertIn("var HOLD_MS = 2000;", self.js)
+        self.assertIn("function endSessionNow()", self.js)
+        self.assertIn('"/api/session/end"', self.js)
+        # Progress and cancellation are announced in the
+        # live region, never carried by the track alone.
+        self.assertIn("Deleting — keep holding", self.js)
+        self.assertIn("Delete cancelled — nothing was "
+                      "deleted.", self.js)
+        # The rail appears at the console breakpoint; below
+        # it, the sitting control carries the same actions.
+        self.assertIn("@media (min-width: 1024px)", self.css)
+        rail = self.css.split(".rail {", 1)[1].split("}", 1)[0]
+        self.assertIn("display: none", rail)
+
+    def test_the_meter_claims_nothing_at_rest(self):
+        # The founder's honesty flag: at rest the meter is
+        # segments only — no LISTENING word is claimed
+        # anywhere in the page — and while recording the
+        # band's segments light from the REAL microphone
+        # level, measured off the recorder's own stream.
+        self.assertNotIn("LISTENING", self.html)
+        self.assertIn('id="mic-level"', self.html)
+        self.assertIn('class="meter-rest"', self.html)
+        self.assertIn("function startMeter", self.js)
+        self.assertIn("createAnalyser", self.js)
+        self.assertIn("getByteTimeDomainData", self.js)
+        # While a recording runs, the whole foot is the
+        # recording: the calm rows step away (board 5).
+        self.assertIn('form.classList.add("is-recording")',
+                      self.js)
+        self.assertIn(".reply-band.is-recording .writeline",
+                      self.css)
+
+    def test_chapter_wears_the_ribbon(self):
+        # The ribbon graft (board 6/7): the checklist and
+        # the outline hang on a flame spine, and the set
+        # chapter's section headings carry filled nodes —
+        # every node generated per row by CSS, never a
+        # hand-placed offset in markup.
+        for sel in (".chapter-checklist::before",
+                    ".chapter-checklist li::before",
+                    ".chapter-checklist li.done::before",
+                    ".chapter-sections::before",
+                    ".chapter-sections li::before",
+                    ".chapter-draft-body::before",
+                    ".chapter-draft-body .chapter-h3::before"):
+            self.assertIn(sel, self.css)
+        self.assertIn("background: var(--flame)",
+                      self.css.split(
+                          ".chapter-draft-body .chapter-h3"
+                          "::before {", 1)[1].split("}", 1)[0])
 
 
 if __name__ == "__main__":
