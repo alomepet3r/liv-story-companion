@@ -890,6 +890,46 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   line-height: 1.65;
 }
 
+/* Not heard yet (T1 fix, Oct 31, 2026): until the server
+   confirms a telling, the storyteller's turn carries its
+   state in WORDS beneath the telling — in the same
+   letterspaced small hand as the speaker labels, never in
+   colour alone — and a failed telling offers a real
+   button, in words, to send the same telling again. The
+   button is the house secondary (a full-size target).
+   Quiet Neutrals tokens only; the one warm fill stays
+   the Talk to Liv key. */
+.msg .not-heard-note {
+  display: block;
+  margin-top: 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.msg.storyteller .not-heard-note { text-align: right; }
+
+.msg .not-heard-resend {
+  display: block;
+  width: fit-content;
+  margin: 0.65rem 0 0 auto;
+}
+
+.msg .not-heard-resend[hidden] { display: none; }
+
+/* The held voice take's resend (T1 voice extension): sits
+   under the voice-status line in the switchboard foot,
+   present only while a take that failed to upload is held
+   in memory. */
+.take-resend {
+  align-self: flex-start;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.take-resend[hidden] { display: none; }
+
 .shared-media {
   display: block;
   max-width: 100%;

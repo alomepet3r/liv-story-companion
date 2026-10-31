@@ -393,6 +393,12 @@
         <button id="mic-stop" class="secondary" type="button">Stop</button>
       </div>
       <p id="voice-status" class="voice-status" role="status"></p>
+      <!-- The held take's resend (T1 voice extension,
+           Oct 31, 2026): shown only while a voice take whose
+           upload failed is held in memory, so the words are
+           never silently lost and the failure line's
+           "try again" names a real button. -->
+      <button id="take-resend" class="secondary take-resend" type="button" hidden>Try sending again</button>
       <p class="quiet">Take your time. There is no hurry here.</p>
     </form>
     </div>
