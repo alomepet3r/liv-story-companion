@@ -152,6 +152,9 @@
   }
 
   function send(message, showMine, mediaItems) {
+    // A message sent is interaction: it re-arms the
+    // session wake lock's idle clock (Fix 1).
+    noteWakeInteraction();
     var ids = [];
     if (mediaItems) {
       for (var i = 0; i < mediaItems.length; i++) { ids.push(mediaItems[i].id); }
@@ -197,6 +200,12 @@
     ageConfirmed = true;
     consentScreen.hidden = true;
     chatScreen.hidden = false;
+    // The sitting begins: take the screen wake lock for
+    // it (Fix 1 — session-scoped; see the wake lock
+    // section). Enhancement only — acquireWakeLock
+    // swallows its own failures, so nothing here can be
+    // broken by it.
+    acquireWakeLock();
     send("", false).then(function () { input.focus(); });
   });
 
@@ -888,6 +897,16 @@
         R.stream = stream;
         R.chunks = [];
         R.blob = null;
+        // Stop-cause flags for THIS take (Fix 2, Oct 30
+        // evening): a fresh recording starts with no cause
+        // marked. A deliberate Discard or a kill sets
+        // discardNext; the deliberate Stop controls set
+        // stopInitiated; the page hiding mid-telling sets
+        // interrupted. The stop event reads them to tell a
+        // finish from a cut.
+        R.discardNext = false;
+        R.stopInitiated = false;
+        R.interrupted = false;
         var mime = pickMime(kind);
         R.rec = mime ? new MediaRecorder(stream, { mimeType: mime })
                      : new MediaRecorder(stream);
@@ -923,13 +942,30 @@
             R.status.textContent = R.idleText;
             if (R.discardNext) {
               R.discardNext = false;
+              R.interrupted = false;
+              R.stopInitiated = false;
               setVoiceStatus("Recording discarded — nothing was sent.");
               micUiReset();
               return;
             }
+            // Stop causes (Fix 2): this stop was the
+            // storyteller's own finish only if a Stop
+            // control marked it (stopInitiated) AND the
+            // page never hid mid-telling (interrupted).
+            // Anything else — the screen slept, the OS
+            // killed the recorder — is a CUT. The partial
+            // telling still travels the normal send path
+            // (a telling is not an absolute record, and
+            // what was said up to the cut is worth keeping),
+            // but its announcement must tell the truth
+            // about the cut, never dress it as a full send.
+            var cutShort = R.interrupted || !R.stopInitiated;
+            R.interrupted = false;
+            R.stopInitiated = false;
             micUiReset();
             if (!wasMic) { closePanels(); }
-            sendVoiceTake(audioBlob, type);
+            noteWakeInteraction();
+            sendVoiceTake(audioBlob, type, cutShort);
             return;
           }
           R.preview.src = URL.createObjectURL(R.blob);
@@ -968,6 +1004,13 @@
           R.status.textContent = "Recording… " +
             fmtTime(Date.now() - R.started);
         }, 500);
+        // Starting a recording is interaction: it re-arms
+        // the session wake lock's idle clock and ensures
+        // the lock is held while a telling is captured
+        // (Fix 1). For voice, an unsupported browser gets
+        // the one-line hint instead (maybeWakeHint).
+        noteWakeInteraction();
+        if (kind === "audio") { maybeWakeHint(); }
       })
       .catch(function () {
         if (kind === "audio") {
@@ -985,6 +1028,9 @@
     var R = recorders[kind];
     R.button.addEventListener("click", function () {
       if (R.rec && R.rec.state === "recording") {
+        // A deliberate stop: mark the cause before the
+        // stop event reads it (Fix 2).
+        R.stopInitiated = true;
         R.rec.stop();
       } else {
         R.viaMic = false;
@@ -1165,15 +1211,22 @@
     micRecbar.classList.remove("paused");
   }
 
-  function sendVoiceTake(blob, type) {
+  function sendVoiceTake(blob, type, cutShort) {
     // Stop IS send (founder's ruling, Oct 30 evening): the
     // heard-you state fires in this same beat, and the take
     // travels the unchanged pipeline — listening track,
     // /api/media, and its own message when it lands. There
     // is no review step: a recording is a telling, not an
     // absolute record, and anything said can be corrected
-    // in the conversation that follows.
-    setVoiceStatus("Heard you — Liv is listening to your words.");
+    // in the conversation that follows. A CUT take (Fix 2 —
+    // the screen slept, the recorder was killed) travels
+    // the same path and the partial telling is preserved,
+    // but its announcement tells the truth about the cut
+    // instead of claiming a normal full send.
+    setVoiceStatus(cutShort
+      ? "The screen slept and cut that short — what you " +
+        "said up to then went to Liv."
+      : "Heard you — Liv is listening to your words.");
     stageWithListening("audio", blob,
       "recorded-audio." + extFor(type), function (item) {
         if (item) { send("", true, [item]); }
@@ -1208,8 +1261,194 @@
   micStop.addEventListener("click", function () {
     // Stop = stop-and-send: the recorder's stop event runs
     // the send (see the audio branch of startRecorder).
+    // Mark the cause first — this stop is the storyteller's
+    // own finish (Fix 2).
     var R = recorders.audio;
-    if (R.rec && R.rec.state !== "inactive") { R.rec.stop(); }
+    if (R.rec && R.rec.state !== "inactive") {
+      R.stopInitiated = true;
+      R.rec.stop();
+    }
+  });
+
+  // ---- Screen wake lock — SESSION-scoped (Fix 1, Oct 30
+  // evening, as refined by the founder the same evening) --
+  // The founder, testing on his phone: "My screen went to
+  // sleep on safari and the recording was interrupted
+  // while I was still talking." His refinement: the
+  // interaction with Liv is continuous, so the lock is
+  // held for the whole SITTING, not per recording. It is
+  // acquired at the Begin transition past consent; its
+  // home is every post-consent screen (conversation and
+  // chapter alike); recording start merely ensures it is
+  // held. The screen may sleep only after WAKE_IDLE_MS
+  // with no interaction at all — the constant is named so
+  // the founder can move it. Any interaction re-arms the
+  // idle clock, and the first interaction after an idle
+  // release re-acquires. Full release: the end-session
+  // wipe and pagehide. The consent screen itself never
+  // holds the lock.
+  //
+  // Enhancement only, held to the same standard as Pause:
+  // feature-detected, and every failure — a rejected
+  // request, an unsupported browser, a browser-initiated
+  // release — is swallowed. Nothing may ever break or
+  // block because the lock could not be held. Where the
+  // API does not exist, nothing is faked; the first
+  // recording of the session carries a plain hint instead
+  // (maybeWakeHint).
+  var WAKE_IDLE_MS = 30 * 60 * 1000;
+  var wakeLockSentinel = null;
+  var wakeRequestInFlight = false;
+  var wakeIdleTimer = null;
+  var wakeHintShown = false;
+
+  function wakeLockSupported() {
+    return "wakeLock" in navigator &&
+      typeof navigator.wakeLock.request === "function";
+  }
+
+  function inSitting() {
+    // Post-consent is the lock's home: Begin sets this;
+    // the end-session wipe clears it.
+    return consented;
+  }
+
+  function armWakeIdle() {
+    if (wakeIdleTimer) { clearTimeout(wakeIdleTimer); }
+    wakeIdleTimer = setTimeout(function () {
+      // Untouched for the whole window: hand the screen
+      // back to the device and let it sleep naturally.
+      // The sitting itself continues — the next
+      // interaction re-acquires (noteWakeInteraction).
+      wakeIdleTimer = null;
+      releaseWakeLock();
+    }, WAKE_IDLE_MS);
+  }
+
+  function dropWakeSentinel(sentinel) {
+    try {
+      var p = sentinel.release();
+      if (p && typeof p.catch === "function") {
+        p.catch(function () { /* already released */ });
+      }
+    } catch (e) { /* already released */ }
+  }
+
+  function acquireWakeLock() {
+    if (!wakeLockSupported() || !inSitting()) { return; }
+    if (wakeLockSentinel || wakeRequestInFlight) {
+      armWakeIdle();
+      return;
+    }
+    if (document.visibilityState === "hidden") { return; }
+    wakeRequestInFlight = true;
+    try {
+      navigator.wakeLock.request("screen")
+        .then(function (sentinel) {
+          wakeRequestInFlight = false;
+          if (!inSitting()) {
+            // The sitting ended while the request was in
+            // flight — hand the lock straight back.
+            dropWakeSentinel(sentinel);
+            return;
+          }
+          wakeLockSentinel = sentinel;
+          sentinel.addEventListener("release", function () {
+            // The browser releases the lock on its own
+            // whenever the page hides; note it here so a
+            // return to visible knows to re-request.
+            if (wakeLockSentinel === sentinel) {
+              wakeLockSentinel = null;
+            }
+          });
+          armWakeIdle();
+        })
+        .catch(function () {
+          // Enhancement only: a rejection (page hidden,
+          // power policy, anything) changes nothing.
+          wakeRequestInFlight = false;
+        });
+    } catch (e) {
+      wakeRequestInFlight = false;
+    }
+  }
+
+  function releaseWakeLock() {
+    if (wakeIdleTimer) {
+      clearTimeout(wakeIdleTimer);
+      wakeIdleTimer = null;
+    }
+    var sentinel = wakeLockSentinel;
+    wakeLockSentinel = null;
+    if (sentinel) { dropWakeSentinel(sentinel); }
+  }
+
+  function noteWakeInteraction() {
+    // Pointer/key activity, a message sent, a recording
+    // starting or stopping — each is proof the sitting is
+    // alive: re-arm the idle clock, and re-acquire the
+    // lock if it had lapsed (an idle release, or a
+    // browser release not yet answered).
+    if (!inSitting()) { return; }
+    if (wakeLockSentinel) { armWakeIdle(); return; }
+    acquireWakeLock();
+  }
+
+  function maybeWakeHint() {
+    // No wake lock in this browser: nothing is faked.
+    // Once per session, the first recording carries the
+    // plain fact instead — sleep stops a recording, so a
+    // screen kept awake is a telling kept whole.
+    if (wakeLockSupported() || wakeHintShown) { return; }
+    wakeHintShown = true;
+    var hint = "Keeping the screen awake helps here — " +
+      "if the screen sleeps, the recording stops.";
+    if (voiceStatus && voiceStatus.textContent) {
+      voiceStatus.textContent += " " + hint;
+    } else {
+      setVoiceStatus(hint);
+    }
+  }
+
+  document.addEventListener("pointerdown", noteWakeInteraction);
+  document.addEventListener("keydown", noteWakeInteraction);
+
+  window.addEventListener("pagehide", function () {
+    // The page is going away: the lock goes with it.
+    releaseWakeLock();
+  });
+
+  document.addEventListener("visibilitychange", function () {
+    var R = recorders.audio;
+    var live = !!(R.rec && R.rec.state !== "inactive");
+    if (document.visibilityState === "hidden") {
+      if (live) {
+        // The page going away mid-telling marks the take
+        // interrupted (Fix 2): browsers stop the recorder
+        // under a hidden page, so the stop that follows
+        // is a cut, not a finish, and the send must say
+        // so.
+        R.interrupted = true;
+      }
+      return;
+    }
+    // Visible again. Returning to the tab counts as
+    // interaction (founder refinement): re-arm the idle
+    // clock and re-acquire the lock the browser dropped
+    // when the page hid.
+    noteWakeInteraction();
+    if (live) { return; }
+    // State mismatch: the recorder is dead but the mic
+    // chrome still shows a recording in progress — its
+    // stop event never landed (or is queued behind this
+    // handler). Resync the UI to the truth, the way
+    // closePanels does, and say what happened. If the
+    // stop event IS merely queued, its send still runs
+    // and the cut-short line speaks last.
+    if (R.viaMic && !micRecbar.hidden) {
+      micUiReset();
+      setVoiceStatus("The screen slept, and the recording stopped.");
+    }
   });
 
   // ---- End session & delete everything (Day 4 truth pass) ------
@@ -1264,6 +1503,13 @@
           closePanels();
           setListening(false);
           setVoiceStatus("");
+          // The sitting is over: the wake lock's home is
+          // post-consent, so it is fully released here —
+          // the consent screen the storyteller lands on
+          // never holds it (Fix 1). The unsupported-browser
+          // hint re-arms for the next sitting.
+          releaseWakeLock();
+          wakeHintShown = false;
           chatScreen.hidden = true;
           chapterScreen.hidden = true;
           consentScreen.hidden = false;
