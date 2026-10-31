@@ -703,6 +703,9 @@ def chapter_view(chapter):
             "outline": chapter["outline"],
             "draft": draft,
             "check": chapter.get("check"),
+            "illustration": bool(chapter.get("illustration")),
+            "illustration_version":
+                chapter.get("illustration_version", 0),
             "excluded": sorted(chapter["excluded"]),
             "materials_all": [
                 {"id": s["id"], "kind": s["kind"], "label": s["label"],
@@ -855,8 +858,116 @@ def approve(sess, session_id):
         "dedication": draft["dedication"],
         "sections": draft["sections"],
         "session_id": session_id,
+        "illustration": False,
+        "illustration_version": 0,
     }
     return 200, chapter_view(chapter)
+
+
+# ------------------------------------------------------------------
+# Keepsake illustration (Day 5) — the third Meta model enters the
+# product. After approval, the storyteller may ask for ONE
+# illustration for the keepsake (asking again replaces it). The
+# image prompt is built ONLY from the approved chapter's own
+# furniture — title, dedication, section headings — never from
+# raw conversation text. The no-people / no-faces / no-likeness /
+# no-text discipline (white-paper red team) is baked into the
+# prompt template itself, so no caller can ask around it. The
+# image lives in the chapter's in-memory state and is mirrored
+# into the share snapshot as a flag, exactly as long-lived as the
+# keepsake itself: it dies with the container, and the share
+# link's illustration dies with the link. No prompt or image is
+# ever logged here.
+# ------------------------------------------------------------------
+
+ILLUSTRATION_ALT = "An illustration made for this chapter"
+
+ILLUSTRATION_FAILURE = (
+    "The illustration didn't come through — your chapter is "
+    "complete without it.")
+
+_ILLUSTRATION_PROMPT = (
+    "A warm, painterly editorial illustration for a personal "
+    "keepsake chapter — soft natural light, gentle colours, the "
+    "feel of a treasured book plate.\n"
+    "The chapter is titled \u201c{title}\u201d.\n"
+    "{dedication}"
+    "Its sections are: {headings}.\n"
+    "Illustrate the PLACES, OBJECTS and MOODS these themes "
+    "suggest — a room, a landscape, the tools of a trade, "
+    "weather, dawn or dusk — in the spirit of the title and the "
+    "sections.\n"
+    "Rules without exception: NO people, NO faces, NO human "
+    "figures or silhouettes, NO likeness of any real person, "
+    "and NO words, letters, numbers or text of any kind "
+    "anywhere in the image."
+)
+
+
+def build_illustration_prompt(chapter):
+    """The image prompt, from the approved draft's furniture
+    only: its title, its dedication, its section headings."""
+    draft = chapter["draft"]
+    dedication = ""
+    if draft.get("dedication"):
+        dedication = ("It is dedicated to \u201c%s\u201d.\n"
+                      % draft["dedication"])
+    headings = "; ".join(section["heading"]
+                         for section in draft["sections"])
+    return _ILLUSTRATION_PROMPT.format(
+        title=draft["title"], dedication=dedication,
+        headings=headings or "Your words")
+
+
+def illustrate(sess, session_id, generator):
+    """Make (or replace) the keepsake's illustration. `generator`
+    is a callable (prompt) -> (image_bytes, content_type) | None
+    — the live Muse Image path in app.py; tests inject fakes.
+    Any failure leaves the approved chapter exactly as it was
+    and answers with the honest line."""
+    chapter = sess.get("chapter")
+    if chapter is None or chapter.get("stage") != "approved" \
+            or not chapter.get("draft"):
+        return 409, {"error": "There is no approved chapter to "
+                              "illustrate just now — approve a "
+                              "chapter first, and Liv can make an "
+                              "illustration for it."}
+    if generator is None:
+        return 502, {"error": ILLUSTRATION_FAILURE}
+    try:
+        result = generator(build_illustration_prompt(chapter))
+    except Exception:
+        result = None
+    if not result:
+        return 502, {"error": ILLUSTRATION_FAILURE}
+    data, content_type = result
+    if not data:
+        return 502, {"error": ILLUSTRATION_FAILURE}
+    replacing = bool(chapter.get("illustration"))
+    version = chapter.get("illustration_version", 0) + 1
+    chapter["illustration"] = {"data": data,
+                               "content_type": content_type}
+    chapter["illustration_version"] = version
+    _step(chapter, "illustrate", "Made an illustration for the "
+          "keepsake",
+          "Painted from the chapter's title and sections — "
+          "places and things, never people"
+          if not replacing else
+          "A new one, replacing the earlier illustration")
+    snapshot = _shares.get(chapter.get("share_token") or "")
+    if snapshot is not None:
+        snapshot["illustration"] = True
+        snapshot["illustration_version"] = version
+    return 200, chapter_view(chapter)
+
+
+def get_illustration(sess):
+    """The session's chapter illustration, if one was made:
+    {"data": bytes, "content_type": str} — else None."""
+    chapter = sess.get("chapter") if sess else None
+    if not chapter:
+        return None
+    return chapter.get("illustration")
 
 
 def get_share(token):
@@ -906,6 +1017,12 @@ def render_keepsake_html(snapshot):
     parts.append("<p class=\"note\">Arranged from a conversation "
                  "with Liv, and approved by the storyteller before "
                  "it was shared.</p>\n<hr>\n")
+    if snapshot.get("illustration"):
+        parts.append(
+            "<img src=\"/api/chapter/illustration?session_id="
+            + esc(snapshot["session_id"]) + "&v="
+            + str(snapshot.get("illustration_version", 1))
+            + "\" alt=\"" + ILLUSTRATION_ALT + "\">\n")
     for section in snapshot["sections"]:
         parts.append("<h2>" + esc(section["heading"]) + "</h2>\n")
         for para in section["paragraphs"]:

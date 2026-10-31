@@ -1008,6 +1008,34 @@ def handle_chapter_approve(payload):
     return chapter_mod.approve(sess, session_id)
 
 
+def _live_illustrator():
+    """The live Muse Image call of the keepsake flow. Returns a
+    generator callable (prompt) -> (bytes, content_type), or None
+    when no live client is available — chapter.illustrate then
+    answers with the honest failure line and the approved chapter
+    stands complete without an illustration."""
+    client = _get_live_client()
+    if client is None:
+        return None
+
+    def generate(prompt):
+        image_bytes, info = client.generate_image(prompt)
+        if not image_bytes:
+            return None
+        return image_bytes, info["content_type"]
+
+    return generate
+
+
+def handle_chapter_illustrate(payload):
+    gate = _chapter_gate(payload)
+    if gate:
+        return gate
+    session_id, sess = _chapter_session(payload)
+    return chapter_mod.illustrate(sess, session_id,
+                                  _live_illustrator())
+
+
 def handle_chapter_view(payload):
     gate = _chapter_gate(payload)
     if gate:
@@ -1067,6 +1095,20 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(
                 200, chapter_mod.render_keepsake_html(snapshot),
                 "text/html; charset=utf-8")
+        if path == "/api/chapter/illustration":
+            # The keepsake illustration, served back to its
+            # owning session (and to the keepsake page, which
+            # carries the session id the same way media links
+            # do). No illustration made -> 404.
+            query = parse_qs(urlparse(self.path).query)
+            session_id = (query.get("session_id") or [""])[0]
+            sess = _sessions.get(session_id)
+            illus = chapter_mod.get_illustration(sess) if sess \
+                else None
+            if illus is None:
+                return self._send(404, {"error": "not found"})
+            return self._send(200, illus["data"],
+                              illus["content_type"])
         if path.startswith("/api/media/"):
             media_id = path[len("/api/media/"):]
             query = parse_qs(urlparse(self.path).query)
@@ -1154,6 +1196,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/chapter/replan": handle_chapter_replan,
             "/api/chapter/draft": handle_chapter_draft,
             "/api/chapter/approve": handle_chapter_approve,
+            "/api/chapter/illustrate": handle_chapter_illustrate,
             "/api/chapter/view": handle_chapter_view,
             "/api/session/end": handle_end_session,
         }
