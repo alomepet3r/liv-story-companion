@@ -149,49 +149,223 @@
     }
     messages.appendChild(div);
     div.scrollIntoView({ block: "end", behavior: scrollBehavior() });
+    return div;
   }
 
-  function send(message, showMine, mediaItems) {
+  // ---- Heard, or not heard yet — the T1 fix (founder
+  // ruling, Oct 31, 2026, evening; finding T1 of the
+  // external design review) --------------------------------
+  // A telling is not Liv's until the server confirms it.
+  // The old send cleared the composer up front and drew the
+  // turn as if settled; on any failure the words were gone
+  // from the box, present in the thread, and absent from
+  // the server — so a chapter arranged later had a hole in
+  // it that nobody was told about. Now:
+  //   * the composer keeps its words until confirmation,
+  //     and confirmation clears them only if the box still
+  //     holds exactly the telling that was sent (healComposer);
+  //   * the turn wears its state in WORDS — "Not heard yet"
+  //     — from the moment it is drawn until the server
+  //     answers; on failure the words stay AND a real button
+  //     on the turn offers to send the same telling again;
+  //   * media staged for a composer send return to the tray
+  //     on failure, so nothing staged is lost either, and a
+  //     settled resend takes its tray copies back out;
+  //   * pressing Send again with the same words and media
+  //     routes to the failed turn's own resend (the submit
+  //     handler, below) — a telling is never drawn twice.
+  // The Begin greeting sends with showMine=false and draws
+  // no turn; the Finish flow rides this same send(), so the
+  // marking rule covers it with no special-casing.
+  var liveTurns = [];      // states of turns not yet settled
+  var inflightSigs = {};   // signatures of attempts in flight
+
+  function sendSignature(message, mediaIds) {
+    var ids = mediaIds.slice();
+    ids.sort();
+    return message + "\u0001" + ids.join(",");
+  }
+
+  function turnState(div, message, mediaItems, mediaIds) {
+    if (div._livState) { return div._livState; }
+    var note = document.createElement("span");
+    note.className = "not-heard-note";
+    note.textContent = "Not heard yet";
+    var resend = document.createElement("button");
+    resend.type = "button";
+    resend.className = "secondary not-heard-resend";
+    resend.textContent = "Try sending again";
+    resend.hidden = true;
+    div.appendChild(note);
+    div.appendChild(resend);
+    var state = {
+      div: div, note: note, resend: resend,
+      message: message, mediaItems: mediaItems || [],
+      mediaIds: mediaIds,
+      sig: sendSignature(message, mediaIds),
+      settled: false, flying: false, attempt: null,
+      fromComposer: false
+    };
+    resend.addEventListener("click", function () {
+      if (state.settled || state.flying || !state.attempt) {
+        return;
+      }
+      state.attempt();
+    });
+    div._livState = state;
+    liveTurns.push(state);
+    return state;
+  }
+
+  function settleTurn(state) {
+    state.settled = true;
+    state.flying = false;
+    var i = liveTurns.indexOf(state);
+    if (i !== -1) { liveTurns.splice(i, 1); }
+    state.div.classList.remove("not-heard");
+    if (state.note.parentNode) {
+      state.note.parentNode.removeChild(state.note);
+    }
+    if (state.resend.parentNode) {
+      state.resend.parentNode.removeChild(state.resend);
+    }
+    // The telling is heard: any tray copies of its media
+    // (restored there by an earlier failure) have now in
+    // fact been sent, so they leave the tray — and the
+    // composer gives up the words it was keeping.
+    dropPendingByIds(state.mediaIds);
+    healComposer(state);
+  }
+
+  function failTurn(state) {
+    state.flying = false;
+    // The mark STAYS; the resend stands on the turn. A
+    // composer telling's staged media return to the tray,
+    // so the ordinary Send path carries them too.
+    state.resend.hidden = false;
+    if (state.fromComposer) { restoreMedia(state.mediaItems); }
+  }
+
+  function healComposer(state) {
+    // Confirmation clears the box only when it still holds
+    // exactly the telling that was sent — words typed since
+    // are the start of a new telling and are never swept.
+    if (state.fromComposer && input.value === state.message) {
+      input.value = "";
+    }
+  }
+
+  function restoreMedia(mediaItems) {
+    if (!mediaItems || mediaItems.length === 0) { return; }
+    var have = {};
+    var i;
+    for (i = 0; i < pendingMedia.length; i++) {
+      have[pendingMedia[i].id] = true;
+    }
+    var restored = [];
+    for (i = 0; i < mediaItems.length; i++) {
+      if (!have[mediaItems[i].id]) {
+        restored.push(mediaItems[i]);
+      }
+    }
+    if (restored.length > 0) {
+      pendingMedia = restored.concat(pendingMedia);
+      renderPending();
+    }
+  }
+
+  function dropPendingByIds(ids) {
+    if (!ids || ids.length === 0) { return; }
+    var before = pendingMedia.length;
+    pendingMedia = pendingMedia.filter(function (m) {
+      return ids.indexOf(m.id) === -1;
+    });
+    if (pendingMedia.length !== before) { renderPending(); }
+  }
+
+  function findFailedTurn(message, mediaItems) {
+    var ids = [];
+    for (var i = 0; i < mediaItems.length; i++) {
+      ids.push(mediaItems[i].id);
+    }
+    var sig = sendSignature(message, ids);
+    for (var j = 0; j < liveTurns.length; j++) {
+      var st = liveTurns[j];
+      if (!st.settled && !st.flying && st.sig === sig) {
+        return st;
+      }
+    }
+    return null;
+  }
+
+  function send(message, showMine, mediaItems, opts) {
     // A message sent is interaction: it re-arms the
     // session wake lock's idle clock (Fix 1).
     noteWakeInteraction();
+    opts = opts || {};
     var ids = [];
     if (mediaItems) {
       for (var i = 0; i < mediaItems.length; i++) { ids.push(mediaItems[i].id); }
     }
-    if (showMine && (message.trim() !== "" || ids.length > 0)) {
-      addMessage("You", message, "storyteller", mediaItems);
+    var turn = opts.turn || null;
+    if (!turn && showMine &&
+        (message.trim() !== "" || ids.length > 0)) {
+      turn = addMessage("You", message, "storyteller", mediaItems);
     }
-    setListening(true);
-    return fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        session_id: sessionId,
-        message: message,
-        consent: consented,
-        age_confirmed: ageConfirmed,
-        media_ids: ids
+    var state = turn ? turnState(turn, message, mediaItems, ids)
+                     : null;
+    if (state && opts.fromComposer) { state.fromComposer = true; }
+
+    function attempt() {
+      if (state) {
+        state.flying = true;
+        state.resend.hidden = true;
+        state.div.classList.add("not-heard");
+        inflightSigs[state.sig] = true;
+      }
+      setListening(true);
+      return fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId,
+          message: message,
+          consent: consented,
+          age_confirmed: ageConfirmed,
+          media_ids: ids
+        })
       })
-    })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        setListening(false);
-        var name = data.companion || companionName;
-        if (data.reply) {
-          addMessage(name, data.reply, "companion");
-        } else if (data.error) {
-          addMessage(name,
-            "Something went wrong on my side. Please try again.",
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          setListening(false);
+          var name = data.companion || companionName;
+          if (data.reply) {
+            // The server has the telling: the mark clears.
+            if (state) { settleTurn(state); }
+            addMessage(name, data.reply, "companion");
+          } else if (data.error) {
+            if (state) { failTurn(state); }
+            addMessage(name,
+              "Something went wrong on my side. Please try again.",
+              "companion");
+          }
+        })
+        .catch(function () {
+          setListening(false);
+          if (state) { failTurn(state); }
+          addMessage(companionName,
+            "I could not be reached just now. Please try again in a moment.",
             "companion");
-        }
-      })
-      .catch(function () {
-        setListening(false);
-        addMessage(companionName,
-          "I could not be reached just now. Please try again in a moment.",
-          "companion");
-      });
+        })
+        .then(function () {
+          if (state) {
+            state.flying = false;
+            delete inflightSigs[state.sig];
+          }
+        });
+    }
+    if (state) { state.attempt = attempt; }
+    return attempt();
   }
 
   beginBtn.addEventListener("click", function () {
@@ -217,10 +391,31 @@
   form.addEventListener("submit", function (ev) {
     ev.preventDefault();
     var text = input.value;
+    if (text.trim() === "" && pendingMedia.length === 0) {
+      return;
+    }
+    // T1 fix: the composer is NOT cleared here any more. It
+    // keeps its words until the server confirms the turn
+    // (healComposer, above) — so a second press while the
+    // same telling is still travelling must not send a
+    // duplicate of it.
+    var stagedIds = [];
+    for (var i = 0; i < pendingMedia.length; i++) {
+      stagedIds.push(pendingMedia[i].id);
+    }
+    if (inflightSigs[sendSignature(text, stagedIds)]) { return; }
     var media = takePendingMedia();
-    if (text.trim() === "" && media.length === 0) { return; }
-    input.value = "";
-    send(text, true, media).then(function () { input.focus(); });
+    // A failed turn holding these exact words and media IS
+    // this telling: send it again through that turn's own
+    // resend, so the thread never draws it twice.
+    var twin = findFailedTurn(text, media);
+    if (twin && twin.attempt) {
+      twin.attempt();
+      input.focus();
+      return;
+    }
+    send(text, true, media, { fromComposer: true })
+      .then(function () { input.focus(); });
   });
 
   // Finish for today (Rehearsal Finding #2, Oct 30, 2026):
@@ -1287,6 +1482,56 @@
     micRecbar.classList.remove("paused");
   }
 
+  // ---- Held takes (T1 voice extension, Oct 31, 2026,
+  // evening) ----------------------------------------------
+  // Finding R1 of the external review: a spoken telling had
+  // the same silent-loss shape as T1, with no way to retype
+  // it — if the take's UPLOAD failed, the heard-you line had
+  // already claimed the words went to Liv, and the blob was
+  // simply dropped. Now a take whose upload fails is HELD
+  // here, in memory, with its words: the voice-status line
+  // tells the truth about the failure and the button beside
+  // it (#take-resend) offers one tap to send the same take
+  // again. A take that uploads but whose message send fails
+  // needs no hold — it is a turn in the thread, and the T1
+  // machinery above marks it and offers its resend there.
+  // A new take replaces a held one; ending the session
+  // drops it (endSessionNow calls dropHeldTake).
+  var heldTake = null;
+  var takeResendBtn = document.getElementById("take-resend");
+
+  function holdTake(blob, type, cutShort) {
+    if (blob.size > MEDIA_CAPS.audio) {
+      // A resend could never carry this take; say so rather
+      // than offering a recovery that cannot happen.
+      setVoiceStatus("That recording was too large to send " +
+        "— Liv didn't hear it. A shorter one will go through.");
+      return;
+    }
+    heldTake = { blob: blob, type: type, cutShort: cutShort };
+    if (takeResendBtn) { takeResendBtn.hidden = false; }
+    setVoiceStatus((cutShort
+      ? "The screen slept and cut that short — and that " +
+        "recording didn't reach Liv. It is "
+      : "That recording didn't reach Liv — it is ") +
+      "still here, with your words. Tap “Try sending " +
+      "again” to send it, or record a new one instead.");
+  }
+
+  function dropHeldTake() {
+    heldTake = null;
+    if (takeResendBtn) { takeResendBtn.hidden = true; }
+  }
+
+  if (takeResendBtn) {
+    takeResendBtn.addEventListener("click", function () {
+      if (!heldTake) { return; }
+      var take = heldTake;
+      dropHeldTake();
+      sendVoiceTake(take.blob, take.type, take.cutShort);
+    });
+  }
+
   function sendVoiceTake(blob, type, cutShort) {
     // Stop IS send (founder's ruling, Oct 30 evening): the
     // heard-you state fires in this same beat, and the take
@@ -1299,6 +1544,7 @@
     // the same path and the partial telling is preserved,
     // but its announcement tells the truth about the cut
     // instead of claiming a normal full send.
+    dropHeldTake();
     setVoiceStatus(cutShort
       ? "The screen slept and cut that short — what you " +
         "said up to then went to Liv."
@@ -1306,6 +1552,7 @@
     stageWithListening("audio", blob,
       "recorded-audio." + extFor(type), function (item) {
         if (item) { send("", true, [item]); }
+        else { holdTake(blob, type, cutShort); }
       });
   }
 
@@ -1574,6 +1821,13 @@
           messages.innerHTML = "";
           pendingMedia = [];
           renderPending();
+          // The T1 machinery belongs to the ended sitting:
+          // no unsettled turn of it may be matched or resent
+          // in the next one, and a held voice take is dropped
+          // with everything else.
+          liveTurns = [];
+          inflightSigs = {};
+          dropHeldTake();
           // Kill any live recorder first: stopRecorder marks
           // the take for discard, so its stop event throws it
           // away rather than sending it into the new session.
