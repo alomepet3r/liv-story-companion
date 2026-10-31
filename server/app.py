@@ -254,6 +254,22 @@ def build_system_prompt(companion_name):
     "identification, not yours — and you may repeat what THEY "
     "named ('the last born — thank you for telling me'), never "
     "presenting it as something you saw, matched, or worked out. "
+    "COUNTING PEOPLE IN PHOTOS — never invent a number: a count "
+    "is welcome in this conversation when it is MEASURED or "
+    "THEIRS — a verified count that came with the photo or is "
+    "recorded in this conversation's scene facts, or a number "
+    "the storyteller gives you themselves. If you are asked how "
+    "many people are in a photograph — 'how many of us are in "
+    "that photo?' — and NO verified count is available to you, "
+    "do not invent one. A number with a hedge on it ('sixteen, "
+    "I think — tell me if I'm wrong') is still an invented "
+    "number, and it is forbidden: the storyteller will build on "
+    "whatever number you give them. Instead, say warmly and "
+    "plainly that you don't want to guess at a number you can't "
+    "stand behind — and invite theirs: their count is the one "
+    "that belongs in their story, and the one you will hold. "
+    "Counting is not identifying: this rule refuses the guess, "
+    "never the measured fact. "
     "BRING YOUR ARCHIVE: the storyteller may hand you their own "
     "Facebook 'Download Your Information' export through the "
     "'+' button's 'Document or archive' choice. Liv looks through it once, in "
@@ -763,6 +779,18 @@ def _archive_context(media_items):
 # empty result all degrade to exactly today's behaviour — the
 # photo turn proceeds with no ledger and no user-facing seam.
 # The canned path has no live model and never sees a ledger.
+#
+# PERSISTENCE (follow-up gap, found in production Oct 30): the
+# ledger used to live only in the photo turn's per-turn copy,
+# so a count question on the NEXT turn — "How many of us are
+# in that photo?", the natural moment for it — reached a model
+# holding neither the image nor the facts, and it confabulated
+# ("sixteen"). Measured facts now persist on the media item
+# itself (item["scene_facts"]: person_count + frame_share
+# phrase — facts, not prose identity) and are re-injected into
+# later turns' per-turn system copy by _earlier_photo_facts.
+# Facts ride the session's media store; like the ledger, they
+# never enter session history.
 
 def _frame_share_phrase(boxes):
     """How much of the frame the boxes together fill, in words.
@@ -791,20 +819,18 @@ def _frame_share_phrase(boxes):
     return ""
 
 
-def _scene_ledger(media_items):
-    """The verified scene ledger for this turn's first photo.
+def _scene_facts_for(item):
+    """Measure one photo with SAM; its scene-facts dict or None.
 
-    Returns the ledger line for the live prompt, or None — no
-    photo on the turn, no SAM client, any SAM failure, or an
-    empty (zero-person) result: silence in every such case.
+    The facts — a verified person count, plus the frame-share
+    phrase when it states cleanly — are all SAM ever
+    contributes: counts and position only, never identity
+    (D28). None on no client, any failure, or an empty
+    (zero-person) answer: silence in every such case.
     """
-    photos = [m for m in media_items if m["kind"] == "photo"]
-    if not photos:
-        return None
     client = _get_sam_client()
     if client is None:
         return None
-    item = photos[0]
     try:
         boxes = client.segment(
             item["data"], "person",
@@ -813,14 +839,36 @@ def _scene_ledger(media_items):
         return None
     if not boxes:
         return None
-    count = len(boxes)
+    return {"person_count": len(boxes),
+            "frame_share": _frame_share_phrase(boxes) or None}
+
+
+def _scene_ledger(media_items):
+    """The verified scene ledger for this turn's first photo.
+
+    Returns the ledger line for the live prompt, or None — no
+    photo on the turn, no SAM client, any SAM failure, or an
+    empty (zero-person) result: silence in every such case.
+    When a ledger IS produced, the measured facts are also
+    stored on the photo item (item["scene_facts"]) so they can
+    travel to later turns — see _earlier_photo_facts.
+    """
+    photos = [m for m in media_items if m["kind"] == "photo"]
+    if not photos:
+        return None
+    item = photos[0]
+    facts = _scene_facts_for(item)
+    if facts is None:
+        return None
+    item["scene_facts"] = facts
+    count = facts["person_count"]
     place = ("this photo" if len(photos) == 1
              else "the first photo in this turn")
     noun = "person" if count == 1 else "people"
     line = (f"[Scene ledger — measured facts about {place} from a "
             f"scene tool, not a guess: exactly {count} {noun} "
             f"{'is' if count == 1 else 'are'} in {place}")
-    share = _frame_share_phrase(boxes)
+    share = facts["frame_share"]
     if share:
         line += (", " + ("together " if count > 1 else "") + share)
     line += (f". The count is verified: if you say how many people "
@@ -828,6 +876,54 @@ def _scene_ledger(media_items):
              f"number. These facts say nothing about who "
              f"{'the person' if count == 1 else 'anyone'} is.]")
     return line
+
+
+def _earlier_photo_facts(sess, exclude_id=None):
+    """Verified counts for photos shared earlier, for this turn.
+
+    A compact block for the live model's per-turn system copy:
+    per photo, the label the conversation knows it by — the
+    chapter module's media label (caption, date, album, or
+    share time) — and its measured count under the ledger's
+    own constraint wording. Most recent first, capped at the
+    last three photos carrying facts. exclude_id skips the
+    photo this turn's fresh ledger already covers, so a photo
+    is never stated twice in one turn. Returns None when no
+    earlier photo carries facts. Like the ledger, the block is
+    per-turn copy — it never enters session history.
+    """
+    entries = []
+    for mid in reversed(list(sess["media"])):
+        if len(entries) >= 3:
+            break
+        if mid == exclude_id:
+            continue
+        item = sess["media"][mid]
+        if item.get("kind") != "photo":
+            continue
+        facts = item.get("scene_facts")
+        if not facts:
+            continue
+        count = facts["person_count"]
+        noun = "person" if count == 1 else "people"
+        entry = (f"the photo labelled "
+                 f"\u201c{chapter_mod._media_label(item)}\u201d "
+                 f"contains exactly {count} {noun}")
+        share = facts.get("frame_share")
+        if share:
+            entry += (", " + ("together " if count > 1 else "")
+                      + share)
+        entry += (f" — if you say how many people are in that "
+                  f"photo, say {count} — never a different number; "
+                  f"these facts say nothing about who "
+                  f"{'the person' if count == 1 else 'anyone'} is")
+        entries.append(entry)
+    if not entries:
+        return None
+    return ("[Verified facts about photos shared earlier in this "
+            "conversation — measured by a scene tool when each "
+            "photo arrived, not guesses: "
+            + "; ".join(entries) + ".]")
 
 
 def _media_turn_messages(api_messages, media_items, message,
@@ -906,12 +1002,14 @@ def handle_chat(payload):
     # this session's store). Unknown ids are ignored — the turn is
     # then just the words that came with it.
     media_items = []
+    turn_media_ids = []          # parallel to media_items
     raw_ids = payload.get("media_ids")
     if isinstance(raw_ids, list):
         for mid in raw_ids[:4]:
             item = sess["media"].get(str(mid))
             if item is not None:
                 media_items.append(item)
+                turn_media_ids.append(str(mid))
 
     # Liv-only (founder ruling, Oct 29, 2026): the companion is Liv.
     # A client-supplied companion/companion_name value is accepted
@@ -991,14 +1089,32 @@ def handle_chat(payload):
     if client is not None:
         try:
             system_prompt = build_system_prompt(companion_name)
+            # The scene ledger is computed only for the live
+            # vision path it will ride on — the canned path has
+            # no live model and never sees one. Computing it
+            # here also stores the measured facts on the photo
+            # itself (see _scene_ledger); _earlier_photo_facts
+            # then carries those facts into this and later
+            # turns' system copy, because a count question
+            # naturally arrives a turn after the photo — when
+            # neither the image nor the ledger is in front of
+            # the model any more (production find, Oct 30).
+            ledger = None
+            fresh_photo_id = None
+            if media_items and VISION_SUPPORTED:
+                ledger = _scene_ledger(media_items)
+                if ledger is not None:
+                    for mid, item in zip(turn_media_ids, media_items):
+                        if item["kind"] == "photo":
+                            fresh_photo_id = mid
+                            break
+            earlier = _earlier_photo_facts(
+                sess, exclude_id=fresh_photo_id)
+            if earlier:
+                system_prompt = system_prompt + " " + earlier
             messages = ([{"role": "system", "content": system_prompt}]
                         + sess["history"][-20:])
             if media_items:
-                # The scene ledger is computed only for the live
-                # vision path it will ride on — the canned path
-                # has no live model and never sees one.
-                ledger = (_scene_ledger(media_items)
-                          if VISION_SUPPORTED else None)
                 messages = _media_turn_messages(messages, media_items,
                                                 message,
                                                 scene_ledger=ledger)
