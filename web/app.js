@@ -1549,6 +1549,9 @@
   var chapterKeepsakeBox = document.getElementById("chapter-keepsake-box");
   var chapterShareLink = document.getElementById("chapter-share-link");
   var chapterKeepsakeLink = document.getElementById("chapter-keepsake-link");
+  var chapterIllustrateBtn = document.getElementById("chapter-illustrate");
+  var chapterIllustrationBox = document.getElementById("chapter-illustration-box");
+  var chapterIllustrationImg = document.getElementById("chapter-illustration-img");
 
   function showChapterError(text) {
     chapterError.textContent = text || "";
@@ -1736,6 +1739,13 @@
       chapterKeepsakeLink.href = view.share_url;
       document.getElementById("chapter-approve").disabled = true;
     }
+    var illustrated = approved && view.chapter.illustration;
+    chapterIllustrationBox.hidden = !illustrated;
+    if (illustrated) {
+      chapterIllustrationImg.src = "/api/chapter/illustration" +
+        "?session_id=" + encodeURIComponent(sessionId) +
+        "&v=" + (view.chapter.illustration_version || 1);
+    }
   }
 
   function openChapter() {
@@ -1872,4 +1882,34 @@
           showChapterError("Liv could not be reached just now.");
         });
     });
+
+  chapterIllustrateBtn.addEventListener("click", function () {
+    showChapterError("");
+    chapterIllustrateBtn.disabled = true;
+    chapterStatus.textContent = "Liv is making an illustration " +
+      "for your chapter\u2026";
+    chapterCall("/api/chapter/illustrate")
+      .then(function (out) {
+        chapterIllustrateBtn.disabled = false;
+        if (out.status === 200 && out.data.chapter &&
+            out.data.chapter.illustration) {
+          chapterStatus.textContent = "Your illustration is " +
+            "ready — it sits at the top of your keepsake.";
+          renderChapter(out.data);
+          chapterIllustrationBox.scrollIntoView(
+            { block: "start", behavior: scrollBehavior() });
+        } else {
+          chapterStatus.textContent = "";
+          showChapterError((out.data && out.data.error) ||
+            "The illustration didn't come through — your " +
+            "chapter is complete without it.");
+        }
+      })
+      .catch(function () {
+        chapterIllustrateBtn.disabled = false;
+        chapterStatus.textContent = "";
+        showChapterError("The illustration didn't come through " +
+          "— your chapter is complete without it.");
+      });
+  });
 })();
