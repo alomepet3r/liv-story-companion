@@ -30,6 +30,7 @@ completions on them may be used to train future Meta models — so
 they must NEVER carry storyteller content. chat() refuses any model
 outside the allowlist.
 """
+import base64
 import json
 import os
 import time
@@ -52,6 +53,19 @@ ALLOWED_MODELS = {"muse-spark-1.3"}
 # ID may ever carry storyteller audio — no contributor tier.
 TRANSCRIBE_MODEL = "muse-voice-transcribe-1.0"
 ALLOWED_TRANSCRIBE_MODELS = {TRANSCRIBE_MODEL}
+
+# Image generation (Day 5). The model-id spelling was resolved
+# from GET /v1/models on Oct 30, 2026 — "muse-image-1.0" — never
+# guessed. Its surface is the OpenAI-compatible image surface:
+# POST {base}/images/generations with {"model", "prompt", "n"},
+# answered by {"data": [{"b64_json": ...}], "output_format": ...,
+# "usage": ...} — verified live the same day with one harmless
+# test prompt (the decoded image was WebP, RIFF magic). The
+# allowlist discipline is identical to chat's and transcription's:
+# only this Standard ID may ever carry a prompt derived from a
+# chapter — no contributor tier.
+IMAGE_MODEL = "muse-image-1.0"
+ALLOWED_IMAGE_MODELS = {IMAGE_MODEL}
 
 # Primary attempt: cheapest reliable per Oct 26 probes.
 PRIMARY = {"max_tokens": 600, "reasoning_effort": "minimal"}
@@ -228,3 +242,70 @@ class MetaClient:
         })
         return text, {"audio_duration_ms": data.get("audioDurationMs"),
                       "model": model}
+
+    @staticmethod
+    def _image_content_type(image_bytes, output_format=None):
+        """Name the image's type from its own magic bytes — what
+        the bytes say outranks what the response claims; the
+        response's output_format is only a fallback."""
+        if image_bytes[:4] == b"\x89PNG":
+            return "image/png"
+        if image_bytes[:3] == b"\xff\xd8\xff":
+            return "image/jpeg"
+        if image_bytes[:4] == b"RIFF" \
+                and image_bytes[8:12] == b"WEBP":
+            return "image/webp"
+        if image_bytes[:6] in (b"GIF87a", b"GIF89a"):
+            return "image/gif"
+        return {"webp": "image/webp", "png": "image/png",
+                "jpeg": "image/jpeg", "jpg": "image/jpeg"}.get(
+                    str(output_format or "").lower(), "image/webp")
+
+    def generate_image(self, prompt, model=None):
+        """Generate one image from a text prompt (muse-image-1.0).
+
+        Returns (image_bytes, info) where info carries the model,
+        the sniffed content type, and the byte count. Raises on
+        transport/API failure or on a response carrying no image —
+        the caller decides the honest fallback. Usage logging
+        records model + latency + byte count + whatever numeric
+        usage fields the API returned — never the prompt.
+        """
+        model = model or IMAGE_MODEL
+        if model not in ALLOWED_IMAGE_MODELS:
+            raise ValueError(
+                f"model {model!r} is not in the image allowlist "
+                f"{sorted(ALLOWED_IMAGE_MODELS)} — contributor/"
+                "data-sharing tiers must never carry prompts "
+                "derived from a storyteller's chapter")
+        started = time.time()
+        data = self._request("POST", "/images/generations",
+                             {"model": model, "prompt": prompt,
+                              "n": 1})
+        latency = round(time.time() - started, 3)
+        try:
+            encoded = data["data"][0]["b64_json"]
+            image_bytes = base64.b64decode(encoded)
+        except (KeyError, IndexError, TypeError, ValueError):
+            raise ValueError(
+                "the image response carried no image") from None
+        if not image_bytes:
+            raise ValueError("the image response carried no image")
+        content_type = self._image_content_type(
+            image_bytes, data.get("output_format"))
+        usage = data.get("usage", {}) or {}
+        record = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "model": model,
+            "kind": "image",
+            "latency_s": latency,
+            "image_bytes": len(image_bytes),
+        }
+        for key in ("prompt_tokens", "completion_tokens",
+                    "total_tokens", "input_tokens", "output_tokens"):
+            if isinstance(usage.get(key), (int, float)):
+                record[key] = usage[key]
+        _log_usage(record)
+        return image_bytes, {"model": model,
+                             "content_type": content_type,
+                             "image_bytes": len(image_bytes)}

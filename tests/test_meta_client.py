@@ -95,5 +95,69 @@ class TestMetaClient(unittest.TestCase):
                            bodies[0]["max_tokens"])
 
 
+WEBP = b"RIFF\x10\x00\x00\x00WEBP" + b"synthetic-webp-bytes"
+
+
+class TestGenerateImage(unittest.TestCase):
+    """muse-image-1.0 on POST /images/generations (surface
+    verified live Oct 30, 2026; here the transport is faked)."""
+
+    def test_generate_image_posts_and_decodes(self):
+        import base64
+        captured = {}
+
+        def fake_open(req, timeout=None):
+            captured["url"] = req.get_full_url()
+            captured["body"] = json.loads(req.data.decode())
+            return FakeResponse(
+                {"created": 1,
+                 "data": [{"b64_json":
+                           base64.b64encode(WEBP).decode()}],
+                 "output_format": "webp",
+                 "usage": {"total_tokens": 100}})
+
+        with patch("urllib.request.urlopen", side_effect=fake_open):
+            image, info = MetaClient("k").generate_image(
+                "a quiet gym at dawn, no people, no text")
+
+        self.assertEqual(image, WEBP)
+        self.assertTrue(captured["url"].endswith(
+            "/images/generations"), captured["url"])
+        self.assertEqual(captured["body"]["model"],
+                         "muse-image-1.0")
+        self.assertEqual(captured["body"]["n"], 1)
+        # Content type is sniffed from the bytes' own magic.
+        self.assertEqual(info["content_type"], "image/webp")
+        self.assertEqual(info["image_bytes"], len(WEBP))
+
+    def test_png_magic_sniffed_as_png(self):
+        import base64
+        png = b"\x89PNG\r\n\x1a\n" + b"synthetic-png-bytes"
+
+        def fake_open(req, timeout=None):
+            return FakeResponse(
+                {"data": [{"b64_json":
+                           base64.b64encode(png).decode()}],
+                 "output_format": "webp"})
+
+        with patch("urllib.request.urlopen", side_effect=fake_open):
+            _image, info = MetaClient("k").generate_image("x")
+        # The bytes outrank the response's claimed format.
+        self.assertEqual(info["content_type"], "image/png")
+
+    def test_contributor_image_model_refused(self):
+        with self.assertRaises(ValueError):
+            MetaClient("k").generate_image(
+                "x", model="muse-image-1.0-contributor")
+
+    def test_response_without_image_raises(self):
+        def fake_open(req, timeout=None):
+            return FakeResponse({"data": []})
+
+        with patch("urllib.request.urlopen", side_effect=fake_open):
+            with self.assertRaises(ValueError):
+                MetaClient("k").generate_image("x")
+
+
 if __name__ == "__main__":
     unittest.main()
