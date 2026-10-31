@@ -986,11 +986,16 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 .mic-btn .mic-icon { display: inline-flex; flex: none; }
 .mic-btn .mic-icon svg { display: block; }
 
+/* Parked while recording: no pointer affordance — the
+   recording bar holds the controls. */
+.mic-btn:disabled { cursor: default; }
+
 /* Recording is a state you can SEE without reading colour: the
-   fill flips from terracotta to ink charcoal, the label itself now
-   reads "Tap to send", and a pulsing terracotta dot rides the pill —
-   and, via #voice-status, the state is also announced to
-   assistive tech. */
+   fill flips from terracotta to ink charcoal, the label reads
+   "Recording…", a pulsing terracotta dot rides the pill — and
+   the pill is DISABLED (parked) for the duration: the recording
+   bar beside it is the only voice control. Via #voice-status,
+   the state is also announced to assistive tech. */
 .mic-btn.recording {
   background: var(--ink);
   border-color: var(--ink);
@@ -1018,26 +1023,28 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
 }
 
 /* The voice deck (Rehearsal Finding #1 rebuild, Oct 30,
-   2026): the recording bar and the review bar, inside the
-   band under the action row. Both are flex rows, so the
-   [hidden] attribute needs its own rule — a class-level
-   display would otherwise beat it and the bars could never
-   hide. The buttons are the band's own .secondary ghosts
-   (52px by the base rule) and the review's .primary Send;
-   the timer and duration are sheet words in tabular
+   2026; founder's revision the same evening): the recording
+   bar, inside the band under the action row — the ONE voice
+   surface while a recording runs (the mic pill parks,
+   disabled, beside it). It is a flex row, so the [hidden]
+   attribute needs its own rule — a class-level display
+   would otherwise beat it and the bar could never hide.
+   The buttons are the band's own .secondary ghosts (52px
+   by the base rule); the timer is a sheet word in tabular
    figures, so the counting never jitters the row. The
    recording dot pulses while capturing and rests, dimmed,
    while paused — and the state is ALSO in the button
    labels and the #voice-status announcements, never in
-   colour alone. */
-.mic-recbar, .mic-review {
+   colour alone. (The morning build's review bar was
+   retired by the founder the day it shipped: Stop sends.) */
+.mic-recbar {
   display: flex;
   align-items: center;
   gap: 0.7rem;
   flex-wrap: wrap;
   margin-top: 0.9rem;
 }
-.mic-recbar[hidden], .mic-review[hidden] { display: none; }
+.mic-recbar[hidden] { display: none; }
 .rec-dot {
   flex: none;
   width: 0.65rem;
@@ -1048,7 +1055,7 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
 .mic-recbar.paused .rec-dot { animation: none; opacity: 0.45; }
-.mic-timer, .mic-duration {
+.mic-timer {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--sheet);

@@ -306,8 +306,6 @@
           <span class="mic-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="9" y="2.5" width="6" height="11" rx="3" fill="currentColor" stroke="none"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5"/></svg></span>
           <span id="mic-label">Talk to Liv</span>
         </button>
-        <button id="mic-discard" class="secondary" type="button"
-          hidden>Discard</button>
         <button id="btn-attach" class="attach-btn attach-quiet" type="button"
           aria-expanded="false" aria-controls="attach-picker"
           aria-label="Add a photo, a recording, a video, or a document to the conversation">
@@ -316,31 +314,27 @@
         <button class="primary small send-btn" type="submit">Send</button>
       </div>
       <!-- The voice deck (Rehearsal Finding #1 rebuild,
-           Oct 30, 2026): one tap in, one decision out. While
-           a Talk to Liv recording runs, the recording bar is
-           in plain sight — a live timer, Pause (only where
-           the browser truly supports it), and Stop. Stop
-           lands on exactly one review bar: hear the take
-           (Play/Pause), see its length, then Re-record or
-           Send. Nothing sends blind any more. States are
-           announced in #voice-status below; no state rides
-           on colour alone. -->
+           Oct 30, 2026; founder's revision the same evening,
+           on his phone-test ruling): ONE voice surface at a
+           time. While a Talk to Liv recording runs, the mic
+           pill parks itself (disabled, labelled "Recording…")
+           and this recording bar is the only voice control —
+           a live timer, Pause (only where the browser truly
+           supports it), Discard, and Stop. STOP SENDS the
+           take at once: the review bar the morning build
+           added was retired by the founder within the day —
+           a recording is a telling, not an absolute record,
+           and corrections live in the conversation. States
+           are announced in #voice-status below; no state
+           rides on colour alone. -->
       <div id="mic-recbar" class="mic-recbar" hidden role="group"
         aria-label="Recording controls">
         <span class="rec-dot" aria-hidden="true"></span>
         <span id="mic-timer" class="mic-timer" aria-hidden="true">0:00</span>
         <button id="mic-pause" class="secondary" type="button"
           aria-pressed="false">Pause</button>
+        <button id="mic-discard" class="secondary" type="button">Discard</button>
         <button id="mic-stop" class="secondary" type="button">Stop</button>
-      </div>
-      <div id="mic-review" class="mic-review" hidden role="group"
-        aria-label="Review your recording">
-        <button id="mic-play" class="secondary" type="button"
-          aria-pressed="false">Play</button>
-        <span id="mic-duration" class="mic-duration">0:00</span>
-        <button id="mic-rerecord" class="secondary" type="button">Re-record</button>
-        <button id="mic-send" class="primary small" type="button">Send</button>
-        <audio id="mic-playback" preload="metadata" aria-hidden="true"></audio>
       </div>
       <p id="voice-status" class="voice-status" role="status"></p>
       <!-- The session actions live inside the band

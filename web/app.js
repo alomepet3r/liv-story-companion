@@ -528,9 +528,11 @@
       barButtons[k].setAttribute("aria-expanded", "false");
     }
     // If a Talk to Liv recording is live, closing the panels
-    // stops it silently (the take is gone). Resync the mic
-    // chrome and SAY so — the pill used to be left showing
-    // its recording state over a dead recorder.
+    // kills it WITHOUT sending (stopRecorder marks the take
+    // for discard, so the stop event throws it away).
+    // Resync the mic chrome and SAY so — the pill used to
+    // be left showing its recording state over a dead
+    // recorder.
     var RA = (typeof recorders !== "undefined")
       ? recorders.audio : null;
     var micWasLive = !!(RA && RA.viaMic && RA.rec &&
@@ -855,6 +857,13 @@
     var R = recorders[kind];
     if (R.timer) { clearInterval(R.timer); R.timer = null; }
     if (R.rec && R.rec.state !== "inactive") {
+      // A recorder stopped through here is KILLED, not
+      // finished (panels closing, session ending): mark
+      // the take for discard, so the stop event — which
+      // still fires — throws it away instead of sending
+      // it. (Video never reads the flag; its stop path
+      // is unchanged.)
+      R.discardNext = true;
       R.rec.onstop = null;
       try { R.rec.stop(); } catch (e) { /* already stopped */ }
     }
@@ -892,33 +901,35 @@
           if (R.timer) { clearInterval(R.timer); R.timer = null; }
           R.button.textContent = "Start recording";
           if (kind === "audio") {
-            // Voice lands in the REVIEW deck on stop
-            // (Rehearsal Finding #1 rebuild, Oct 30, 2026):
-            // record → stop → hear it → ONE decision (Send
-            // or Re-record). Nothing sends blind. This
-            // supersedes the Day 4 stop-sends-standalone
-            // flow at the founder's direction — the middle
-            // ground he named after the dress rehearsal:
-            // no blind send; one review, one tap. Only a
-            // deliberate Discard skips the deck, straight
+            // Voice SENDS ITSELF on stop (founder's ruling,
+            // Oct 30 evening — restoring the Day 4 behaviour
+            // on top of the morning's deck): stop → the take
+            // travels the listening-track + /api/media
+            // pipeline at once, as its own message. The
+            // review bar the morning build added is retired
+            // the same day it shipped: a recording is a
+            // telling, not an absolute record, and anything
+            // said can be corrected in the conversation that
+            // follows. A take begun in the + Add panel ends
+            // the same way — the panel closes as the send
+            // fires. Only a deliberate Discard (or a kill
+            // through stopRecorder) skips the send, straight
             // to nothing-sent.
             var audioBlob = R.blob;
             R.blob = null;
+            var wasMic = R.viaMic;
             R.actions.hidden = true;
             R.preview.hidden = true;
+            R.status.textContent = R.idleText;
             if (R.discardNext) {
               R.discardNext = false;
-              R.status.textContent = R.idleText;
               setVoiceStatus("Recording discarded — nothing was sent.");
               micUiReset();
               return;
             }
-            deck.lastElapsed = Math.max(0,
-              Date.now() - R.started - deck.pausedMs -
-              (deck.paused && deck.pauseStart
-                ? Date.now() - deck.pauseStart : 0));
-            R.status.textContent = R.idleText;
-            enterVoiceReview(audioBlob, type);
+            micUiReset();
+            if (!wasMic) { closePanels(); }
+            sendVoiceTake(audioBlob, type);
             return;
           }
           R.preview.src = URL.createObjectURL(R.blob);
@@ -983,11 +994,11 @@
       }
     });
     // The "Use this …" step survives for VIDEO only. For
-    // audio it was dead furniture: every recorded take goes
-    // to the review deck on stop, and a chosen file stages
-    // directly — the button could never be reached, so the
-    // element is gone from the page and this binding is
-    // guarded to the kind that still has one.
+    // audio it was dead furniture: every recorded take sends
+    // itself on stop, and a chosen file stages directly —
+    // the button could never be reached, so the element is
+    // gone from the page and this binding is guarded to the
+    // kind that still has one.
     var useBtn = document.getElementById(kind + "-use");
     if (useBtn) {
       useBtn.addEventListener("click", function () {
@@ -1027,13 +1038,18 @@
   // an equal of typing — especially for storytellers not
   // comfortable with a keyboard. It drives the same audio
   // recorder as the panel. Day 5 flow (Rehearsal Finding #1
-  // rebuild): tap to record — the recording bar appears with
-  // its timer, Pause and Stop — tap again (or Stop) to land
-  // the take in the review deck; Send there is the one
-  // decision that sends. Recording state is visible (button label + pressed state) AND
-  // announced in the #voice-status live region, which is what
-  // closes accessibility item O2 (recording transitions were
-  // never announced). Discard lives on the recording state.
+  // rebuild, revised the same evening on the founder's
+  // phone-test ruling): ONE voice surface at a time — tap to
+  // record and the pill PARKS itself (disabled, labelled
+  // "Recording…", state only, never a second stop/send
+  // control) while the recording bar below holds the only
+  // controls: timer, Pause, Discard, Stop. Stop sends the
+  // take at once (see sendVoiceTake) — the review step the
+  // morning build added was retired by the founder within
+  // the day. Recording state is visible (button label +
+  // pressed state) AND announced in the #voice-status live
+  // region, which is what closes accessibility item O2
+  // (recording transitions were never announced).
   var micBtn = document.getElementById("mic-btn");
   var micLabel = document.getElementById("mic-label");
   var micDiscard = document.getElementById("mic-discard");
@@ -1046,22 +1062,26 @@
   function micRecordingUi() {
     micBtn.setAttribute("aria-pressed", "true");
     micBtn.classList.add("recording");
-    micLabel.textContent = "Tap to stop";
-    micDiscard.hidden = false;
+    // The pill parks while recording: disabled, its label
+    // showing state only. It is NOT a second stop/send
+    // control — the recording bar is the only voice
+    // surface now (founder's ruling, Oct 30 evening).
+    micBtn.disabled = true;
+    micLabel.textContent = "Recording…";
     deckResetPause();
     micRecbar.hidden = false;
     deckTickStart();
     setVoiceStatus("Recording — speak whenever you’re ready. " +
-      "Tap Stop when you’re done — you’ll hear it before it " +
-      "sends. Or Discard to throw it away.");
+      "Tap Stop when you’re done and it goes straight to " +
+      "Liv. Or Discard to throw it away.");
   }
 
   function micUiReset() {
     recorders.audio.viaMic = false;
     micBtn.setAttribute("aria-pressed", "false");
     micBtn.classList.remove("recording");
+    micBtn.disabled = false;
     micLabel.textContent = "Talk to Liv";
-    micDiscard.hidden = true;
     deckTickStop();
     deckResetPause();
     micRecbar.hidden = true;
@@ -1070,17 +1090,10 @@
   micBtn.addEventListener("click", function () {
     var R = recorders.audio;
     if (R.rec && R.rec.state !== "inactive") {
-      // Recording (or paused): the pill is one of the stop
-      // controls — stopping lands the take in the review deck.
-      if (R.viaMic) { R.rec.stop(); }
-      return;
-    }
-    if (deck.take) {
-      // A take is waiting in the review deck: the pill does
-      // not trample it. Point at the decision instead.
-      setVoiceStatus("You have a recording waiting — send " +
-        "it, or re-record, before starting a new one.");
-      micSend.focus();
+      // A recording is live — started by this pill (which
+      // is parked disabled while so) or by the panel. The
+      // pill never stops or sends a take: the recording
+      // bar, or the panel, holds the only controls.
       return;
     }
     R.viaMic = true;
@@ -1093,45 +1106,34 @@
 
   micDiscard.addEventListener("click", function () {
     var R = recorders.audio;
-    if (R.rec && R.rec.state === "recording") {
+    if (R.rec && R.rec.state !== "inactive") {
       R.discardNext = true;
       R.rec.stop();
     }
   });
 
-  // ---- The voice deck: recording bar + review bar ----------
-  // (Rehearsal Finding #1 rebuild, Oct 30, 2026 — markup in
-  // index.html.) While a Talk to Liv recording runs, the bar
-  // shows the elapsed time as it counts, a Stop button, and
-  // a Pause button — Pause rendered ONLY where the browser
+  // ---- The voice deck: the recording bar ----------
+  // (Rehearsal Finding #1 rebuild, Oct 30, 2026; revised the
+  // same evening on the founder's phone-test ruling — markup
+  // in index.html.) While a Talk to Liv recording runs, the
+  // bar shows the elapsed time as it counts, a Pause button,
+  // Discard, and Stop — and it is the ONLY voice surface:
+  // the mic pill is parked (disabled, state label only)
+  // beside it. Pause is rendered ONLY where the browser
   // truly supports MediaRecorder.pause()/resume(); where it
   // does not (iOS Safari historically), the button is never
-  // shown rather than faked. On stop, the take lands here
-  // for exactly one decision: hear it, re-record it, or
-  // send it. Sending runs the same listening-track +
-  // /api/media pipeline as every other voice path, and the
-  // heard-you state fires in the same beat as the tap.
-  // Takes recorded from the + Add panel land in this same
-  // deck (the panel closes as the deck opens) — one review,
-  // wherever the take began.
+  // shown rather than faked. STOP SENDS — see sendVoiceTake.
   var micRecbar = document.getElementById("mic-recbar");
   var micTimer = document.getElementById("mic-timer");
   var micPause = document.getElementById("mic-pause");
   var micStop = document.getElementById("mic-stop");
-  var micReview = document.getElementById("mic-review");
-  var micPlay = document.getElementById("mic-play");
-  var micDuration = document.getElementById("mic-duration");
-  var micRerecord = document.getElementById("mic-rerecord");
-  var micSend = document.getElementById("mic-send");
-  var micPlayback = document.getElementById("mic-playback");
   var micCanPause = !!(window.MediaRecorder &&
     MediaRecorder.prototype &&
     typeof MediaRecorder.prototype.pause === "function");
   micPause.hidden = !micCanPause;
 
-  var deck = { take: null, url: null, tick: null,
-               pausedMs: 0, pauseStart: 0, paused: false,
-               lastElapsed: 0 };
+  var deck = { tick: null,
+               pausedMs: 0, pauseStart: 0, paused: false };
 
   function deckElapsed() {
     var R = recorders.audio;
@@ -1163,46 +1165,20 @@
     micRecbar.classList.remove("paused");
   }
 
-  function micReviewReset() {
-    try { micPlayback.pause(); } catch (e) { /* not playing */ }
-    micPlayback.removeAttribute("src");
-    if (micPlayback.load) { micPlayback.load(); }
-    micPlay.textContent = "Play";
-    micPlay.setAttribute("aria-pressed", "false");
-    if (deck.url) { URL.revokeObjectURL(deck.url); deck.url = null; }
-    deck.take = null;
-    micReview.hidden = true;
-    micSend.disabled = false;
+  function sendVoiceTake(blob, type) {
+    // Stop IS send (founder's ruling, Oct 30 evening): the
+    // heard-you state fires in this same beat, and the take
+    // travels the unchanged pipeline — listening track,
+    // /api/media, and its own message when it lands. There
+    // is no review step: a recording is a telling, not an
+    // absolute record, and anything said can be corrected
+    // in the conversation that follows.
+    setVoiceStatus("Heard you — Liv is listening to your words.");
+    stageWithListening("audio", blob,
+      "recorded-audio." + extFor(type), function (item) {
+        if (item) { send("", true, [item]); }
+      });
   }
-
-  function enterVoiceReview(blob, type) {
-    var wasMic = recorders.audio.viaMic;
-    micReviewReset();
-    micUiReset();
-    if (!wasMic) { closePanels(); }
-    deck.take = { blob: blob, type: type || "audio/webm" };
-    deck.url = URL.createObjectURL(blob);
-    micPlayback.src = deck.url;
-    micDuration.textContent = fmtTime(deck.lastElapsed);
-    micReview.hidden = false;
-    setVoiceStatus("Here’s your recording — play it to hear " +
-      "it, re-record it to try again, or send it to Liv.");
-    micPlay.focus();
-  }
-
-  micPlayback.addEventListener("loadedmetadata", function () {
-    // Prefer the take's true length when the browser can
-    // report it; the tracked elapsed time stands otherwise
-    // (some browsers report Infinity for WebM here).
-    if (deck.take && isFinite(micPlayback.duration)) {
-      micDuration.textContent =
-        fmtTime(micPlayback.duration * 1000);
-    }
-  });
-  micPlayback.addEventListener("ended", function () {
-    micPlay.textContent = "Play";
-    micPlay.setAttribute("aria-pressed", "false");
-  });
 
   micPause.addEventListener("click", function () {
     var R = recorders.audio;
@@ -1230,43 +1206,10 @@
   });
 
   micStop.addEventListener("click", function () {
+    // Stop = stop-and-send: the recorder's stop event runs
+    // the send (see the audio branch of startRecorder).
     var R = recorders.audio;
     if (R.rec && R.rec.state !== "inactive") { R.rec.stop(); }
-  });
-
-  micPlay.addEventListener("click", function () {
-    if (!deck.take) { return; }
-    if (micPlayback.paused) {
-      micPlayback.play();
-      micPlay.textContent = "Pause";
-      micPlay.setAttribute("aria-pressed", "true");
-    } else {
-      micPlayback.pause();
-      micPlay.textContent = "Play";
-      micPlay.setAttribute("aria-pressed", "false");
-    }
-  });
-
-  micRerecord.addEventListener("click", function () {
-    micReviewReset();
-    setVoiceStatus("Recording discarded — nothing was sent. " +
-      "Tap “Talk to Liv” whenever you’re ready.");
-    micBtn.focus();
-  });
-
-  micSend.addEventListener("click", function () {
-    if (!deck.take || micSend.disabled) { return; }
-    var take = deck.take;
-    micSend.disabled = true;
-    // The heard-you state fires in this same beat; the take
-    // then travels the unchanged pipeline — listening track,
-    // /api/media, and its own message when it lands.
-    setVoiceStatus("Heard you — Liv is listening to your words.");
-    micReviewReset();
-    stageWithListening("audio", take.blob,
-      "recorded-audio." + extFor(take.type), function (item) {
-        if (item) { send("", true, [item]); }
-      });
   });
 
   // ---- End session & delete everything (Day 4 truth pass) ------
@@ -1311,8 +1254,12 @@
           messages.innerHTML = "";
           pendingMedia = [];
           renderPending();
+          // Kill any live recorder first: stopRecorder marks
+          // the take for discard, so its stop event throws it
+          // away rather than sending it into the new session.
+          stopRecorder("audio", true);
+          stopRecorder("video", true);
           deckTickStop();
-          micReviewReset();
           micUiReset();
           closePanels();
           setListening(false);
