@@ -878,6 +878,7 @@
     }
     R.rec = null;
     stopTracks(kind);
+    stopMeter();
     if (!silent) {
       R.button.textContent = "Start recording";
       R.status.textContent = R.idleText;
@@ -917,6 +918,7 @@
           var type = (R.rec && R.rec.mimeType) || mime || "video/webm";
           R.blob = new Blob(R.chunks, { type: type });
           stopTracks(kind);
+          stopMeter();
           if (R.timer) { clearInterval(R.timer); R.timer = null; }
           R.button.textContent = "Start recording";
           if (kind === "audio") {
@@ -996,6 +998,10 @@
           R.actions.hidden = false;
         }
         R.rec.start(250);
+        // The honest meter (the Marriage): while a voice
+        // take runs, the recording band's segments light
+        // from this stream's real level.
+        if (kind === "audio") { startMeter(stream); }
         R.started = Date.now();
         R.button.textContent = "Stop recording";
         R.status.textContent = "Recording… 0:00";
@@ -1116,6 +1122,9 @@
     micLabel.textContent = "Recording…";
     deckResetPause();
     micRecbar.hidden = false;
+    // The whole foot becomes the recording (board 5):
+    // the calm rows step away while the band is up.
+    form.classList.add("is-recording");
     deckTickStart();
     setVoiceStatus("Recording — speak whenever you’re ready. " +
       "Tap Stop when you’re done and it goes straight to " +
@@ -1131,6 +1140,7 @@
     deckTickStop();
     deckResetPause();
     micRecbar.hidden = true;
+    form.classList.remove("is-recording");
   }
 
   micBtn.addEventListener("click", function () {
@@ -1177,6 +1187,72 @@
     MediaRecorder.prototype &&
     typeof MediaRecorder.prototype.pause === "function");
   micPause.hidden = !micCanPause;
+
+  // ---- The honest meter (the Marriage, Oct 31, 2026) --------
+  // The recording band's segments light from the REAL
+  // microphone level: an AnalyserNode tapped into the
+  // recorder's own stream while a voice take runs (started
+  // in startRecorder, stopped wherever the take stops). At
+  // rest no segment is lit and no word anywhere claims the
+  // machine is listening. If a browser offers no Web Audio
+  // analyser, the segments simply stay dark — the timer and
+  // the #voice-status announcements still carry the state —
+  // rather than animating a level that was never measured.
+  var micLevelSegs = document.querySelectorAll("#mic-level .rseg");
+  var meterCtx = null;
+  var meterAnalyser = null;
+  var meterData = null;
+  var meterRaf = null;
+
+  function meterPaint() {
+    if (!meterAnalyser) { meterRaf = null; return; }
+    meterAnalyser.getByteTimeDomainData(meterData);
+    var peak = 0;
+    for (var i = 0; i < meterData.length; i++) {
+      var v = Math.abs(meterData[i] - 128) / 128;
+      if (v > peak) { peak = v; }
+    }
+    var lit = Math.round(
+      Math.min(1, peak * 1.8) * micLevelSegs.length);
+    for (var j = 0; j < micLevelSegs.length; j++) {
+      micLevelSegs[j].classList.toggle("lit", j < lit);
+    }
+    meterRaf = requestAnimationFrame(meterPaint);
+  }
+
+  function startMeter(stream) {
+    stopMeter();
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC || !stream) { return; }
+      meterCtx = new AC();
+      if (meterCtx.state === "suspended") { meterCtx.resume(); }
+      var src = meterCtx.createMediaStreamSource(stream);
+      meterAnalyser = meterCtx.createAnalyser();
+      meterAnalyser.fftSize = 512;
+      meterData = new Uint8Array(meterAnalyser.fftSize);
+      src.connect(meterAnalyser);
+      meterPaint();
+    } catch (e) {
+      meterCtx = null;
+      meterAnalyser = null;
+    }
+  }
+
+  function stopMeter() {
+    if (meterRaf !== null) {
+      cancelAnimationFrame(meterRaf);
+      meterRaf = null;
+    }
+    meterAnalyser = null;
+    if (meterCtx) {
+      try { meterCtx.close(); } catch (e) { /* already closed */ }
+      meterCtx = null;
+    }
+    for (var j = 0; j < micLevelSegs.length; j++) {
+      micLevelSegs[j].classList.remove("lit");
+    }
+  }
 
   var deck = { tick: null,
                pausedMs: 0, pauseStart: 0, paused: false };
@@ -1451,19 +1527,24 @@
     }
   });
 
-  // ---- End session & delete everything (Day 4 truth pass) ------
+  // ---- End session & delete everything (Day 4 truth pass;
+  // the Marriage, Oct 31, 2026) --------------------------------
   // The storyteller's own delete control: the server wipes the
   // session's whole in-memory state (conversation, media,
   // archive, chapter) and drops any keepsake links it minted;
   // the page then returns to the consent screen under a fresh
-  // session id, with the ending stated plainly.
+  // session id, with the ending stated plainly. The Marriage
+  // changed the control's MECHANICS, not its effect: the plain
+  // End button is now a hold-to-delete guard on the rail (and
+  // in the narrow sitting sheet) — press and hold two seconds
+  // and exactly this flow runs (wireHold, below).
   var endInFlight = false;
-  document.getElementById("end-session-btn").addEventListener(
-    "click", function () {
-      // In-flight guard (Finding #2 hardening): a double-tap
-      // must not POST the wipe twice — the second call would
-      // answer "not ended" and raise an error over a wipe
-      // that already succeeded.
+  var endSessionBtn = document.getElementById("end-session-btn");
+  function endSessionNow() {
+      // In-flight guard (Finding #2 hardening): a double
+      // completion must not POST the wipe twice — the second
+      // call would answer "not ended" and raise an error over
+      // a wipe that already succeeded.
       if (!consented || endInFlight) { return; }
       endInFlight = true;
       fetch("/api/session/end", {
@@ -1510,6 +1591,7 @@
           // hint re-arms for the next sitting.
           releaseWakeLock();
           wakeHintShown = false;
+          hideSittingSheet();
           chatScreen.hidden = true;
           chapterScreen.hidden = true;
           consentScreen.hidden = false;
@@ -1521,7 +1603,114 @@
           showMediaError("That did not work just now. " +
             "Please try again.");
         });
+  }
+
+  // ---- The sitting sheet + the hold guard (the Marriage) -----
+  // On narrow widths the guard rail folds away and the SAME
+  // three actions live behind the header's "This sitting"
+  // control — Finish and Arrange never more than one tap from
+  // the talking screen at any width. The sheet's Finish and
+  // Arrange are the rail's own functions, wired twice.
+  var sittingBtn = document.getElementById("sitting-btn");
+  var sittingSheet = document.getElementById("sitting-sheet");
+  function hideSittingSheet() {
+    if (sittingSheet) { sittingSheet.hidden = true; }
+    if (sittingBtn) {
+      sittingBtn.setAttribute("aria-expanded", "false");
+    }
+  }
+  if (sittingBtn && sittingSheet) {
+    sittingBtn.addEventListener("click", function () {
+      var open = sittingSheet.hidden;
+      sittingSheet.hidden = !open;
+      sittingBtn.setAttribute("aria-expanded",
+        open ? "true" : "false");
     });
+  }
+  document.getElementById("finish-btn-sheet").addEventListener(
+    "click", function () {
+      hideSittingSheet();
+      finishForToday();
+    });
+  document.getElementById("chapter-btn-sheet").addEventListener(
+    "click", function () {
+      hideSittingSheet();
+      openChapter();
+    });
+
+  // Hold to delete: press-and-hold ~2s, pointer AND keyboard
+  // (hold Space/Enter while focused). The flame track fills
+  // as you hold; progress is announced in the #voice-status
+  // live region and shown under the track ("Deleting… keep
+  // holding."). Release early = cancelled, nothing deleted.
+  // Completing the hold runs endSessionNow() — exactly the
+  // shipped end-session flow: same POST, same wipe, same
+  // reset. A plain click is swallowed: it is a hold, never
+  // a tap.
+  var HOLD_MS = 2000;
+  function wireHold(btn) {
+    if (!btn) { return; }
+    var fill = btn.querySelector(".track i");
+    var state = btn.querySelector(".hold-state");
+    var raf = null;
+    var startedAt = 0;
+    var completed = false;
+    function setProgress(p) {
+      if (fill) { fill.style.width = (p * 100).toFixed(1) + "%"; }
+    }
+    function step() {
+      var p = Math.min(1, (Date.now() - startedAt) / HOLD_MS);
+      setProgress(p);
+      if (p >= 1) { complete(); return; }
+      raf = requestAnimationFrame(step);
+    }
+    function start(e) {
+      if (!consented || endInFlight || raf !== null) { return; }
+      if (e.type === "keydown") {
+        if (e.key !== " " && e.key !== "Enter") { return; }
+        e.preventDefault();
+      }
+      if (e.type === "pointerdown" &&
+          e.button !== undefined && e.button !== 0) { return; }
+      completed = false;
+      startedAt = Date.now();
+      if (state) { state.textContent = "Deleting… keep holding."; }
+      setVoiceStatus("Deleting — keep holding to delete " +
+        "everything.");
+      raf = requestAnimationFrame(step);
+    }
+    function cancel() {
+      if (raf === null) { return; }
+      cancelAnimationFrame(raf);
+      raf = null;
+      if (completed) { return; }
+      setProgress(0);
+      if (state) { state.textContent = ""; }
+      setVoiceStatus("Delete cancelled — nothing was deleted.");
+    }
+    function complete() {
+      completed = true;
+      if (raf !== null) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+      if (state) { state.textContent = ""; }
+      endSessionNow();
+      setProgress(0);
+    }
+    btn.addEventListener("pointerdown", start);
+    btn.addEventListener("pointerup", cancel);
+    btn.addEventListener("pointerleave", cancel);
+    btn.addEventListener("pointercancel", cancel);
+    btn.addEventListener("keydown", start);
+    btn.addEventListener("keyup", cancel);
+    btn.addEventListener("blur", cancel);
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+    });
+  }
+  wireHold(endSessionBtn);
+  wireHold(document.getElementById("end-session-btn-sheet"));
 
   // ---- Chapter (talk -> chapter -> keepsake) --------------------
   // Plan before write: Liv proposes an outline (title, dedication,
