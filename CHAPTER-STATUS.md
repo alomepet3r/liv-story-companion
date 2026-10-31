@@ -181,3 +181,62 @@ parent verifies and deploys.
    companion's own glue-word guard, so substantive short
    tellings survive intact: "It did not stay with me." and
    "I'm from Bamenda." are sources, never housekeeping.
+
+## Keepsake illustration — Oct 30, 2026 (Day 5)
+
+The third Meta model enters the product: after a chapter is
+APPROVED, the storyteller can ask for an illustration for the
+keepsake (Muse Image). One illustration per chapter; asking
+again replaces it, and the keepsake copy says so plainly.
+
+- **Surface probe (first image call).** `GET /v1/models`
+  confirmed the exact id `muse-image-1.0`. Generation lives on
+  the OpenAI-compatible surface `POST /images/generations`
+  with `{model, prompt, n: 1}`, answered by
+  `{created, data: [{b64_json}], output_format, background,
+  usage}`. One harmless probe (an apple, watercolour) returned
+  200; the base64 decoded to a 474,212-byte WebP (RIFF magic).
+  `MetaClient.generate_image` follows the house pattern:
+  allowlist `{muse-image-1.0}` only (contributor tiers refused),
+  content type sniffed from the image's own magic bytes (the
+  bytes outrank the response's claimed format), usage logged as
+  metadata only (model, latency, byte count, numeric usage
+  fields — never the prompt).
+- **Prompt discipline.** The image prompt is built ONLY from
+  the approved chapter's furniture — title, dedication, section
+  headings (`chapter.build_illustration_prompt`). Raw
+  conversation text never reaches the image model (tested:
+  body-only phrases from the tellings are absent from the
+  prompt). The white-paper red-team rules are baked into the
+  server-side template itself: NO people, NO faces, NO human
+  figures or silhouettes, NO likeness of any real person, NO
+  words/letters/numbers/text anywhere in the image. The brief
+  steers to places, objects and moods — for a boxing chapter:
+  gloves, a gym, dawn light over a town.
+- **Flow.** `POST /api/chapter/illustrate` (same consent + 18+
+  gates as every chapter route) → 409 when there is no approved
+  chapter → `chapter.illustrate` records a real step event and
+  stores the image in the chapter's in-memory state, mirrored
+  into the share snapshot as a flag + version. The keepsake
+  page renders it at the top with alt text "An illustration
+  made for this chapter", served by
+  `GET /api/chapter/illustration?session_id=...` from the
+  owning session. Same lifetime as the keepsake: it dies with
+  the container and with the share link — no persistence was
+  invented.
+- **Failure honesty.** No live client, a raised generator, or
+  an empty result all answer 502 with "The illustration didn't
+  come through — your chapter is complete without it." The
+  approved chapter, its steps and its keepsake are left
+  exactly as they were (tested).
+- **UI.** In the keepsake box: an "Illustrate this chapter"
+  button in the house style, a truthful working line while it
+  generates, the illustration shown when present, and the
+  honest failure line on error.
+- **Tests.** Suite 183 (was 169): client-level decode/sniff/
+  allowlist/refusal tests in `test_meta_client.py`, and
+  `tests/test_illustration.py` — gates (403), 409 before
+  approval, end-to-end approval → illustrate → keepsake
+  render, replacement on re-ask (version 2), furniture-only
+  prompt under the discipline, and both failure paths leaving
+  the chapter intact. No live calls in the suite.
