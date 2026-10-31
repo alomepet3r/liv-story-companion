@@ -298,3 +298,72 @@ ledger of measured facts in the live prompt.
   on the canned path; no identity language in the ledger
   (whole-word check); ledger never enters history; archive
   inheritance. No live calls in the suite.
+
+### Follow-up count gap — closed Oct 30, 2026 (Day 5 evening)
+
+- **Production evidence.** The parent agent's live probe of
+  the deployed build: on the photo turn the ledger is
+  injected and holds. But ask "How many of us are in that
+  photo?" on the NEXT turn — no media attached — and the live
+  model confabulated "sixteen". The ledger lived only in the
+  photo turn's per-turn copy (by the original design: never
+  in history), so the follow-up turn held neither the image
+  nor the facts. A count question naturally arrives a turn
+  after the photo; the grounding must travel with the photo.
+- **Facts persist on the photo.** When SAM produces a
+  ledger, the measured facts are stored on the media item
+  itself: `item["scene_facts"] = {"person_count": N,
+  "frame_share": <phrase or None>}` — counts and frame share
+  only, D28 unchanged. (Decision, named: `frame_share`
+  stores the ledger's verbal phrase, not a float — the
+  re-injection block needs words, and the phrase is already
+  the honesty-checked form.) Facts ride the session's media
+  store; they never enter session history.
+- **Re-injection on later turns (live path only).** Each
+  live turn's system copy gains, when earlier photos carry
+  facts, a compact block in exactly this format:
+  `[Verified facts about photos shared earlier in this
+  conversation — measured by a scene tool when each photo
+  arrived, not guesses: the photo labelled “<chapter media
+  label>” contains exactly N person/people[, together]
+  <frame share> — if you say how many people are in that
+  photo, say N — never a different number; these facts say
+  nothing about who the person/anyone is; ….]` — per photo,
+  bound by the chapter module's media label (caption, date,
+  album, or share time — the reference the conversation
+  itself uses), most recent first, capped at the last three
+  photos with facts. On a photo turn the fresh ledger rides
+  the user message as before and the block excludes that
+  photo (dedupe by media id), so a photo is never stated
+  twice in one turn.
+- **Never-guess rule (live prompt).** `build_system_prompt`
+  now carries "COUNTING PEOPLE IN PHOTOS — never invent a
+  number": a count is welcome when it is measured (ledger or
+  scene facts) or the storyteller's own; when NO verified
+  count is available, Liv must not invent one — the rule
+  names a hedge on an invented number ("sixteen, I think —
+  tell me if I'm wrong") as still invention, forbidden — and
+  her move is to say she doesn't want to guess at a number
+  she can't stand behind and invite the storyteller's count.
+- **Canned path — documented absence.** There is no canned
+  surface to mirror into: the canned companion never sees a
+  photo at all (its `media_reply` acknowledges the arrival
+  honestly and asks for a description) and has no count
+  mechanism or count claim anywhere — it cannot state a
+  number about a photo, invented or otherwise. SAM remains
+  never called on the canned path; facts re-injection is a
+  live-path assembly and is absent there by construction.
+- **Failure still = silence.** No facts, no block; any SAM
+  failure on the photo turn leaves the item fact-free and
+  later turns exactly as before this fix.
+- **Tests.** Suite 211 (was 204): `TestSceneFactsTravel` —
+  facts stored on the item (and not stored on SAM failure);
+  a follow-up text turn's assembled system copy carries the
+  earlier photo's count and label, SAM not re-called, block
+  absent from history; dedupe on the photo's own turn (fresh
+  ledger in the user copy, block carries only the earlier
+  photo); cap at the three most recent, in order; archive
+  photo facts stored and carried under their caption label;
+  never-guess rule text present in the live prompt assembly
+  with no facts anywhere, and no facts block in that case.
+  No live calls in the suite.
