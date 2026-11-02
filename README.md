@@ -22,8 +22,8 @@ see the consent posture below.)
 | Source-check — a deterministic check that flags names, dates, and places in a draft that are not in the storyteller's own words ("please check") | **Live** |
 | Bring your archive — import your own Facebook export; photos + captions only, nothing selected by default, nothing reaches Liv until you tick it | **Live** |
 | Consent + 18+ gates on every route; stated boundaries and declined topics hold for the whole sitting | **Live** |
-| Photo scene description and people-masking with SAM 3.1 | Planned (Day 5) |
-| Keepsake illustrations with Muse Image | Roadmap |
+| Scene facts with SAM 3.1 — a shared photo is measured into a scene ledger (how many people are in it, how much of the frame they fill) and those facts are given to Liv, so any count she states comes from measurement, never a guess; the ledger says nothing about who anyone is | **Live** |
+| Keepsake illustration with Muse Image — an approved chapter can be illustrated, drawn only from the chapter's own title, dedication, and section headings (never people, faces, likenesses, or text) | **Live** |
 
 ## Prior-work disclosure
 
@@ -67,7 +67,7 @@ fireside-build/
 
 1. Create a Meta Model API key at https://dev.meta.ai/
 2. `cp .env.example .env` and put the key in `MODEL_API_KEY`
-3. `python3 -m unittest discover -s tests` — offline unit tests (78)
+3. `python3 -m unittest discover -s tests` — offline unit tests (233)
 4. Run locally: `python3 -m server.app`, then open
    http://127.0.0.1:8765 — or deploy with
    `modal deploy deploy/modal_app.py` (see `deploy/README-modal.md`)
