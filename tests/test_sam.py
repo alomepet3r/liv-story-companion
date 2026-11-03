@@ -2,11 +2,16 @@
 call (concept "person") runs before the Spark vision turn on a
 photo turn, and its boxes become a one-line ledger of measured
 facts — person count and frame share — in the live prompt,
-worded as ground truth Liv must not contradict. The ledger
-carries counts only, never identities (D28 by construction);
-any SAM failure, timeout, or empty result degrades silently to
-no ledger. The SAM call and the chat call are both faked — no
-live calls in the suite. All content is synthetic.
+worded as the measured record Liv states by default. Since
+the Nov 2 doctrine fix (TestCountCorrection below), the
+ledger's wording is no longer absolute: the storyteller's own
+deliberate correction of their photo's count governs over the
+measurement, persists on the media item as owner_count, and is
+what later turns carry. The ledger carries counts only, never
+identities (D28 by construction); any SAM failure, timeout,
+or empty result degrades silently to no ledger. The SAM call
+and the chat call are both faked — no live calls in the
+suite. All content is synthetic.
 Run: python3 -m unittest discover -s tests
 """
 import json
@@ -45,6 +50,11 @@ def sam_payload(text):
 def nine_boxes():
     return [{"x1": 10 + i * 55, "y1": 100, "x2": 50 + i * 55,
              "y2": 500, "w": 515, "h": 686} for i in range(9)]
+
+
+def eight_boxes():
+    return [{"x1": 10 + i * 55, "y1": 100, "x2": 50 + i * 55,
+             "y2": 500, "w": 515, "h": 686} for i in range(8)]
 
 
 class TestParseBoxes(unittest.TestCase):
@@ -234,7 +244,11 @@ class TestSceneLedger(SceneLedgerCase):
         self.assertIn("Scene ledger", text)
         self.assertIn("exactly 1 person is in this photo", text)
         self.assertIn("filling nearly the whole frame", text)
-        self.assertIn("say 1 — never a different number", text)
+        # Re-pinned Nov 2 (doctrine fix): the ledger no longer
+        # says "never a different number" — the measured count
+        # is the default, and the owner's correction governs.
+        self.assertIn("say 1 — the measured count", text)
+        self.assertIn("their word governs", text)
 
     def test_ledger_counts_nine_people(self):
         self.sam = FakeSamClient(boxes=nine_boxes())
@@ -244,7 +258,8 @@ class TestSceneLedger(SceneLedgerCase):
         self.assertIn("exactly 9 people are in this photo", text)
         self.assertIn("together filling a good part of the frame",
                       text)
-        self.assertIn("say 9 — never a different number", text)
+        # Re-pinned Nov 2 (doctrine fix) — see the stance test.
+        self.assertIn("say 9 — the measured count", text)
 
     def test_ledger_carries_no_identity_language(self):
         self.go_live()
@@ -407,7 +422,8 @@ class TestSceneFactsTravel(SceneLedgerCase):
                       system)
         self.assertIn("A photo you shared", system)
         self.assertIn("contains exactly 9 people", system)
-        self.assertIn("say 9 — never a different number", system)
+        # Re-pinned Nov 2 (doctrine fix) — see the stance test.
+        self.assertIn("say 9 — the measured count", system)
         self.assertIn("say nothing about who anyone is", system)
         # The re-injected block is per-turn copy, like the
         # ledger — it never enters session history, and the
@@ -497,6 +513,129 @@ class TestSceneFactsTravel(SceneLedgerCase):
         self.assertNotIn("Verified facts about photos shared earlier",
                          system)
         self.assertEqual(self.sam.calls, [])
+
+
+class TestCountCorrection(SceneLedgerCase):
+    """Doctrine fix (production, Nov 2, the founder's dress
+    rehearsal): SAM measured 8 on a photo whose true count is 9,
+    and Liv refused the founder's explicit correction — "Yes —
+    nine is a correction" — because the ledger wording was
+    absolute ("say N — never a different number"). The
+    storyteller's count governs: a deliberate correction is
+    persisted on the media item as owner_count (the measurement
+    itself is never overwritten), and later turns' re-injected
+    facts carry the OWNER's number, marked as their correction.
+    With no correction given, the measured count is still what
+    she states — no drift, no invention."""
+
+    def setUp(self):
+        super().setUp()
+        self.sam = FakeSamClient(boxes=eight_boxes())
+
+    def measured_photo_turn(self):
+        self.go_live()
+        media_id = self.upload_photo()
+        self.photo_turn(media_id)
+        return media_id
+
+    def say(self, message):
+        status, body = app.handle_chat(dict(self.payload,
+                                            message=message))
+        self.assertEqual(status, 200, body)
+        return body
+
+    def facts(self, media_id):
+        item = app._session(self.session)["media"][media_id]
+        return item["scene_facts"]
+
+    def test_correction_is_persisted_on_the_media_item(self):
+        media_id = self.measured_photo_turn()
+        self.assertEqual(self.facts(media_id)["person_count"], 8)
+        self.assertNotIn("owner_count", self.facts(media_id))
+        self.say("There are nine of us in that photo.")
+        # The measurement is kept; the owner's number is stored
+        # beside it as the correction that governs.
+        self.assertEqual(self.facts(media_id)["person_count"], 8)
+        self.assertEqual(self.facts(media_id)["owner_count"], 9)
+
+    def test_tonights_exact_correction_words_are_noted(self):
+        media_id = self.measured_photo_turn()
+        self.say("Yes — nine is a correction. "
+                 "There are nine of us.")
+        self.assertEqual(self.facts(media_id)["owner_count"], 9)
+
+    def test_correction_shape_without_the_group_phrase(self):
+        media_id = self.measured_photo_turn()
+        self.say("Yes — nine is a correction.")
+        self.assertEqual(self.facts(media_id)["owner_count"], 9)
+
+    def test_digit_correction_is_noted(self):
+        media_id = self.measured_photo_turn()
+        self.say("No — there are 9 of us, not 8.")
+        self.assertEqual(self.facts(media_id)["owner_count"], 9)
+
+    def test_later_facts_carry_the_owners_number(self):
+        self.measured_photo_turn()
+        self.say("There are nine of us in that photo.")
+        self.say("How many of us are in that photo?")
+        system = self.chat.last_system_text()
+        # The owner's 9 is the record now; the measured 8
+        # survives only as provenance, never as the number
+        # she is told to say.
+        self.assertIn("their word is the record", system)
+        self.assertIn("corrected its count to exactly 9 people",
+                      system)
+        self.assertIn("the scene tool measured 8", system)
+        self.assertIn("say 9: their count is the record", system)
+        self.assertNotIn("say 8", system)
+
+    def test_no_correction_control_keeps_the_measured_count(self):
+        media_id = self.measured_photo_turn()
+        self.say("That one was taken at our house in Bamenda.")
+        self.say("How many of us are in that photo?")
+        self.assertNotIn("owner_count", self.facts(media_id))
+        system = self.chat.last_system_text()
+        self.assertIn("contains exactly 8 people", system)
+        self.assertIn("say 8 — the measured count", system)
+        self.assertNotIn("corrected its count", system)
+
+    def test_a_number_merely_mentioned_corrects_nothing(self):
+        # Nine measured; a passing "one of us" in a sentence
+        # about something else must not rewrite the count to 1.
+        self.sam = FakeSamClient(boxes=nine_boxes())
+        media_id = self.measured_photo_turn()
+        self.say("One of us still tells that story every "
+                 "Christmas.")
+        self.assertNotIn("owner_count", self.facts(media_id))
+        self.say("How many of us are in that photo?")
+        system = self.chat.last_system_text()
+        self.assertIn("contains exactly 9 people", system)
+        self.assertIn("say 9 — the measured count", system)
+
+    def test_ledger_restates_the_correction_when_photo_resent(self):
+        media_id = self.measured_photo_turn()
+        self.say("There are nine of us in that photo.")
+        # The same photo rides a later turn: SAM measures again
+        # (still 8), but the owner's correction carries over and
+        # the fresh ledger defers to it.
+        self.photo_turn(media_id)
+        text = self.chat.last_user_text()
+        self.assertIn("corrected the count of their own photo "
+                      "to 9", text)
+        self.assertIn("say 9 — their word governs over the "
+                      "measurement", text)
+        self.assertEqual(self.facts(media_id)["person_count"], 8)
+        self.assertEqual(self.facts(media_id)["owner_count"], 9)
+
+    def test_system_prompt_carries_the_governing_rule(self):
+        self.go_live()
+        self.say("Hello, Liv.")
+        system = self.chat.last_system_text()
+        self.assertIn("THE STORYTELLER'S COUNT GOVERNS", system)
+        self.assertIn("never refused on the measurement's "
+                      "authority", system)
+        self.assertIn("shall I keep it as measured, or is this "
+                      "a correction?", system)
 
 
 if __name__ == "__main__":

@@ -256,20 +256,36 @@ def build_system_prompt(companion_name):
     "presenting it as something you saw, matched, or worked out. "
     "COUNTING PEOPLE IN PHOTOS — never invent a number: a count "
     "is welcome in this conversation when it is MEASURED or "
-    "THEIRS — a verified count that came with the photo or is "
-    "recorded in this conversation's scene facts, or a number "
-    "the storyteller gives you themselves. If you are asked how "
-    "many people are in a photograph — 'how many of us are in "
-    "that photo?' — and NO verified count is available to you, "
-    "do not invent one. A number with a hedge on it ('sixteen, "
-    "I think — tell me if I'm wrong') is still an invented "
-    "number, and it is forbidden: the storyteller will build on "
-    "whatever number you give them. Instead, say warmly and "
-    "plainly that you don't want to guess at a number you can't "
-    "stand behind — and invite theirs: their count is the one "
-    "that belongs in their story, and the one you will hold. "
+    "THEIRS — a count a scene tool measured when the photo "
+    "arrived, recorded in this conversation's scene facts, or "
+    "a number the storyteller gives you themselves. If you are "
+    "asked how many people are in a photograph — 'how many of "
+    "us are in that photo?' — and NO measured or given count "
+    "is available to you, do not invent one. A number with a "
+    "hedge on it ('sixteen, I think — tell me if I'm wrong') "
+    "is still an invented number, and it is forbidden: the "
+    "storyteller will build on whatever number you give them. "
+    "Instead, say warmly and plainly that you don't want to "
+    "guess at a number you can't stand behind — and invite "
+    "theirs: their count is the one that belongs in their "
+    "story, and the one you will hold. "
+    "THE STORYTELLER'S COUNT GOVERNS: a measured count is your "
+    "default, and you state it as the measurement it is — but "
+    "it is their photograph, and their word outranks the tool. "
+    "When the storyteller deliberately states or corrects the "
+    "count of their own photo — 'there are nine of us', 'no, "
+    "it's eight' — their number becomes the record: adopt it "
+    "at once, acknowledge it as THEIR count (never present it "
+    "as a new measurement), and use it for every later count "
+    "in this sitting. A correction is not a guess, and it is "
+    "never refused on the measurement's authority. If a "
+    "measured count and the storyteller's word differ and "
+    "they have not called it a correction, hold both up and "
+    "ask — 'shall I keep it as measured, or is this a "
+    "correction?' — and the moment they say it is a "
+    "correction, adopt it immediately and finally. "
     "Counting is not identifying: this rule refuses the guess, "
-    "never the measured fact. "
+    "never the measured fact — and never the owner's word. "
     "BRING YOUR ARCHIVE: the storyteller may hand you their own "
     "Facebook 'Download Your Information' export through the "
     "'+' button's 'Document or archive' choice. Liv looks through it once, in "
@@ -860,8 +876,16 @@ def _scene_ledger(media_items):
     facts = _scene_facts_for(item)
     if facts is None:
         return None
+    # A storyteller's count correction is the record, and a
+    # re-measurement must not erase it: the owner's number
+    # carries over onto the fresh facts (see
+    # _note_count_correction).
+    prior = item.get("scene_facts") or {}
+    if prior.get("owner_count"):
+        facts["owner_count"] = prior["owner_count"]
     item["scene_facts"] = facts
     count = facts["person_count"]
+    owner = facts.get("owner_count")
     place = ("this photo" if len(photos) == 1
              else "the first photo in this turn")
     noun = "person" if count == 1 else "people"
@@ -871,9 +895,21 @@ def _scene_ledger(media_items):
     share = facts["frame_share"]
     if share:
         line += (", " + ("together " if count > 1 else "") + share)
-    line += (f". The count is verified: if you say how many people "
-             f"are in {place}, say {count} — never a different "
-             f"number. These facts say nothing about who "
+    if owner:
+        line += (f". The storyteller has corrected the count of "
+                 f"their own photo to {owner}: if you say how "
+                 f"many people are in {place}, say {owner} — "
+                 f"their word governs over the measurement, held "
+                 f"as their correction, not a new measurement")
+    else:
+        line += (f". If you say how many people are in {place}, "
+                 f"say {count} — the measured count, never an "
+                 f"invented one. It stands unless the storyteller "
+                 f"corrects the count of their own photo: their "
+                 f"word governs, and their correction replaces "
+                 f"this number at once, for the rest of the "
+                 f"sitting")
+    line += (f". These facts say nothing about who "
              f"{'the person' if count == 1 else 'anyone'} is.]")
     return line
 
@@ -905,25 +941,137 @@ def _earlier_photo_facts(sess, exclude_id=None):
         if not facts:
             continue
         count = facts["person_count"]
+        owner = facts.get("owner_count")
         noun = "person" if count == 1 else "people"
-        entry = (f"the photo labelled "
-                 f"\u201c{chapter_mod._media_label(item)}\u201d "
-                 f"contains exactly {count} {noun}")
+        label = chapter_mod._media_label(item)
         share = facts.get("frame_share")
-        if share:
-            entry += (", " + ("together " if count > 1 else "")
-                      + share)
-        entry += (f" — if you say how many people are in that "
-                  f"photo, say {count} — never a different number; "
-                  f"these facts say nothing about who "
-                  f"{'the person' if count == 1 else 'anyone'} is")
+        if owner:
+            # The storyteller's correction is the record: their
+            # number leads, the measurement is kept only as the
+            # honest provenance of the number it replaced.
+            onoun = "person" if owner == 1 else "people"
+            entry = (f"the photo labelled \u201c{label}\u201d — "
+                     f"the storyteller corrected its count to "
+                     f"exactly {owner} {onoun} (the scene tool "
+                     f"measured {count})")
+            if share:
+                entry += (", " + ("together " if owner > 1 else "")
+                          + share)
+            entry += (f" — if you say how many people are in "
+                      f"that photo, say {owner}: their count is "
+                      f"the record, held as their correction, "
+                      f"not a new measurement; these facts say "
+                      f"nothing about who "
+                      f"{'the person' if owner == 1 else 'anyone'} "
+                      f"is")
+        else:
+            entry = (f"the photo labelled \u201c{label}\u201d "
+                     f"contains exactly {count} {noun}")
+            if share:
+                entry += (", " + ("together " if count > 1 else "")
+                          + share)
+            entry += (f" — if you say how many people are in that "
+                      f"photo, say {count} — the measured count, "
+                      f"never an invented one; if the storyteller "
+                      f"corrects the count of their own photo, "
+                      f"their word governs and replaces it at "
+                      f"once; these facts say nothing about who "
+                      f"{'the person' if count == 1 else 'anyone'} "
+                      f"is")
         entries.append(entry)
     if not entries:
         return None
     return ("[Verified facts about photos shared earlier in this "
             "conversation — measured by a scene tool when each "
-            "photo arrived, not guesses: "
+            "photo arrived, not guesses; where the storyteller "
+            "has corrected a count, their word is the record: "
             + "; ".join(entries) + ".]")
+
+
+# --- The storyteller's count correction: their word governs ---
+# (Production, Nov 2, the founder's dress-rehearsal walkthrough.)
+# A photo's scene ledger measured 8 people where the true count
+# was 9 — SAM variance, expected and not itself a defect — but
+# when the storyteller corrected it deliberately ("Yes — nine
+# is a correction. There are nine of us."), Liv refused to adopt
+# it: the ledger wording was absolute ("say N — never a
+# different number"), so the model treated the tool's number as
+# non-negotiable even against the owner. That breaks the
+# correction doctrine (T16): an explicit, deliberate correction
+# updates the record at once, and the new record is then
+# defended. The ledger and the re-injected facts now carry the
+# governing clause in their wording, and the note-taker below
+# persists the correction itself on the media item, so later
+# turns carry the OWNER's number, marked as their correction,
+# instead of the stale measurement.
+
+_COUNT_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
+    "fifteen": 15, "sixteen": 16, "seventeen": 17,
+    "eighteen": 18, "nineteen": 19, "twenty": 20,
+}
+
+_COUNT_NUM = r"(\d{1,3}|" + "|".join(_COUNT_WORDS) + r")"
+
+# Deliberate count assertions about a photograph — deliberately
+# narrow, the same discipline as the canned record extraction:
+# a count is corrected only when the storyteller states it in a
+# count shape, never inferred from a number merely mentioned in
+# passing ("one of us still tells that story" corrects nothing).
+_COUNT_ASSERTION = re.compile(
+    r"there (?:are|were|’s|'s) " + _COUNT_NUM + r" of us\b"
+    r"|" + _COUNT_NUM + r" of us in (?:that|this|the) photo\b"
+    r"|(?:it’s|it's|it is) " + _COUNT_NUM + r" of us\b"
+    r"|(?:the |this |that )?(?:photo|picture) (?:has|shows|had) "
+    + _COUNT_NUM + r"\b"
+    r"|" + _COUNT_NUM
+    + r" (?:people|persons) in (?:that|this|the) (?:photo|picture)\b"
+    r"|" + _COUNT_NUM + r" is (?:a |the )?correction\b"
+    r"|make it " + _COUNT_NUM + r"\b"
+    r"|count (?:is|was) " + _COUNT_NUM + r"\b",
+    re.IGNORECASE)
+
+
+def _note_count_correction(sess, text):
+    """Persist a storyteller's deliberate count correction.
+
+    If the storyteller's words state the count of a photo this
+    session has measured — in one of the narrow count shapes
+    above — and the number differs from the count currently
+    governing that photo, the number is stored on the media
+    item's scene facts as facts["owner_count"], beside (never
+    overwriting) the measurement it corrects. _scene_ledger and
+    _earlier_photo_facts then present the owner's number as the
+    record, marked as their correction. The referent is the
+    most recent photo carrying scene facts — the one under
+    discussion. Returns True when a correction was noted.
+    """
+    if not text:
+        return False
+    target = None
+    for mid in reversed(list(sess["media"])):
+        item = sess["media"][mid]
+        if item.get("kind") == "photo" and item.get("scene_facts"):
+            target = item
+            break
+    if target is None:
+        return False
+    match = _COUNT_ASSERTION.search(text)
+    if match is None:
+        return False
+    token = next(g for g in match.groups() if g is not None)
+    value = (int(token) if token.isdigit()
+             else _COUNT_WORDS.get(token.lower()))
+    if value is None:
+        return False
+    facts = target["scene_facts"]
+    governing = facts.get("owner_count") or facts["person_count"]
+    if value == governing:
+        return False
+    facts["owner_count"] = value
+    return True
 
 
 def _media_turn_messages(api_messages, media_items, message,
@@ -1056,6 +1204,14 @@ def handle_chat(payload):
                              + " — it is kept with the story.]")
     sess["history"].append({"role": "user", "content": history_text})
     spoken_text = " ".join(spoken_parts).strip()
+
+    # COUNT CORRECTION (doctrine fix, Nov 2): if these words
+    # deliberately correct the count of a photo this session has
+    # measured, the correction is persisted on the media item
+    # now — before any engine answers — so the owner's number,
+    # not the stale measurement, is the record later turns
+    # carry (see _note_count_correction).
+    _note_count_correction(sess, spoken_text or message)
 
     # AGE PAUSE-AND-END (T12): if this session has already ended for
     # age, or this message itself carries a present-tense under-18
