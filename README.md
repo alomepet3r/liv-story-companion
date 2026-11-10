@@ -32,19 +32,21 @@ deleted, at any time, by the person telling the story.
 Measured results belong here — and nowhere else in this README makes a
 performance claim without them.
 
-<!-- coordinator: fill from SCORECARD.md -->
-
 | Measure | Result |
 |---|---|
-| Source-check — planted inventions caught | **TO-RUN** — fill from `SCORECARD.md` |
-| Source-check — planted inventions missed | **TO-RUN** — fill from `SCORECARD.md` |
-| Automated test suite | **TO-RUN** — fill from `SCORECARD.md` |
+| Source-check — planted inventions caught | **7 of 9** flagged (`SCORECARD.md`, Nov 10, 2026) |
+| Source-check — planted inventions missed | **2** — `red bicycle`, `three weeks` (see *Where it fails*) |
+| False flags on a clean draft | **0** (one small clean draft, 3 candidates checked) |
+| Count corrections adopted | **3 of 3** deliberate corrections; 2 of 2 non-correction controls held |
+| Automated test suite | **270 tests, all passing** |
 
-*How to read this table once it is filled: the source-check counts come
-from a planted-invention evaluation — details deliberately placed in a
-draft that were never in the telling, then counted as flagged (caught)
-or unflagged (missed). Misses are published here, not hidden. Until
-`SCORECARD.md` exists in this repo, every figure above stays TO-RUN.*
+*How to read this table: the source-check counts come from a
+planted-invention evaluation — details deliberately placed in a draft
+that were never in the telling, then counted as flagged (caught) or
+unflagged (missed). Misses are published here, not hidden. Full method,
+fixtures, and failures: `SCORECARD.md` (re-runnable:
+`python3 -m eval.run_eval`). Chapter cost/time is **TO-RUN** — the
+harness makes no live model calls, so no cost or time number is claimed.*
 
 ## Model stack — every model has a named job
 
@@ -87,10 +89,17 @@ Honest limits, stated plainly:
   something the teller *did* say is true, and it does not grade how a
   chapter reads. That judgment stays with the storyteller at review.
 - **It misses some of what it should catch.** The planted-invention
-  misses in *By the numbers* above are the published failure count for
-  this build — **TO-RUN** until `SCORECARD.md` lands. A draft still
+  evaluation (`SCORECARD.md`) caught 7 of 9 planted inventions and
+  missed 2 — `red bicycle` and `three weeks`: the check extracts only
+  capitalised name/place phrases and numeric or full written dates, so
+  an invented detail in lowercase common words is invisible to it. A draft still
   needs the storyteller's own read before approval; the check assists
   that read, it does not replace it.
+- **The open-weights option is unverified.** A smoke test of Muse Spark
+  Open via Baseten (`meta-models/muse-spark-open-1026`) on Nov 10, 2026
+  failed before any HTTP response arrived (connection closed, both
+  attempts) — recorded in `SCORECARD.md`. It is a connectivity result,
+  not a model verdict, and the engine is not wired to it in this build.
 - **When the Meta API is unreachable, a deterministic fallback engine
   answers instead.** The sitting continues, but the fallback is a
   narrower, scripted companion — not the live model.
