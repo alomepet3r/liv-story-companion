@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "status": "measured",
+  "generated_on": "2026-11-10",
+  "metadata": {
+    "date": "November 10, 2026",
+    "harness": "eval/run_eval.py",
+    "fixtures": "eval/fixtures/fidelity_cases.json",
+    "fixture_scope": "Synthetic sample material only; no real storyteller content.",
+    "live_model_calls": 0,
+    "chapter_cost_time": "TO-RUN"
+  },
+  "metrics": [
+    {
+      "id": "source_check_flagged",
+      "label": "Planted inventions flagged",
+      "value": "7 of 9",
+      "numerator": 7,
+      "denominator": 9,
+      "missed": 2,
+      "missed_items": [
+        "red bicycle",
+        "three weeks"
+      ],
+      "detail": "2 missed: red bicycle; three weeks"
+    },
+    {
+      "id": "source_check_false_flags",
+      "label": "False flags on the clean draft",
+      "value": "0",
+      "numerator": 0,
+      "candidates_checked": 3,
+      "detail": "One small clean draft, 3 candidates checked",
+      "caveat": "A clean result on this fixture, not a general false-flag rate."
+    },
+    {
+      "id": "count_corrections_adopted",
+      "label": "Deliberate count corrections adopted",
+      "value": "3 of 3",
+      "numerator": 3,
+      "denominator": 3,
+      "detail": "The owner's number is stored beside the measurement, never overwriting it; 2 of 2 non-correction controls held"
+    },
+    {
+      "id": "source_check_missed",
+      "label": "Planted inventions missed",
+      "value": "2",
+      "missed_items": [
+        "red bicycle",
+        "three weeks"
+      ],
+      "detail": "red bicycle; three weeks"
+    },
+    {
+      "id": "source_check_candidates",
+      "label": "Source-check candidates checked",
+      "value": "10 planted draft, 3 clean draft"
+    },
+    {
+      "id": "count_correction_tests",
+      "label": "Shipped count-correction tests",
+      "value": "9 of 9 passed",
+      "numerator": 9,
+      "denominator": 9
+    },
+    {
+      "id": "full_suite",
+      "label": "Full behaviour suite",
+      "value": "277 of 277 passed",
+      "numerator": 277,
+      "denominator": 277,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "id": "chapter_cost_time",
+      "label": "Chapter cost / time",
+      "value": "TO-RUN",
+      "caveat": "Not measured: this harness makes no live model calls and the repo holds no cost/time artifacts."
+    }
+  ],
+  "where_it_fails": [
+    "The source-check misses lowercase invented details: of 9 planted inventions, 2 were missed (red bicycle; three weeks). The check extracts only capitalised name/place phrases and numeric or full written dates.",
+    "The check is a surface comparison, not a proof: a candidate counts as grounded when its words appear in the source telling, so a new combination of the storyteller's own words could pass unflagged.",
+    "The false-flag result rests on one small clean draft (3 candidates checked).",
+    "Count-correction adoption is measured only for the narrow deliberate-correction shapes the shipped detector recognises.",
+    "Chapter cost/time is unmeasured (TO-RUN)."
+  ]
+}

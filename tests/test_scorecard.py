@@ -1,13 +1,17 @@
 """Scorecard surface + stakes-first landing.
 
-The scorecard reads SCORECARD.md dynamically (repo root): no
-file (or no numbers in it) is the honest "evaluation pending"
-state, and nothing is hardcoded. The landing carries the
-stakes headline, the checked answer, three TO-RUN-or-measured
-numbers, the named model stack, values second, and a
-"Where it fails" line — with no fidelity claims beyond the
-arrange + source-check + approve account.
+The scorecard serves SCORECARD.json (repo root): structured
+metrics emitted by the eval harness, with run metadata in a
+separate object. No JSON (or no metrics in it) is the honest
+"evaluation pending" state, and nothing is hardcoded. The
+landing's three headline slots are selected by metric ID —
+never by file order — so metadata can never fill a slot
+(RT-01/RT-02 regression). The landing carries the stakes
+headline, the checked answer, the named model stack, values
+second, and a "Where it fails" line — with no fidelity claims
+beyond the arrange + source-check + approve account.
 """
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,64 +21,120 @@ from server import app, scorecard
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
 
-SAMPLE = """# Scorecard
+SAMPLE_DOCUMENT = {
+    "schema_version": 1,
+    "status": "measured",
+    "generated_on": "2026-11-10",
+    "metadata": {
+        "date": "November 10, 2026",
+        "harness": "eval/run_eval.py",
+        "fixtures": "eval/fixtures/fidelity_cases.json",
+        "live_model_calls": 0,
+        "chapter_cost_time": "TO-RUN",
+    },
+    "metrics": [
+        {"id": "source_check_flagged",
+         "label": "Planted inventions flagged", "value": "7 of 9",
+         "detail": "2 missed: red bicycle; three weeks"},
+        {"id": "source_check_false_flags",
+         "label": "False flags on the clean draft", "value": "0",
+         "detail": "One small clean draft, 3 candidates checked",
+         "caveat": "Not a general false-flag rate."},
+        {"id": "count_corrections_adopted",
+         "label": "Deliberate count corrections adopted",
+         "value": "3 of 3"},
+        {"id": "full_suite", "label": "Full behaviour suite",
+         "value": "270 of 270 passed"},
+    ],
+    "where_it_fails": ["The check misses lowercase details."],
+}
 
-| Metric | Result |
-| --- | --- |
-| Source-check flags caught | 12 of 12 |
-| Chapters approved in testing | 9 |
 
-- **Median sitting length:** 14 minutes
-- Sessions completed: 31
-A line with no numbers at all.
-"""
+def _write_sample(directory):
+    path = Path(directory) / "SCORECARD.json"
+    path.write_text(json.dumps(SAMPLE_DOCUMENT), encoding="utf-8")
+    return path
 
 
-class TestScorecardParsing(unittest.TestCase):
-    def test_parses_tables_and_label_lines(self):
-        numbers = scorecard.parse_scorecard_text(SAMPLE)
-        pairs = {(n["label"], n["value"]) for n in numbers}
-        self.assertIn(("Source-check flags caught", "12 of 12"),
-                      pairs)
-        self.assertIn(("Chapters approved in testing", "9"), pairs)
-        self.assertIn(("Median sitting length", "14 minutes"),
-                      pairs)
-        self.assertIn(("Sessions completed", "31"), pairs)
+class TestScorecardJson(unittest.TestCase):
+    def test_metrics_and_metadata_are_separate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            payload = scorecard.scorecard_payload(
+                _write_sample(tmp))
+        self.assertTrue(payload["available"])
+        self.assertEqual(payload["status"], "measured")
+        self.assertEqual(payload["metadata"]["date"],
+                         "November 10, 2026")
+        labels = [m["label"] for m in payload["metrics"]]
+        self.assertNotIn("Date", labels)
+        self.assertNotIn("Harness", labels)
+        self.assertEqual(payload["numbers"][0],
+                         {"label": "Planted inventions flagged",
+                          "value": "7 of 9"})
 
-    def test_header_rows_and_numberless_lines_are_skipped(self):
-        numbers = scorecard.parse_scorecard_text(SAMPLE)
-        labels = [n["label"].lower() for n in numbers]
-        self.assertNotIn("metric", labels)
-        for n in numbers:
-            self.assertTrue(any(c.isdigit() for c in n["value"]))
+    def test_headline_metrics_are_the_measured_three(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            payload = scorecard.scorecard_payload(
+                _write_sample(tmp))
+        headline = payload["headline_metrics"]
+        self.assertEqual(
+            [m["id"] for m in headline],
+            ["source_check_flagged", "source_check_false_flags",
+             "count_corrections_adopted"])
+        self.assertEqual(headline[0]["value"], "7 of 9")
+        self.assertIn("red bicycle", headline[0]["detail"])
+        self.assertEqual(headline[1]["value"], "0")
+        self.assertIn("caveat", headline[1])
 
     def test_missing_file_is_evaluation_pending(self):
         with tempfile.TemporaryDirectory() as tmp:
             payload = scorecard.scorecard_payload(
-                Path(tmp) / "SCORECARD.md")
+                Path(tmp) / "SCORECARD.json")
         self.assertFalse(payload["available"])
         self.assertEqual(payload["status"], "evaluation pending")
+        self.assertEqual(payload["metrics"], [])
         self.assertEqual(payload["numbers"], [])
 
-    def test_file_landing_makes_numbers_appear(self):
+    def test_markdown_is_never_a_metric_source(self):
+        # A SCORECARD.md full of plausible numbers must not leak
+        # into the payload: the JSON is the only source.
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "SCORECARD.md"
-            path.write_text(SAMPLE, encoding="utf-8")
-            payload = scorecard.scorecard_payload(path)
-        self.assertTrue(payload["available"])
-        self.assertEqual(payload["status"], "measured")
-        self.assertGreaterEqual(len(payload["numbers"]), 3)
+            md = Path(tmp) / "SCORECARD.md"
+            md.write_text("| Planted inventions | 99 |\n",
+                          encoding="utf-8")
+            payload = scorecard.scorecard_payload(
+                Path(tmp) / "SCORECARD.json")
+        self.assertFalse(payload["available"])
+        self.assertEqual(payload["metrics"], [])
 
-    def test_endpoint_and_page_use_the_payload(self):
+    def test_endpoint_and_page_render_cleanly(self):
         status, payload = app.handle_scorecard()
         self.assertEqual(status, 200)
-        self.assertIn("numbers", payload)
+        self.assertIn("metrics", payload)
+        self.assertIn("metadata", payload)
         page = scorecard.render_scorecard_html(payload)
-        if payload["numbers"]:
-            for n in payload["numbers"]:
-                self.assertIn(n["value"], page)
+        if payload["metrics"]:
+            self.assertIn("Measured metrics", page)
+            self.assertIn("About this evaluation", page)
+            for metric in payload["metrics"]:
+                self.assertIn(metric["value"], page)
+            # No raw markdown artifacts anywhere on the page.
+            self.assertNotIn("**", page)
+            self.assertNotIn("`", page)
         else:
             self.assertIn("Evaluation pending", page)
+
+    def test_page_labels_metadata_as_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            payload = scorecard.scorecard_payload(
+                _write_sample(tmp))
+        page = scorecard.render_scorecard_html(payload)
+        about = page.split("About this evaluation", 1)[1] \
+            .split("Measured metrics", 1)[0]
+        self.assertIn("November 10, 2026", about)
+        self.assertIn("eval/run_eval.py", about)
+        metrics_part = page.split("Measured metrics", 1)[1]
+        self.assertIn("Planted inventions flagged", metrics_part)
 
 
 class TestLandingCopy(unittest.TestCase):
@@ -100,11 +160,17 @@ class TestLandingCopy(unittest.TestCase):
         self.assertNotIn("word for word", lowered)
         self.assertNotIn("exactly as told", lowered)
 
-    def test_three_numbers_wired_to_scorecard(self):
+    def test_three_numbers_selected_by_metric_id(self):
         self.assertIn('id="scorecard-numbers"', self.html)
-        self.assertIn("TO-RUN", self.html)
         self.assertIn('href="/scorecard"', self.html)
         self.assertIn("/api/scorecard", self.js)
+        for metric_id in ("source_check_flagged",
+                          "source_check_false_flags",
+                          "count_corrections_adopted"):
+            self.assertIn(metric_id, self.js)
+        # Never again the first three parsed entries, whatever
+        # order the file happens to be in.
+        self.assertNotIn("numbers.slice(0, 3)", self.js)
 
     def test_named_model_stack(self):
         for marker in ("Muse Spark 1.3", "Muse Voice Transcribe 1.0",
@@ -115,11 +181,32 @@ class TestLandingCopy(unittest.TestCase):
                        "The keepsake is text only"):
             self.assertIn(marker, self.html)
 
+    def test_privacy_copy_describes_the_real_data_path(self):
+        # RT-03 regression: no surface may claim or imply that
+        # nothing leaves unless approved. Approval gates
+        # publication; the model-service sending is named.
+        self.assertNotIn("no one else. Nothing leaves", self.html)
+        self.assertNotIn("Nothing leaves", self.html)
+        self.assertIn("Who can see it, and where it goes:",
+                      self.html)
+        self.assertIn("Meta's model services", self.html)
+        self.assertIn("does not publish a\n        chapter", self.html)
+        self.assertIn("Closing or refreshing the tab does "
+                      "<em>not</em> delete", self.html)
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("What Liv sends, and what approval gates",
+                      readme)
+        self.assertIn("Approval does not gate that processing.",
+                      readme)
+        self.assertIn("Closing or refreshing the tab does not "
+                      "delete a sitting.", readme)
+
     def test_values_second_and_where_it_fails(self):
         self.assertIn('class="landing-values"', self.html)
         self.assertIn("Where it fails", self.html)
-        self.assertIn("sessions live in memory", self.html)
-        self.assertIn("a refresh ends a sitting", self.html)
+        self.assertIn("sessions live in the server's memory",
+                      self.html)
+        self.assertIn("a refresh strands", self.html)
         values = self.html.index('class="landing-values"')
         models = self.html.index('id="landing-models-heading"')
         self.assertLess(models, values)

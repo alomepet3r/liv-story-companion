@@ -2437,9 +2437,13 @@
 
   // ---- Landing scorecard numbers ------------------------------
   // The three numbers up front are wired to /api/scorecard,
-  // which reads SCORECARD.md at request time. Until measured
-  // numbers are published the slots stay labelled TO-RUN —
-  // no figure is ever invented in the page.
+  // which serves the structured metrics the eval harness
+  // emitted (SCORECARD.json). The slots are chosen BY METRIC ID
+  // — planted inventions flagged, false flags on the clean
+  // fixture, count corrections adopted — never by file order,
+  // so run metadata (date, harness) can never fill a slot.
+  // Each label carries the metric's own detail: the misses are
+  // named and the sample caveats travel with the numbers.
   (function loadScorecardNumbers() {
     var list = document.getElementById("scorecard-numbers");
     var status = document.getElementById("scorecard-status");
@@ -2447,19 +2451,28 @@
     fetch("/api/scorecard")
       .then(function (res) { return res.json(); })
       .then(function (data) {
-        var numbers = (data && data.numbers) || [];
-        if (!data || !data.available || numbers.length === 0) {
-          return;  // TO-RUN labels already in the page stand.
+        var metrics = (data && data.metrics) || [];
+        var byId = {};
+        metrics.forEach(function (m) { byId[m.id] = m; });
+        var headlineIds = ["source_check_flagged",
+          "source_check_false_flags", "count_corrections_adopted"];
+        var numbers = headlineIds.map(function (id) {
+          return byId[id];
+        }).filter(function (m) { return !!m; });
+        if (!data || !data.available || numbers.length !== 3) {
+          return;  // The pending labels in the page stand.
         }
         list.innerHTML = "";
-        numbers.slice(0, 3).forEach(function (n) {
+        numbers.forEach(function (n) {
           var li = document.createElement("li");
           var value = document.createElement("span");
           value.className = "scorecard-value";
           value.textContent = n.value;
           var label = document.createElement("span");
           label.className = "scorecard-label";
-          label.textContent = n.label;
+          label.textContent = n.label + (n.detail
+            ? " — " + n.detail : "") + (n.caveat
+            ? " (" + n.caveat + ")" : "");
           li.appendChild(value);
           li.appendChild(label);
           list.appendChild(li);

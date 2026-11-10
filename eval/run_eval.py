@@ -27,6 +27,7 @@ Run from the repo root, either way:
     python3 eval/run_eval.py
 Prints a summary; exits 0 only if the suite subprocess passes.
 """
+import datetime
 import json
 import os
 import re
@@ -39,6 +40,7 @@ if _REPO not in sys.path:
     sys.path.insert(0, _REPO)
 
 FIXTURE_PATH = os.path.join(_HERE, "fixtures", "fidelity_cases.json")
+METRICS_JSON_PATH = os.path.join(_REPO, "SCORECARD.json")
 
 
 # ------------------------------------------------------------------
@@ -180,6 +182,140 @@ def run_unittest(args):
             "ok": ok}
 
 
+def build_metrics_document(summary, generated_on=None):
+    """The public scorecard as STRUCTURED DATA (RT-01/RT-02).
+
+    Metrics are data with stable IDs — never prose to be parsed
+    back. Metadata (date, harness, fixtures) lives in its own
+    object, separate from the metrics, so no presentation layer
+    can mistake it for a result. The first three metrics are the
+    landing's headline slots, in order: planted inventions
+    flagged (misses named), false flags on the clean fixture
+    (sample caveat attached), count corrections adopted.
+    """
+    generated_on = generated_on or datetime.date.today()
+    a = summary["source_check"]
+    b = summary["count_correction"]
+    cc = summary["count_correction_tests"]
+    full = summary["full_suite"]
+    missed = "; ".join(a["missed_items"]) or "none"
+    return {
+        "schema_version": 1,
+        "status": "measured",
+        "generated_on": generated_on.isoformat(),
+        "metadata": {
+            "date": generated_on.strftime("%B %d, %Y"),
+            "harness": "eval/run_eval.py",
+            "fixtures": "eval/fixtures/fidelity_cases.json",
+            "fixture_scope": "Synthetic sample material only; "
+                             "no real storyteller content.",
+            "live_model_calls": 0,
+            "chapter_cost_time": "TO-RUN",
+        },
+        "metrics": [
+            {
+                "id": "source_check_flagged",
+                "label": "Planted inventions flagged",
+                "value": "%d of %d" % (a["planted_flagged"],
+                                       a["planted_total"]),
+                "numerator": a["planted_flagged"],
+                "denominator": a["planted_total"],
+                "missed": a["planted_missed"],
+                "missed_items": a["missed_items"],
+                "detail": "%d missed: %s" % (a["planted_missed"],
+                                             missed),
+            },
+            {
+                "id": "source_check_false_flags",
+                "label": "False flags on the clean draft",
+                "value": str(a["clean_false_flags"]),
+                "numerator": a["clean_false_flags"],
+                "candidates_checked": a["clean_checked"],
+                "detail": "One small clean draft, %d candidates "
+                          "checked" % a["clean_checked"],
+                "caveat": "A clean result on this fixture, not a "
+                          "general false-flag rate.",
+            },
+            {
+                "id": "count_corrections_adopted",
+                "label": "Deliberate count corrections adopted",
+                "value": "%d of %d" % (b["adopted"],
+                                       b["deliberate_total"]),
+                "numerator": b["adopted"],
+                "denominator": b["deliberate_total"],
+                "detail": "The owner's number is stored beside "
+                          "the measurement, never overwriting it; "
+                          "%d of %d non-correction controls held"
+                          % (b["controls_held"], b["controls_total"]),
+            },
+            {
+                "id": "source_check_missed",
+                "label": "Planted inventions missed",
+                "value": str(a["planted_missed"]),
+                "missed_items": a["missed_items"],
+                "detail": missed,
+            },
+            {
+                "id": "source_check_candidates",
+                "label": "Source-check candidates checked",
+                "value": "%d planted draft, %d clean draft"
+                         % (a["planted_checked"], a["clean_checked"]),
+            },
+            {
+                "id": "count_correction_tests",
+                "label": "Shipped count-correction tests",
+                "value": "%d of %d passed" % (cc["passed"],
+                                              cc["ran"]),
+                "numerator": cc["passed"],
+                "denominator": cc["ran"],
+            },
+            {
+                "id": "full_suite",
+                "label": "Full behaviour suite",
+                "value": "%d of %d passed" % (full["passed"],
+                                              full["ran"]),
+                "numerator": full["passed"],
+                "denominator": full["ran"],
+                "failures": full["failures"],
+                "errors": full["errors"],
+                "skipped": full["skipped"],
+            },
+            {
+                "id": "chapter_cost_time",
+                "label": "Chapter cost / time",
+                "value": "TO-RUN",
+                "caveat": "Not measured: this harness makes no "
+                          "live model calls and the repo holds "
+                          "no cost/time artifacts.",
+            },
+        ],
+        "where_it_fails": [
+            "The source-check misses lowercase invented details: "
+            "of %d planted inventions, %d were missed (%s). The "
+            "check extracts only capitalised name/place phrases "
+            "and numeric or full written dates."
+            % (a["planted_total"], a["planted_missed"], missed),
+            "The check is a surface comparison, not a proof: a "
+            "candidate counts as grounded when its words appear "
+            "in the source telling, so a new combination of the "
+            "storyteller's own words could pass unflagged.",
+            "The false-flag result rests on one small clean "
+            "draft (%d candidates checked)." % a["clean_checked"],
+            "Count-correction adoption is measured only for the "
+            "narrow deliberate-correction shapes the shipped "
+            "detector recognises.",
+            "Chapter cost/time is unmeasured (TO-RUN).",
+        ],
+    }
+
+
+def write_metrics_json(document, path=METRICS_JSON_PATH):
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(document, fh, indent=2, ensure_ascii=False)
+        fh.write("\n")
+    return path
+
+
 def main():
     fixture = load_fixtures()
     print("=== Fireside/Liv fidelity eval (synthetic, canned only, "
@@ -221,6 +357,10 @@ def main():
     summary = {"source_check": a, "count_correction": b,
                "count_correction_tests": cc, "full_suite": full,
                "chapter_cost_time": "TO-RUN"}
+    document = build_metrics_document(summary)
+    write_metrics_json(document)
+    print("\nStructured metrics written to SCORECARD.json "
+          "(alongside SCORECARD.md).")
     print("\n--- machine-readable summary ---")
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0 if full["ok"] else 1

@@ -46,11 +46,16 @@ image = (
     modal.Image.debian_slim(python_version="3.12")
     .add_local_dir(REPO_ROOT / "server", remote_path=f"{APP_HOME}/server")
     .add_local_dir(REPO_ROOT / "web", remote_path=f"{APP_HOME}/web")
-    # SCORECARD.md (Nov 10, 2026, winners-lessons pass): the public
-    # scorecard surface (server/scorecard.py) reads the measured
-    # evaluation from the repo root at request time, so the file must
-    # ride into the image beside server/ and web/. It contains no
-    # secrets — measured numbers and published failures only.
+    # Scorecard files (Nov 10, 2026, winners-lessons pass; JSON
+    # since the RT-01/RT-02 fix): the public scorecard surface
+    # (server/scorecard.py) reads the STRUCTURED metrics from
+    # SCORECARD.json at the repo root at request time, so the JSON
+    # must ride into the image beside server/ and web/.
+    # SCORECARD.md, the human-readable companion, rides along for
+    # provenance. Neither contains secrets — measured numbers and
+    # published failures only.
+    .add_local_file(REPO_ROOT / "SCORECARD.json",
+                    remote_path=f"{APP_HOME}/SCORECARD.json")
     .add_local_file(REPO_ROOT / "SCORECARD.md",
                     remote_path=f"{APP_HOME}/SCORECARD.md")
 )

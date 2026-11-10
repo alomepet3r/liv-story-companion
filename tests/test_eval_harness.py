@@ -6,7 +6,8 @@ accounting. Run: python3 -m unittest discover -s tests
 """
 import unittest
 
-from eval.run_eval import (evaluate_count_correction,
+from eval.run_eval import (build_metrics_document,
+                           evaluate_count_correction,
                            evaluate_source_check, load_fixtures,
                            make_draft, make_sources, planted_outcome)
 from server import chapter
@@ -72,6 +73,51 @@ class TestPlantedAccounting(unittest.TestCase):
         self.assertEqual(result["adopted"], result["deliberate_total"])
         self.assertEqual(result["controls_held"],
                          result["controls_total"])
+
+
+class TestMetricsDocument(unittest.TestCase):
+    """The harness's structured output (SCORECARD.json): metrics
+    are data, metadata is separate, and the first three metrics
+    are the landing's measured headlines (RT-01/RT-02)."""
+
+    def _document(self):
+        summary = {
+            "source_check": evaluate_source_check(load_fixtures()),
+            "count_correction": evaluate_count_correction(),
+            "count_correction_tests": {
+                "ran": 9, "passed": 9, "failures": 0, "errors": 0,
+                "skipped": 0, "ok": True},
+            "full_suite": {
+                "ran": 270, "passed": 270, "failures": 0,
+                "errors": 0, "skipped": 0, "ok": True},
+            "chapter_cost_time": "TO-RUN",
+        }
+        return build_metrics_document(summary)
+
+    def test_headlines_are_the_measured_metrics(self):
+        document = self._document()
+        first_three = document["metrics"][:3]
+        self.assertEqual(
+            [m["id"] for m in first_three],
+            ["source_check_flagged", "source_check_false_flags",
+             "count_corrections_adopted"])
+        self.assertEqual(first_three[0]["value"], "7 of 9")
+        self.assertEqual(first_three[0]["missed_items"],
+                         ["red bicycle", "three weeks"])
+        self.assertEqual(first_three[1]["value"], "0")
+        self.assertIn("caveat", first_three[1])
+        self.assertEqual(first_three[2]["value"], "3 of 3")
+
+    def test_metadata_is_not_a_metric(self):
+        document = self._document()
+        self.assertIn("date", document["metadata"])
+        self.assertIn("harness", document["metadata"])
+        ids = [m["id"] for m in document["metrics"]]
+        self.assertNotIn("date", ids)
+        self.assertNotIn("harness", ids)
+        for metric in document["metrics"]:
+            self.assertNotIn("**", metric["label"])
+            self.assertNotIn("`", metric["value"])
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 - **Date:** November 10, 2026
 - **Harness:** `eval/run_eval.py` (re-runnable: `python3 -m eval.run_eval` from the repo root)
 - **Fixtures:** `eval/fixtures/fidelity_cases.json` — synthetic sample material only, invented for this harness. No real storyteller content is used anywhere in this evaluation.
+- **Structured metrics:** `SCORECARD.json` — emitted by the same harness run, alongside this document. The public scorecard surface (`/api/scorecard`, `/scorecard`, and the landing's headline slots) renders the JSON: metrics are structured data with stable IDs, and the run's metadata (date, harness, fixtures) is a separate object, never a metric. This Markdown file is the human-readable companion and carries the same numbers.
 
 ## Method (brief)
 
@@ -42,9 +43,9 @@ Missed: `red bicycle`, `three weeks` — see "Where it fails".
 | Measure | Result |
 |---|---|
 | Suite before this pass (measured at the start of the pass) | 242 ran, 242 passed |
-| Suite after this pass (final verification, run twice with the same result) | **270 ran, 270 passed, 0 failures, 0 errors, 0 skipped** |
+| Suite after this pass (final verification, run twice with the same result) | **277 ran, 277 passed, 0 failures, 0 errors, 0 skipped** |
 
-The +28 is: 6 new harness tests in `tests/test_eval_harness.py`, plus 22 tests from parallel same-day winners-lessons work (guided judge path, keepsake share card, public scorecard surface) that landed in this repo during the pass.
+The growth from 242 is: 6 new harness tests in `tests/test_eval_harness.py`, plus 22 tests from parallel same-day winners-lessons work (guided judge path, keepsake share card, public scorecard surface) that landed in this repo during the pass, plus 7 regression tests from the RT-01/RT-02/RT-03/RT-09 fix pass (3 keepsake credential-scope tests, 2 structured-metrics harness tests, and a net +2 scorecard JSON / privacy-copy tests).
 
 ### (d) Chapter cost/time
 
