@@ -46,6 +46,13 @@ image = (
     modal.Image.debian_slim(python_version="3.12")
     .add_local_dir(REPO_ROOT / "server", remote_path=f"{APP_HOME}/server")
     .add_local_dir(REPO_ROOT / "web", remote_path=f"{APP_HOME}/web")
+    # SCORECARD.md (Nov 10, 2026, winners-lessons pass): the public
+    # scorecard surface (server/scorecard.py) reads the measured
+    # evaluation from the repo root at request time, so the file must
+    # ride into the image beside server/ and web/. It contains no
+    # secrets — measured numbers and published failures only.
+    .add_local_file(REPO_ROOT / "SCORECARD.md",
+                    remote_path=f"{APP_HOME}/SCORECARD.md")
 )
 
 app = modal.App("story-companion", image=image)
