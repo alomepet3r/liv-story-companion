@@ -140,6 +140,16 @@
       </label>
     </div>
 
+    <div class="guided-entry">
+      <h2>New here? Walk it first, with a made-up story</h2>
+      <p>This guided demo uses only a preloaded, fictional sample
+        story. No real story is collected, nothing is sent to a
+        model, and no consent gate is needed — because nothing
+        of yours is gathered. The real sitting below keeps its
+        full consent and 18+ gate, unchanged.</p>
+      <button id="guided-start" class="guided-cta" type="button">Try the 4-minute guided sitting</button>
+    </div>
+
     <button id="begin-btn" class="primary" type="button" disabled>I understand — let’s begin</button>
     <p class="not-now-row"><a href="#" id="not-now">Not now</a> <span id="not-now-msg" class="quiet" role="status" hidden>That is quite all right. This page will be here whenever you are ready.</span></p>
     </div>
@@ -530,6 +540,80 @@
 
     <p class="chat-actions">
       <button id="chapter-back" class="secondary" type="button">Back to our conversation</button>
+    </p>
+    </div>
+    </div>
+  </section>
+  <!-- Screen 4 — Guided demo. A separate, clearly labelled
+       path: preloaded synthetic material only, no session, no
+       model call, no share link, and no consent gate — because
+       no real story or data is collected here. Real sittings
+       still begin only through Screen 1's consent + 18+ gate. -->
+  <section id="guided-screen" class="chassis chassis-narrow" hidden aria-labelledby="guided-heading">
+    <div class="titlebar compact">
+      <div class="title-id">
+        <div class="title-word">
+          <svg class="title-flame" viewBox="0 0 10 14" aria-hidden="true" focusable="false"><path d="M5 0C6 3 9 4.5 9 8.5a4 4 0 1 1-8 0C1 5.5 4 4 5 0z" fill="currentColor"/></svg>
+          <span class="wordmark">FireSide</span>
+        </div>
+        <p class="title-sub">Guided demo — a made-up sample story</p>
+      </div>
+    </div>
+    <div class="chapter-scroll">
+    <div class="chapter-col">
+    <h1 id="guided-heading" tabindex="-1">The guided sitting</h1>
+    <p><span class="draft-badge">Guided demo</span></p>
+    <p id="guided-notice" class="lede">This is a guided demo with a made-up sample story. No real story is collected here, nothing you do on this path is sent to a model, and no share link is created.</p>
+    <p id="guided-status" class="media-status" role="status"></p>
+    <p id="guided-error" class="media-error" role="alert" hidden></p>
+
+    <h2 class="chapter-h">How it goes</h2>
+    <ol id="guided-steps" class="chapter-steps"></ol>
+
+    <div id="guided-talk-box">
+      <h2 class="chapter-h">1 · Talk — the sample telling</h2>
+      <div id="guided-talk" class="guided-talk"></div>
+      <div id="guided-photo" class="guided-photo"></div>
+    </div>
+
+    <div id="guided-plan-box" hidden>
+      <h2 class="chapter-h">2 · The plan, before anything is written</h2>
+      <p>Chapter title: <strong id="guided-plan-title"></strong></p>
+      <p>For: <strong id="guided-plan-dedication"></strong></p>
+      <ul id="guided-plan-sections" class="chapter-sections"></ul>
+    </div>
+
+    <div id="guided-draft-box" hidden>
+      <h2 class="chapter-h">3 · The draft, checked against the telling</h2>
+      <p><span class="draft-badge">Unverified draft</span></p>
+      <div id="guided-flags" class="chapter-flags" hidden>
+        <h3 class="chapter-h3">Please check these</h3>
+        <p>These names, dates or places in the draft were
+          <strong>not in the telling</strong> — the source-check
+          flags them for the storyteller to check:</p>
+        <ul id="guided-flags-list"></ul>
+        <p class="quiet">One detail was planted in this sample draft on purpose, so you can see the check work.</p>
+      </div>
+      <div id="guided-draft-body" class="chapter-draft-body"></div>
+      <p class="media-panel-actions">
+        <button id="guided-approve" class="primary small" type="button">Approve this sample chapter</button>
+      </p>
+    </div>
+
+    <div id="guided-keepsake-box" hidden>
+      <h2 class="chapter-h">4 · The demo keepsake</h2>
+      <p><span class="draft-badge approved">Approved in the demo</span></p>
+      <div class="share-card">
+        <p class="share-card-title" id="guided-keepsake-title"></p>
+        <p class="share-card-dedication" id="guided-keepsake-dedication"></p>
+        <p class="share-card-summary" id="guided-keepsake-summary"></p>
+        <p class="quiet">Demo only — no real share link is created on the guided path.</p>
+      </div>
+    </div>
+
+    <p class="media-panel-actions">
+      <button id="guided-next" class="primary small" type="button">Next — see the chapter plan</button>
+      <button id="guided-exit" class="secondary" type="button">Back to the start</button>
     </p>
     </div>
     </div>

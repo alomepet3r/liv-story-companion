@@ -53,6 +53,7 @@ from .archive import (                       # noqa: E402
     parse_dyi_zip,
 )
 from . import chapter as chapter_mod        # noqa: E402
+from . import guided as guided_mod          # noqa: E402
 from . import voice as voice_mod            # noqa: E402
 from .canned import (                        # noqa: E402
     CannedCompanion,
@@ -1431,6 +1432,16 @@ def handle_chapter_view(payload):
     return 200, chapter_mod.chapter_view(sess.get("chapter"))
 
 
+def handle_guided_demo():
+    """The guided judge path's only endpoint. Deliberately
+    carries NO consent/age gate and creates NO session: it
+    serves only the preloaded synthetic demo payload (see
+    server/guided.py), collects nothing, and calls no model.
+    The real sitting's gates in handle_chat and the chapter
+    handlers are untouched by this route."""
+    return 200, guided_mod.demo_payload()
+
+
 def handle_end_session(payload):
     """Session evict (Day 4 truth pass): the storyteller's own
     delete control. Ends the session and wipes ALL of its
@@ -1472,6 +1483,9 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/api/health":
             return self._send(200, {"ok": True})
+        if path == "/api/guided/demo":
+            status, response = handle_guided_demo()
+            return self._send(status, response)
         if path.startswith("/keepsake/"):
             # The one share link: read-only, approved chapters
             # only. An unknown (or not-yet-minted) token is a 404 —

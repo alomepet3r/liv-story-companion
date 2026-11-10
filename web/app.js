@@ -2355,4 +2355,187 @@
           "— your chapter is complete without it.");
       });
   });
+
+  // ---- Guided demo (judge path) --------------------------------
+  // A separate, clearly labelled path over PRELOADED SYNTHETIC
+  // material only. It fetches /api/guided/demo (a GET carrying
+  // no consent flags, no session id and no user input), creates
+  // no session, and never calls /api/chat or any chapter route:
+  // nothing a visitor types exists on this path, and nothing is
+  // sent to a model. The real sitting's consent + 18+ gate —
+  // the Begin flow above — is untouched and remains the only
+  // door to a real conversation.
+  var guidedScreen = document.getElementById("guided-screen");
+  var guidedHeading = document.getElementById("guided-heading");
+  var guidedStatus = document.getElementById("guided-status");
+  var guidedError = document.getElementById("guided-error");
+  var guidedNext = document.getElementById("guided-next");
+  var guidedBeat = 0;   // 0 talk · 1 plan · 2 draft · 3 keepsake
+  var guidedData = null;
+
+  function showGuidedError(text) {
+    guidedError.textContent = text || "";
+    guidedError.hidden = !text;
+  }
+
+  function renderGuided(data) {
+    guidedData = data;
+    document.getElementById("guided-notice").textContent =
+      data.notice;
+    var steps = document.getElementById("guided-steps");
+    steps.innerHTML = "";
+    (data.steps || []).forEach(function (step) {
+      var li = document.createElement("li");
+      var strong = document.createElement("strong");
+      strong.textContent = step.label;
+      li.appendChild(strong);
+      var detail = document.createElement("span");
+      detail.className = "step-detail";
+      detail.textContent = " — " + step.detail;
+      li.appendChild(detail);
+      steps.appendChild(li);
+    });
+    var talk = document.getElementById("guided-talk");
+    talk.innerHTML = "";
+    (data.telling || []).forEach(function (turn) {
+      var div = document.createElement("div");
+      div.className = "msg " + (turn.speaker === "liv"
+        ? "companion" : "storyteller");
+      var who = document.createElement("span");
+      who.className = "who";
+      who.textContent = turn.speaker === "liv" ? "Liv" : "Sample storyteller";
+      div.appendChild(who);
+      var body = document.createElement("span");
+      body.textContent = turn.text;
+      div.appendChild(body);
+      talk.appendChild(div);
+    });
+    var photo = document.getElementById("guided-photo");
+    photo.innerHTML = "";
+    if (data.photo) {
+      var cap = document.createElement("p");
+      cap.className = "guided-photo-caption";
+      cap.textContent = "The sample photograph — " +
+        data.photo.description;
+      photo.appendChild(cap);
+    }
+    document.getElementById("guided-plan-title").textContent =
+      data.outline.title;
+    document.getElementById("guided-plan-dedication").textContent =
+      data.outline.dedication;
+    var secs = document.getElementById("guided-plan-sections");
+    secs.innerHTML = "";
+    (data.outline.sections || []).forEach(function (sec) {
+      var li = document.createElement("li");
+      li.textContent = sec.heading;
+      secs.appendChild(li);
+    });
+    var flagsBox = document.getElementById("guided-flags");
+    var flags = (data.check && data.check.flags) || [];
+    flagsBox.hidden = flags.length === 0;
+    var flagsList = document.getElementById("guided-flags-list");
+    flagsList.innerHTML = "";
+    flags.forEach(function (flag) {
+      var li = document.createElement("li");
+      li.textContent = "\u201c" + flag.text + "\u201d (" +
+        flag.kind + ") — not in the telling, please check";
+      flagsList.appendChild(li);
+    });
+    var draftBody = document.getElementById("guided-draft-body");
+    draftBody.innerHTML = "";
+    var dTitle = document.createElement("h3");
+    dTitle.className = "chapter-draft-title";
+    dTitle.textContent = data.draft.title;
+    draftBody.appendChild(dTitle);
+    if (data.draft.dedication) {
+      var forLine = document.createElement("p");
+      forLine.className = "chapter-for";
+      forLine.textContent = "For " + data.draft.dedication;
+      draftBody.appendChild(forLine);
+    }
+    (data.draft.sections || []).forEach(function (section) {
+      var heading = document.createElement("h3");
+      heading.className = "chapter-h3";
+      heading.textContent = section.heading;
+      draftBody.appendChild(heading);
+      (section.paragraphs || []).forEach(function (para) {
+        var p = document.createElement("p");
+        p.textContent = para.text;
+        draftBody.appendChild(p);
+      });
+    });
+    document.getElementById("guided-keepsake-title").textContent =
+      data.title;
+    document.getElementById("guided-keepsake-dedication")
+      .textContent = "For " + data.dedication;
+    document.getElementById("guided-keepsake-summary").textContent =
+      data.summary_line;
+  }
+
+  function setGuidedBeat(beat) {
+    guidedBeat = beat;
+    document.getElementById("guided-plan-box").hidden = beat < 1;
+    document.getElementById("guided-draft-box").hidden = beat < 2;
+    document.getElementById("guided-keepsake-box").hidden =
+      beat < 3;
+    guidedNext.hidden = beat >= 2;
+    guidedNext.textContent = beat === 0
+      ? "Next — see the chapter plan"
+      : "Next — see the draft and its source-check";
+    if (beat === 1) {
+      guidedStatus.textContent = "The plan comes first — in a " +
+        "real sitting the storyteller can change it before " +
+        "anything is written.";
+    } else if (beat === 2) {
+      guidedStatus.textContent = "Here is the sample draft. " +
+        "The source-check above was run by the same check " +
+        "that checks real drafts.";
+      document.getElementById("guided-draft-box")
+        .scrollIntoView({ block: "start",
+                           behavior: scrollBehavior() });
+    } else if (beat === 3) {
+      guidedStatus.textContent = "Approved — in the demo. In " +
+        "a real sitting, only now would a share link exist.";
+      document.getElementById("guided-keepsake-box")
+        .scrollIntoView({ block: "start",
+                           behavior: scrollBehavior() });
+    }
+  }
+
+  document.getElementById("guided-start").addEventListener(
+    "click", function () {
+      showGuidedError("");
+      guidedStatus.textContent = "Loading the guided demo\u2026";
+      fetch("/api/guided/demo")
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          consentScreen.hidden = true;
+          chatScreen.hidden = true;
+          chapterScreen.hidden = true;
+          guidedScreen.hidden = false;
+          renderGuided(data);
+          setGuidedBeat(0);
+          guidedStatus.textContent = "A made-up telling, " +
+            "preloaded for the demo — walk it at your pace.";
+          guidedHeading.focus();
+        })
+        .catch(function () {
+          showGuidedError("The guided demo could not be " +
+            "reached just now. Please try again in a moment.");
+        });
+    });
+
+  guidedNext.addEventListener("click", function () {
+    if (guidedBeat < 2) { setGuidedBeat(guidedBeat + 1); }
+  });
+
+  document.getElementById("guided-approve").addEventListener(
+    "click", function () { setGuidedBeat(3); });
+
+  document.getElementById("guided-exit").addEventListener(
+    "click", function () {
+      guidedScreen.hidden = true;
+      consentScreen.hidden = false;
+      window.scrollTo(0, 0);
+    });
 })();
