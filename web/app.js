@@ -2435,6 +2435,48 @@
       });
   });
 
+  // ---- Landing scorecard numbers ------------------------------
+  // The three numbers up front are wired to /api/scorecard,
+  // which reads SCORECARD.md at request time. Until measured
+  // numbers are published the slots stay labelled TO-RUN —
+  // no figure is ever invented in the page.
+  (function loadScorecardNumbers() {
+    var list = document.getElementById("scorecard-numbers");
+    var status = document.getElementById("scorecard-status");
+    if (!list || !window.fetch) { return; }
+    fetch("/api/scorecard")
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var numbers = (data && data.numbers) || [];
+        if (!data || !data.available || numbers.length === 0) {
+          return;  // TO-RUN labels already in the page stand.
+        }
+        list.innerHTML = "";
+        numbers.slice(0, 3).forEach(function (n) {
+          var li = document.createElement("li");
+          var value = document.createElement("span");
+          value.className = "scorecard-value";
+          value.textContent = n.value;
+          var label = document.createElement("span");
+          label.className = "scorecard-label";
+          label.textContent = n.label;
+          li.appendChild(value);
+          li.appendChild(label);
+          list.appendChild(li);
+        });
+        if (status) {
+          status.innerHTML = "";
+          status.appendChild(document.createTextNode(
+            "Measured numbers from the published scorecard. "));
+          var link = document.createElement("a");
+          link.href = "/scorecard";
+          link.textContent = "See the scorecard";
+          status.appendChild(link);
+        }
+      })
+      .catch(function () { /* TO-RUN labels stand. */ });
+  })();
+
   // ---- Guided demo (judge path) --------------------------------
   // A separate, clearly labelled path over PRELOADED SYNTHETIC
   // material only. It fetches /api/guided/demo (a GET carrying

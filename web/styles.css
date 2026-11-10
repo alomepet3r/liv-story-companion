@@ -1851,6 +1851,64 @@ button.secondary:hover { border-color: var(--ink); background: var(--card); }
   margin: 0;
 }
 
+.landing-score, .landing-models {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.8rem 1.9rem;
+  margin: 2.3rem 0 0;
+  text-align: left;
+}
+
+.scorecard-numbers {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.scorecard-numbers li { flex: 1 1 9rem; }
+
+.scorecard-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--action);
+}
+
+.scorecard-label {
+  display: block;
+  font-size: 1rem;
+  color: var(--ink-2);
+  margin-top: 0.3rem;
+}
+
+.model-stack {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.model-stack th, .model-stack td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.7rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+.landing-values, .landing-fails {
+  max-width: 33rem;
+  margin: 2.3rem auto 0;
+  text-align: center;
+  line-height: 1.7;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .msg { animation: none; }
   .listening-dot { animation: none; }

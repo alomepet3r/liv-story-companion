@@ -54,6 +54,7 @@ from .archive import (                       # noqa: E402
 )
 from . import chapter as chapter_mod        # noqa: E402
 from . import guided as guided_mod          # noqa: E402
+from . import scorecard as scorecard_mod    # noqa: E402
 from . import voice as voice_mod            # noqa: E402
 from .canned import (                        # noqa: E402
     CannedCompanion,
@@ -1442,6 +1443,14 @@ def handle_guided_demo():
     return 200, guided_mod.demo_payload()
 
 
+def handle_scorecard():
+    """The public scorecard as data: SCORECARD.md's headline
+    numbers, read from disk at request time (see
+    server/scorecard.py). No gate — this is a public surface,
+    and it publishes only the evaluation's own figures."""
+    return 200, scorecard_mod.scorecard_payload()
+
+
 def handle_end_session(payload):
     """Session evict (Day 4 truth pass): the storyteller's own
     delete control. Ends the session and wipes ALL of its
@@ -1486,6 +1495,15 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/guided/demo":
             status, response = handle_guided_demo()
             return self._send(status, response)
+        if path == "/api/scorecard":
+            status, response = handle_scorecard()
+            return self._send(status, response)
+        if path == "/scorecard":
+            return self._send(
+                200,
+                scorecard_mod.render_scorecard_html(
+                    scorecard_mod.scorecard_payload()),
+                "text/html; charset=utf-8")
         if path.startswith("/keepsake/"):
             # The one share link: read-only, approved chapters
             # only. An unknown (or not-yet-minted) token is a 404 —
