@@ -2181,6 +2181,7 @@
       chapterShareLink.value = absolute;
       chapterKeepsakeLink.href = view.share_url;
       document.getElementById("chapter-approve").disabled = true;
+      renderShareCard(view, absolute);
     }
     var illustrated = approved && view.chapter.illustration;
     chapterIllustrationBox.hidden = !illustrated;
@@ -2190,6 +2191,84 @@
         "&v=" + (view.chapter.illustration_version || 1);
     }
   }
+
+  // ---- Keepsake share card ----------------------------------
+  // In-product only: the card shows the approved chapter's
+  // title, its dedication, ONE forwardable summary line and
+  // the keepsake link, with copy affordances. Nothing is
+  // posted anywhere — the buttons only copy text the
+  // storyteller can then share themselves.
+  var shareCardData = null;
+
+  function renderShareCard(view, absoluteUrl) {
+    var card = view.chapter.share_card;
+    var draft = view.chapter.draft || {};
+    if (!card) {
+      card = {
+        title: draft.title || "",
+        dedication: draft.dedication || "",
+        summary_line: "",
+        share_url: view.share_url
+      };
+    }
+    shareCardData = {
+      title: card.title,
+      dedication: card.dedication,
+      summary_line: card.summary_line,
+      share_url: absoluteUrl
+    };
+    document.getElementById("share-card-title").textContent =
+      card.title;
+    document.getElementById("share-card-dedication").textContent =
+      card.dedication ? "For " + card.dedication : "";
+    document.getElementById("share-card-summary").textContent =
+      card.summary_line;
+    document.getElementById("share-card-link-text").textContent =
+      absoluteUrl;
+    document.getElementById("share-card-status").textContent = "";
+  }
+
+  function shareCardText() {
+    if (!shareCardData) { return ""; }
+    var lines = [shareCardData.title];
+    if (shareCardData.dedication) {
+      lines.push("For " + shareCardData.dedication);
+    }
+    if (shareCardData.summary_line) {
+      lines.push(shareCardData.summary_line);
+    }
+    lines.push(shareCardData.share_url);
+    return lines.join("\n");
+  }
+
+  function copyText(text, doneMessage) {
+    var status = document.getElementById("share-card-status");
+    function done() { status.textContent = doneMessage; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () {
+        chapterShareLink.focus();
+        chapterShareLink.select();
+        status.textContent = "The link is selected above — " +
+          "copy it from there.";
+      });
+    } else {
+      chapterShareLink.focus();
+      chapterShareLink.select();
+      status.textContent = "The link is selected above — " +
+        "copy it from there.";
+    }
+  }
+
+  document.getElementById("share-card-copy-link")
+    .addEventListener("click", function () {
+      if (!shareCardData) { return; }
+      copyText(shareCardData.share_url, "Link copied.");
+    });
+  document.getElementById("share-card-copy-text")
+    .addEventListener("click", function () {
+      if (!shareCardData) { return; }
+      copyText(shareCardText(), "Card text copied.");
+    });
 
   function openChapter() {
     chatScreen.hidden = true;

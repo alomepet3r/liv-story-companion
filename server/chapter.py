@@ -668,6 +668,38 @@ def _checklist(chapter):
             for key, label in _CHECKLIST]
 
 
+def share_card_for(chapter):
+    """The keepsake share card's contents, or None before
+    approval. The card exists only once a share link does —
+    it is built from the approved draft's own furniture
+    (title, dedication) plus ONE forwardable summary line.
+    The line claims only what is true: the chapter was
+    arranged from a conversation and approved by the
+    storyteller."""
+    if chapter is None or chapter.get("stage") != "approved" \
+            or not chapter.get("share_token") \
+            or not chapter.get("draft"):
+        return None
+    draft = chapter["draft"]
+    title = draft["title"]
+    dedication = draft["dedication"]
+    if dedication:
+        summary = ("\u201c%s\u201d \u2014 a chapter for %s, "
+                   "arranged from a conversation with Liv and "
+                   "approved by the storyteller."
+                   % (title, dedication))
+    else:
+        summary = ("\u201c%s\u201d \u2014 a chapter arranged "
+                   "from a conversation with Liv and approved "
+                   "by the storyteller." % title)
+    return {
+        "title": title,
+        "dedication": dedication,
+        "summary_line": summary,
+        "share_url": "/keepsake/" + chapter["share_token"],
+    }
+
+
 def chapter_view(chapter):
     """Everything the UI renders — steps, checklist, outline,
     draft, flags, evidence, share link (only once approved)."""
@@ -706,6 +738,7 @@ def chapter_view(chapter):
             "illustration": bool(chapter.get("illustration")),
             "illustration_version":
                 chapter.get("illustration_version", 0),
+            "share_card": share_card_for(chapter),
             "excluded": sorted(chapter["excluded"]),
             "materials_all": [
                 {"id": s["id"], "kind": s["kind"], "label": s["label"],
