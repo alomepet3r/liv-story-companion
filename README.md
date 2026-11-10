@@ -5,7 +5,7 @@
 Liv helps a storyteller tell their story in conversation. Chapters
 **arrange** the conversation. A deterministic source-check flags draft
 details that do not appear in the telling. The storyteller reviews and
-approves before anything is shared.
+approves before a chapter is published or shared with another person.
 
 Liv is an accessibility-first companion for adults of every generation —
 anyone with a life to tell. You talk; Liv listens, at your pace. This
@@ -38,7 +38,7 @@ performance claim without them.
 | Source-check — planted inventions missed | **2** — `red bicycle`, `three weeks` (see *Where it fails*) |
 | False flags on a clean draft | **0** (one small clean draft, 3 candidates checked) |
 | Count corrections adopted | **3 of 3** deliberate corrections; 2 of 2 non-correction controls held |
-| Automated test suite | **270 tests, all passing** |
+| Automated test suite | **277 tests, all passing** |
 
 *How to read this table: the source-check counts come from a
 planted-invention evaluation — details deliberately placed in a draft
@@ -47,6 +47,34 @@ unflagged (missed). Misses are published here, not hidden. Full method,
 fixtures, and failures: `SCORECARD.md` (re-runnable:
 `python3 -m eval.run_eval`). Chapter cost/time is **TO-RUN** — the
 harness makes no live model calls, so no cost or time number is claimed.*
+
+## What Liv sends, and what approval gates
+
+The real data path, plainly:
+
+- The browser sends the conversation and any shared media to the
+  app server (hosted on Modal). The sitting — conversation, media,
+  chapters, and keepsake tokens — is held in that one server
+  container's memory.
+- To work, the app sends material on to Meta's model services:
+  conversation text and photos to Muse Spark (and photos to
+  SAM 3.1 for the scene ledger), recordings and the spoken audio
+  of videos to Muse Voice Transcribe, the session's sources and
+  outline to Muse Spark for a live chapter arrangement, and an
+  approved chapter's title, dedication, and section headings to
+  Muse Image for its illustration. The deterministic
+  source-check itself runs in the app, on the session's own
+  words; it is not a model call.
+- **Approval does not gate that processing.** Approval gates
+  publication: no chapter is published, given a keepsake link,
+  or shared with another person until the storyteller approves
+  that chapter. Anyone the storyteller gives the approved
+  keepsake link to can read that chapter.
+- **Closing or refreshing the tab does not delete a sitting.**
+  It leaves the sitting unreachable in server memory. The
+  storyteller's end-and-delete control wipes the session's
+  in-memory state and drops its keepsake links; a container
+  restart or redeploy also clears the memory, links included.
 
 ## Model stack — every model has a named job
 
@@ -78,11 +106,14 @@ each model had to pass to stay in the stack.
 
 Honest limits, stated plainly:
 
-- **Sessions are in-memory — a refresh ends a sitting.** Sessions,
+- **Sessions are in-memory — a refresh strands a sitting.** Sessions,
   media, chapters, and keepsake tokens live in one container's memory
   (the deployment pins the fleet to a single container for exactly this
-  reason — see `deploy/modal_app.py`). Close or refresh the tab and the
-  sitting is gone; an unapproved chapter cannot be recovered.
+  reason — see `deploy/modal_app.py`). Closing or refreshing the tab
+  does not delete the sitting: it stays in server memory, unreachable,
+  until the storyteller ends and deletes it (which also drops its
+  keepsake links) or the container restarts and clears its memory.
+  Either way, an unapproved chapter cannot be recovered afterwards.
 - **The source-check is mechanical, not wise.** It flags draft details
   — names, dates, and places as extracted — that do not appear in the
   telling. It cannot judge emphasis or meaning, it cannot tell whether
@@ -163,7 +194,7 @@ fireside-build/
   and more), plus live-check helpers such as
   `tests/live_identification_check.py` for checks against a running
   instance. The measured suite size is published in *By the numbers*
-  above from `SCORECARD.md` — **TO-RUN** until that file lands.
+  above, from the harness-emitted `SCORECARD.json` / `SCORECARD.md`.
 
 ## Deploy
 

@@ -2404,7 +2404,8 @@ class CannedCompanion:
                     ". What you shared "
                     "matters. When you are ready, we can arrange today's "
                     "conversation into a chapter, and you will review it "
-                    "first — nothing is shared unless you approve it. "
+                    "first — no chapter is published or shared with "
+                    "another person unless you approve it. "
                     "Rest well, and come back any time. — " + self.name)
 
         # PREFERRED NAME — the opening answer. Liv asked at the start

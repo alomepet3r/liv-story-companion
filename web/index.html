@@ -47,17 +47,17 @@
       chapters <strong>arrange</strong> the conversation — they do
       not invent it. A deterministic source-check flags any draft
       detail that is not in the telling, and the storyteller
-      reviews and approves the chapter before anything is
-      shared.</p>
+      reviews and approves the chapter before it is
+      published or shared with another person.</p>
 
     <section class="landing-score" aria-labelledby="landing-score-heading">
       <h2 id="landing-score-heading">The numbers, up front</h2>
       <ul id="scorecard-numbers" class="scorecard-numbers">
-        <li><span class="scorecard-value">TO-RUN</span><span class="scorecard-label">Evaluation pending</span></li>
-        <li><span class="scorecard-value">TO-RUN</span><span class="scorecard-label">Evaluation pending</span></li>
-        <li><span class="scorecard-value">TO-RUN</span><span class="scorecard-label">Evaluation pending</span></li>
+        <li><span class="scorecard-value">…</span><span class="scorecard-label">Loading the measured scorecard</span></li>
+        <li><span class="scorecard-value">…</span><span class="scorecard-label">Loading the measured scorecard</span></li>
+        <li><span class="scorecard-value">…</span><span class="scorecard-label">Loading the measured scorecard</span></li>
       </ul>
-      <p class="quiet" id="scorecard-status">Evaluation pending — these numbers are marked TO-RUN until the measured scorecard is published. <a href="/scorecard">See the scorecard</a></p>
+      <p class="quiet" id="scorecard-status">Loading the measured scorecard… <a href="/scorecard">See the scorecard</a></p>
     </section>
 
     <section class="landing-models" aria-labelledby="landing-models-heading">
@@ -76,14 +76,16 @@
     <p class="landing-values">What we value, second only to the
       stakes above: a storyteller sets the pace and the
       boundaries; anything can be skipped, and a sitting can be
-      stopped or deleted at any time. Nothing is shared unless
-      the storyteller approves it first. The stories remain the
+      stopped or deleted at any time. No chapter is published
+      or shared with another person unless the storyteller
+      approves it first. The stories remain the
       storyteller's — Liv is there to listen, to arrange, and to
       hand the chapter back for a decision.</p>
 
     <p class="landing-fails"><strong>Where it fails:</strong>
-      sessions live in memory — a refresh ends a sitting, and a
-      chapter that was not approved is gone with it. Liv can
+      sessions live in the server's memory — a refresh strands
+      a sitting there, unreachable, until it is ended and
+      deleted or the server restarts and clears its memory. Liv can
       miss the sense of a telling, and the source-check can
       only flag names, dates and places it can compare against
       the telling; it cannot judge whether an arrangement
@@ -114,7 +116,8 @@
       <li><span class="promise-icon" aria-hidden="true">✎</span>
         We only save your conversation with your permission.</li>
       <li><span class="promise-icon" aria-hidden="true">✓</span>
-        You approve everything before it is shared.</li>
+        You approve a chapter before it is published or
+        shared with another person.</li>
       <li><span class="promise-icon" aria-hidden="true">✕</span>
         You can stop or delete at any time.</li>
     </ul>
@@ -125,15 +128,29 @@
         computer program, not a human being. She listens, remembers
         what you share here, and responds — but she is not a
         person.</p>
-      <p><strong>What is kept:</strong> the words of our conversation,
-        as text, so they can be arranged into a chapter for you to
-        review — and anything you choose to share along the way: a
-        photo, your voice, a video. In this demo, they are kept only
-        while this tab
-        stays open — when you close the tab, this conversation is
-        gone.</p>
-      <p><strong>Who can see it:</strong> no one else. Nothing leaves
-        this conversation unless you approve it first.</p>
+      <p><strong>What is kept, and where:</strong> the words of our
+        conversation, as text, so they can be arranged into a
+        chapter for you to review — and anything you choose to
+        share along the way: a photo, your voice, a video. In
+        this demo, the sitting is held in the server's memory.
+        Closing or refreshing the tab does <em>not</em> delete
+        it: the sitting stays in server memory, unreachable,
+        until you use the sitting's own end-and-delete control
+        (which wipes the sitting and drops any keepsake links
+        it made) or the demo server restarts and its memory is
+        cleared.</p>
+      <p><strong>Who can see it, and where it goes:</strong> to
+        work at all, Liv sends what you say and share — the
+        conversation, photos, and recordings — to Meta's model
+        services, which transcribe recordings, run the
+        conversation and the photo scene check, draft chapters,
+        and make an illustration if you ask for one. (The
+        chapter source-check itself runs in this app, on the
+        session's own words.) That sending is part of using
+        Liv; it is not publication. Liv does not publish a
+        chapter or share it with another person unless you
+        approve that chapter first — and anyone you give the
+        approved keepsake link to can then read that chapter.</p>
       <p><strong>Stopping:</strong> you may pause, skip a question, or
         finish at any time — no reason needed.</p>
       <p><strong>Who this is for:</strong> Liv is for adults (18+)
@@ -161,8 +178,11 @@
         You will sit with <span class="js-companion-name">Liv</span> and
         talk about your life, at your pace.
         Our conversation will be written down so it can be arranged
-        into a chapter. You will see that chapter first, and nothing is
-        shared with anyone unless you approve it. You may pause, stop,
+        into a chapter. You will see that chapter first, and it
+        will not be published or shared with another person
+        unless you approve it. To listen, transcribe, check,
+        and arrange, Liv sends our conversation and anything
+        you share to Meta's model services. You may pause, stop,
         or skip any question at any time. And remember: these are your
         stories — yours, always. You can delete anything, anytime.
         The only time we could not delete something is if a court,
@@ -175,9 +195,11 @@
       <label class="consent-check">
         <input type="checkbox" id="consent-check">
         <span>I understand and agree — my conversation is written down
-          only with my permission, I review and approve any chapter
-          before it is shared, and I can stop or delete at any
-          time.</span>
+          only with my permission and is sent to Meta's model
+          services so Liv can listen, transcribe, check, and
+          arrange it; I review and approve any chapter before
+          it is published or shared with another person, and I
+          can stop or delete at any time.</span>
       </label>
       <label class="consent-check">
         <input type="checkbox" id="age-check">
@@ -272,16 +294,20 @@
          (the upload-moment word) before anything opens. -->
     <div id="media-notice" class="media-notice" hidden>
       <h2 id="media-notice-title" tabindex="-1">Before you share</h2>
-      <p>In this demo, anything you share is kept only while this
-        tab stays open — when you close the tab, it is gone, just
-        like our conversation. And please only share what you are
+      <p>In this demo, anything you share is held in the
+        server's memory for this sitting. Closing the tab does
+        not delete it — use the sitting's end-and-delete
+        control to wipe it, or it is cleared when the demo
+        server restarts. And please only share what you are
         content to keep with your story — intimate pictures deserve
         the same care as intimate words.</p>
       <p>How <span class="js-companion-name">Liv</span> receives what
-        you share: she sees photographs. For a voice recording or a
-        video, your spoken words are turned into text so she can
-        listen to them — she hears your words, but she cannot see a
-        video’s pictures, only photographs.</p>
+        you share: what you share is sent to Meta's model
+        services — she sees photographs there. For a voice
+        recording or a video, your spoken words are transcribed
+        there into text so she can listen to them — she hears
+        your words, but she cannot see a video’s pictures, only
+        photographs.</p>
       <p class="media-notice-actions">
         <button id="media-notice-ok" class="primary small" type="button">I understand — continue</button>
         <button id="media-notice-cancel" class="secondary" type="button">Not now</button>
@@ -295,12 +321,16 @@
          shared with Liv until the storyteller ticks it. -->
     <div id="archive-notice" class="media-notice" hidden>
       <h2 id="archive-notice-title" tabindex="-1">Before you bring your archive</h2>
-      <p>Liv will open the export <strong>once, here in this
-        tab</strong>, and look only for its photos and their
-        captions. Nothing is kept after this tab closes. And
-        nothing is shared with Liv until you see the photos and
-        tick the ones you choose — the rest never leave the
-        archive.</p>
+      <p>Your browser sends the export to this demo's server,
+        which opens it <strong>once</strong> and looks only for
+        its photos and their captions. The opened archive is
+        held in the server's memory for this sitting; closing
+        the tab does not delete it — the sitting's
+        end-and-delete control wipes it, or a server restart
+        clears it. And nothing from the archive is sent to
+        Liv's model services until you see the photos and tick
+        the ones you choose — the rest are not sent to the
+        model.</p>
       <p class="media-notice-actions">
         <button id="archive-notice-ok" class="primary small" type="button">I understand — continue</button>
         <button id="archive-notice-cancel" class="secondary" type="button">Not now</button>
@@ -505,8 +535,9 @@
     <div class="chapter-col">
     <h1 id="chapter-heading" tabindex="-1">Your chapter</h1>
     <p class="lede">Liv will arrange what you shared into a chapter.
-      You see the plan first, you can change it, and nothing is
-      shared unless you approve the finished chapter.</p>
+      You see the plan first, you can change it, and no chapter
+      is published or shared with another person unless you
+      approve the finished chapter.</p>
 
     <div class="divider" aria-hidden="true"><span class="divider-diamond"></span></div>
 
@@ -544,8 +575,8 @@
       <h2 class="chapter-h">The draft</h2>
       <p><span id="draft-badge" class="draft-badge">Unverified draft</span></p>
       <p class="quiet">Liv arranged this from your conversation.
-        Please read it through — it is not shared with anyone until
-        you approve it.</p>
+        Please read it through — it is not published or shared
+        with another person until you approve it.</p>
       <div id="chapter-flags" class="chapter-flags" hidden>
         <h3 class="chapter-h3">Please check these</h3>
         <p>These names, dates or places in the draft were

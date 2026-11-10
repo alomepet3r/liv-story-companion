@@ -202,8 +202,9 @@ def demo_payload():
              "detail": "The draft is checked against the "
                        "telling's own words"},
             {"id": "approve", "label": "Approve",
-             "detail": "In a real sitting, nothing is shared "
-                       "until the storyteller approves"},
+             "detail": "In a real sitting, no chapter is "
+                       "published or shared with another "
+                       "person until the storyteller approves"},
             {"id": "keepsake", "label": "Keepsake",
              "detail": "The approved sample chapter, as a "
                        "demo keepsake only"},

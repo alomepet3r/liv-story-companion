@@ -38,6 +38,10 @@ class TestGuidedPayload(unittest.TestCase):
                                "approve", "keepsake"])
         self.assertTrue(payload["draft"]["sections"])
         self.assertTrue(payload["summary_line"])
+        approve = [s for s in payload["steps"]
+                   if s["id"] == "approve"][0]
+        self.assertIn("no chapter is published or shared with "
+                      "another person", approve["detail"])
 
 
 class TestGuidedEndpoint(unittest.TestCase):
