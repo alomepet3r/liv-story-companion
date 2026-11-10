@@ -493,7 +493,8 @@ def build_arrangement_messages(sources, outline, companion_name="Liv"):
         {"role": "system",
          "content": "You are " + companion_name + ", arranging a "
                     "storyteller's conversation into a chapter for "
-                    "their review. Nothing is shared unless the "
+                    "their review. No chapter is published or "
+                    "shared with another person unless the "
                     "storyteller approves it."},
         {"role": "user", "content": "\n".join(lines)},
     ]
@@ -871,6 +872,15 @@ def make_draft(sess, drafter=None):
 # point of it.
 _shares = {}
 
+# token -> owning session_id, kept OUTSIDE the share snapshot.
+# The snapshot itself is what a share recipient's page is rendered
+# from, so it must never carry the session ID (or any other
+# credential that keys the sitting): the keepsake token is the
+# only credential a share ever discloses, and it scopes to this
+# approved chapter's content alone. This side map exists only so
+# end-of-session eviction can find the shares a session minted.
+_share_owners = {}
+
 
 def approve(sess, session_id):
     """The storyteller's approval: the ONLY door to a share link."""
@@ -886,14 +896,31 @@ def approve(sess, session_id):
     token = secrets.token_urlsafe(18)
     chapter["share_token"] = token
     draft = chapter["draft"]
+    # Copy the approved chapter's OWN media into the snapshot, so
+    # the shared page can serve it under the keepsake token alone
+    # (see render_keepsake_html) — never via the session's routes.
+    media = {}
+    session_media = sess.get("media", {})
+    for section in draft["sections"]:
+        for media_id in section["media_ids"]:
+            item = session_media.get(media_id)
+            if item is not None:
+                media[media_id] = {
+                    "data": item["data"],
+                    "content_type": item["content_type"],
+                }
     _shares[token] = {
+        "token": token,
         "title": draft["title"],
         "dedication": draft["dedication"],
         "sections": draft["sections"],
-        "session_id": session_id,
+        "media": media,
         "illustration": False,
         "illustration_version": 0,
+        "illustration_data": None,
+        "illustration_content_type": None,
     }
+    _share_owners[token] = session_id
     return 200, chapter_view(chapter)
 
 
@@ -989,8 +1016,13 @@ def illustrate(sess, session_id, generator):
           "A new one, replacing the earlier illustration")
     snapshot = _shares.get(chapter.get("share_token") or "")
     if snapshot is not None:
+        # The shared page serves the illustration from the
+        # snapshot's own copy, under the keepsake token — the
+        # session's illustration route is never involved.
         snapshot["illustration"] = True
         snapshot["illustration_version"] = version
+        snapshot["illustration_data"] = data
+        snapshot["illustration_content_type"] = content_type
     return 200, chapter_view(chapter)
 
 
@@ -1007,14 +1039,43 @@ def get_share(token):
     return _shares.get(str(token))
 
 
+def get_share_media(token, media_id):
+    """One media item from a share snapshot, reached ONLY under
+    its keepsake token: {"data": bytes, "content_type": str} —
+    else None. The session's media routes are a separate door
+    and are never used by a shared page."""
+    snapshot = get_share(token)
+    if snapshot is None:
+        return None
+    return snapshot.get("media", {}).get(str(media_id))
+
+
+def get_share_illustration(token):
+    """The share snapshot's own illustration copy, reached ONLY
+    under its keepsake token: {"data": bytes,
+    "content_type": str} — else None."""
+    snapshot = get_share(token)
+    if snapshot is None or not snapshot.get("illustration") \
+            or snapshot.get("illustration_data") is None:
+        return None
+    return {"data": snapshot["illustration_data"],
+            "content_type": snapshot["illustration_content_type"]}
+
+
 def drop_shares_for_session(session_id):
     """End-of-session eviction (Day 4 truth pass): remove every
     keepsake snapshot minted by a session, so its share links die
     with it. Returns how many were dropped."""
-    doomed = [token for token, snap in _shares.items()
-              if snap.get("session_id") == session_id]
+    doomed = [token for token, owner in _share_owners.items()
+              if owner == session_id]
+    # Snapshots minted before the owner side map existed carried
+    # the session ID in the snapshot itself; honour those too.
+    doomed += [token for token, snap in _shares.items()
+               if token not in doomed
+               and snap.get("session_id") == session_id]
     for token in doomed:
-        del _shares[token]
+        _shares.pop(token, None)
+        _share_owners.pop(token, None)
     return len(doomed)
 
 
@@ -1050,10 +1111,13 @@ def render_keepsake_html(snapshot):
     parts.append("<p class=\"note\">Arranged from a conversation "
                  "with Liv, and approved by the storyteller before "
                  "it was shared.</p>\n<hr>\n")
+    # Every asset on this page is served under the keepsake's
+    # own token (/keepsake/<token>/…) — the snapshot carries no
+    # session ID, and no URL here can key the owner's sitting.
+    token = esc(snapshot.get("token", ""))
     if snapshot.get("illustration"):
         parts.append(
-            "<img src=\"/api/chapter/illustration?session_id="
-            + esc(snapshot["session_id"]) + "&v="
+            "<img src=\"/keepsake/" + token + "/illustration?v="
             + str(snapshot.get("illustration_version", 1))
             + "\" alt=\"" + ILLUSTRATION_ALT + "\">\n")
     for section in snapshot["sections"]:
@@ -1062,8 +1126,8 @@ def render_keepsake_html(snapshot):
             parts.append("<p>" + esc(para["text"]) + "</p>\n")
         for media_id in section["media_ids"]:
             parts.append(
-                "<img src=\"/api/media/" + esc(media_id)
-                + "?session_id=" + esc(snapshot["session_id"])
+                "<img src=\"/keepsake/" + token + "/media/"
+                + esc(media_id)
                 + "\" alt=\"A photo kept with this chapter\">\n")
     parts.append("</main>\n</body>\n</html>")
     return "".join(parts)

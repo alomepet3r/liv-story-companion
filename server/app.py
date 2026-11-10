@@ -361,7 +361,7 @@ def build_system_prompt(companion_name):
     "plainly and kindly, without morbidity and without forced cheer. "
     "Close sessions gracefully, thanking them. Later, the conversation "
     "will be arranged into a chapter which the storyteller reviews and "
-    "approves before anything is shared."
+    "approves before it is published or shared with another person."
 )
 
 _STATIC_TYPES = {
@@ -1507,18 +1507,41 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/keepsake/"):
             # The one share link: read-only, approved chapters
             # only. An unknown (or not-yet-minted) token is a 404 —
-            # nothing unapproved is reachable here, ever.
-            snapshot = chapter_mod.get_share(path[len("/keepsake/"):])
+            # nothing unapproved is reachable here, ever. The
+            # page's own assets ride under the SAME token
+            # (/keepsake/<token>/media/<id> and
+            # /keepsake/<token>/illustration), served from the
+            # share snapshot's copies: a share never discloses
+            # the owner's session ID or touches session routes.
+            parts = path[len("/keepsake/"):].split("/")
+            token = parts[0]
+            snapshot = chapter_mod.get_share(token)
             if snapshot is None:
                 return self._send(404, {"error": "not found"})
-            return self._send(
-                200, chapter_mod.render_keepsake_html(snapshot),
-                "text/html; charset=utf-8")
+            if len(parts) == 1:
+                return self._send(
+                    200, chapter_mod.render_keepsake_html(snapshot),
+                    "text/html; charset=utf-8")
+            if len(parts) == 2 and parts[1] == "illustration":
+                illus = chapter_mod.get_share_illustration(token)
+                if illus is None:
+                    return self._send(404, {"error": "not found"})
+                return self._send(200, illus["data"],
+                                  illus["content_type"])
+            if len(parts) == 3 and parts[1] == "media":
+                item = chapter_mod.get_share_media(token, parts[2])
+                if item is None:
+                    return self._send(404, {"error": "not found"})
+                return self._send(200, item["data"],
+                                  item["content_type"])
+            return self._send(404, {"error": "not found"})
         if path == "/api/chapter/illustration":
             # The keepsake illustration, served back to its
-            # owning session (and to the keepsake page, which
-            # carries the session id the same way media links
-            # do). No illustration made -> 404.
+            # owning session for the in-product chapter screen.
+            # (The public keepsake page does NOT use this route —
+            # it serves the snapshot's copy under the keepsake
+            # token; see the /keepsake/ branch above.)
+            # No illustration made -> 404.
             query = parse_qs(urlparse(self.path).query)
             session_id = (query.get("session_id") or [""])[0]
             sess = _sessions.get(session_id)

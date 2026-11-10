@@ -133,8 +133,13 @@ class TestIllustrationFlow(IllustrationCase):
         snapshot = chapter.get_share(token)
         self.assertTrue(snapshot["illustration"])
         html = chapter.render_keepsake_html(snapshot)
-        self.assertIn("/api/chapter/illustration?session_id="
-                      + self.session, html)
+        # The shared page serves the illustration under the
+        # keepsake token alone — never via the session route,
+        # and the session ID appears nowhere in it.
+        self.assertIn("/keepsake/" + token + "/illustration?v=1",
+                      html)
+        self.assertNotIn("session_id", html)
+        self.assertNotIn(self.session, html)
         self.assertIn('alt="An illustration made for this '
                       'chapter"', html)
 
@@ -156,7 +161,8 @@ class TestIllustrationFlow(IllustrationCase):
         token = view["share_url"].rsplit("/", 1)[1]
         snapshot = chapter.get_share(token)
         self.assertEqual(snapshot["illustration_version"], 2)
-        self.assertIn("&v=2", chapter.render_keepsake_html(snapshot))
+        self.assertIn("/illustration?v=2",
+                      chapter.render_keepsake_html(snapshot))
 
     def test_prompt_uses_furniture_only_under_the_discipline(self):
         fake = FakeImageClient()

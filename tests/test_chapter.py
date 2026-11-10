@@ -213,6 +213,74 @@ class TestDraftCheckApprove(ChapterCase):
         self.assertNotIn("<b>x</b>", html)
 
 
+class TestShareCredentialScope(ChapterCase):
+    """RT-09 regression: a shared keepsake must never disclose
+    the owner's session ID, and the keepsake token must not work
+    as a key to the owner's sitting."""
+
+    def _approved_with_photo(self):
+        self.tell_story()
+        media_id = self.add_photo()
+        self.outline()
+        status, _view = app.handle_chapter_draft(self.payload)
+        self.assertEqual(status, 200)
+        status, view = app.handle_chapter_approve(self.payload)
+        self.assertEqual(status, 200, view)
+        token = view["share_url"].split("/")[-1]
+        return token, media_id
+
+    def test_snapshot_and_page_carry_no_session_id(self):
+        token, media_id = self._approved_with_photo()
+        snapshot = chapter.get_share(token)
+        self.assertIsNotNone(snapshot)
+        self.assertNotIn("session_id", snapshot)
+        self.assertNotIn(self.session, str(snapshot))
+        page = chapter.render_keepsake_html(snapshot)
+        self.assertNotIn("session_id", page)
+        self.assertNotIn(self.session, page)
+        # Every asset URL on the page is keepsake-token-scoped.
+        self.assertIn("/keepsake/" + token + "/media/" + media_id,
+                      page)
+        self.assertNotIn("/api/media/", page)
+        self.assertNotIn("/api/chapter/illustration", page)
+        # The snapshot's own media copy serves under the token.
+        item = chapter.get_share_media(token, media_id)
+        self.assertIsNotNone(item)
+        self.assertEqual(item["data"], PNG)
+        self.assertIsNone(chapter.get_share_media(
+            "some-other-token", media_id))
+
+    def test_token_cannot_drive_the_owner_session(self):
+        token, _media_id = self._approved_with_photo()
+        as_token = {"session_id": token, "consent": True,
+                    "age_confirmed": True}
+        # Ending a "session" named by the token ends nothing:
+        # the owner's session and its share both survive. (This
+        # probe runs first, before any other token-named call
+        # could create a fresh, empty token-named session.)
+        status, body = app.handle_end_session(as_token)
+        self.assertEqual(status, 200)
+        self.assertFalse(body["session_existed"])
+        self.assertEqual(body["share_links_dropped"], 0)
+        self.assertIn(self.session, app._sessions)
+        self.assertIsNotNone(chapter.get_share(token))
+        # Reading chapter state under the token sees no chapter.
+        status, view = app.handle_chapter_view(as_token)
+        self.assertEqual(status, 200)
+        self.assertIsNone(view["chapter"])
+        # Triggering an illustration under the token finds no
+        # approved chapter to illustrate.
+        status, _body = app.handle_chapter_illustrate(as_token)
+        self.assertEqual(status, 409)
+
+    def test_approved_keepsake_still_renders(self):
+        token, _media_id = self._approved_with_photo()
+        snapshot = chapter.get_share(token)
+        page = chapter.render_keepsake_html(snapshot)
+        self.assertIn("Bamenda", page)
+        self.assertIn("approved by the storyteller", page)
+
+
 class TestSourceCheck(unittest.TestCase):
     def setUp(self):
         self.sources = [{
